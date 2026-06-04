@@ -1,24 +1,36 @@
-from bs4 import BeautifulSoup
-
 from login import login
-from wishlist import get_wishlist, get_availability_page
 from parser import parse_availability_page
+from wishlist import extract_availability_links, get_wishlist_page
 
 session = login()
 
-html = get_wishlist(session)
-soup = BeautifulSoup(html, "html.parser")
+all_results = []
 
-availability_links = []
+cur_pos = 1
 
-for a in soup.find_all("a"):
-    href = a.get("href", "")
-    if "runMemorizeAvailability" in href:
-        availability_links.append(href)
+while True:
+    print(f"\nLade Merkliste ab Position {cur_pos}...")
 
-print(f"Gefundene Verfügbarkeitslinks: {len(availability_links)}")
+    html = get_wishlist_page(session, cur_pos=cur_pos)
+    links = extract_availability_links(html)
 
-for link in availability_links:
-    item_html = get_availability_page(session, link)
-    result = parse_availability_page(item_html)
-    print(result)
+    print(f"Gefundene Einträge auf dieser Seite: {len(links)}")
+
+    if not links:
+        break
+
+    for link in links:
+        response = session.get(link)
+        response.raise_for_status()
+
+        result = parse_availability_page(response.text)
+        all_results.append(result)
+
+        print(result)
+
+    if len(links) < 10:
+        break
+
+    cur_pos += 10
+
+print(f"\nInsgesamt gefunden: {len(all_results)}")

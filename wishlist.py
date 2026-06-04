@@ -1,29 +1,32 @@
-import requests
 from urllib.parse import urljoin
 
-WISHLIST_URL = (
-    "https://opac.stabi-hb.de/webOPACClient/"
-    "memorizelist.do?methodToCall=show"
-)
+import requests
+from bs4 import BeautifulSoup
+
 BASE_URL = "https://opac.stabi-hb.de"
+WISHLIST_URL = f"{BASE_URL}/webOPACClient/memorizelist.do"
 
 
-def get_wishlist(session: requests.Session):
-    response = session.get(WISHLIST_URL)
+def get_wishlist_page(session: requests.Session, cur_pos: int = 1) -> str:
+    params = {
+        "methodToCall": "pos" if cur_pos > 1 else "show",
+    }
+
+    if cur_pos > 1:
+        params["curPos"] = cur_pos
+
+    response = session.get(WISHLIST_URL, params=params)
     response.raise_for_status()
-
-    print(f"Status: {response.status_code}")
-    print(f"URL: {response.url}")
-
     return response.text
 
 
-def get_availability_page(session, href):
-    url = urljoin(BASE_URL, href)
-    response = session.get(url)
-    response.raise_for_status()
+def extract_availability_links(html: str) -> list[str]:
+    soup = BeautifulSoup(html, "html.parser")
 
-    print(f"Status: {response.status_code}")
-    print(f"URL: {response.url}")
+    links = []
+    for a in soup.find_all("a"):
+        href = a.get("href", "")
+        if "runMemorizeAvailability" in href:
+            links.append(urljoin(BASE_URL, href))
 
-    return response.text
+    return links
