@@ -18,7 +18,7 @@ for a in soup.find_all("a"):
 
 print(f"Gefundene Verfügbarkeitslinks: {len(availability_links)}")
 
-first_html = get_availability_page(session, availability_links[0])
-result = parse_availability_page(first_html)
-
-print(result)
+for link in availability_links:
+    item_html = get_availability_page(session, link)
+    result = parse_availability_page(item_html)
+    print(result)
