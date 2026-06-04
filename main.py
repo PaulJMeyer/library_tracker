@@ -1,3 +1,3 @@
-from login import get_login_page
+from login import login
 
-session, response = get_login_page()
+session = login()
