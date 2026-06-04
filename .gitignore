@@ -1,0 +1,16 @@
+# Virtual Environment
+.venv/
+
+# Credentials
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Local data
+data/
+*.db
+
+# VS Code
+.vscode/
