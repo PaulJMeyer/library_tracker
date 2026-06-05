@@ -2,15 +2,14 @@ import os
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+from client import build_url, get, post
 
-LOGIN_PAGE_URL = "https://opac.stabi-hb.de/webOPACClient/start.do?StartPage=UserAccount"
-LOGIN_URL = "https://opac.stabi-hb.de/webOPACClient/login.do"
+LOGIN_PAGE_URL = build_url("/webOPACClient/start.do?StartPage=UserAccount")
+LOGIN_URL = build_url("/webOPACClient/login.do")
 
 
 def get_login_page(session):
-    response = session.get(LOGIN_PAGE_URL)
-    response.raise_for_status()
-    return response
+    return get(session, LOGIN_PAGE_URL, delay=False)
 
 
 def extract_login_payload(html):
@@ -37,7 +36,7 @@ def login():
     login_page = get_login_page(session)
     payload = extract_login_payload(login_page.text)
 
-    response = session.post(LOGIN_URL, data=payload)
+    response = post(session, LOGIN_URL, data=payload, delay=False)
     response.raise_for_status()
 
     if "methodToCall=logout" not in response.text:
