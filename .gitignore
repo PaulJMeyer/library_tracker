@@ -14,3 +14,6 @@ data/
 
 # VS Code
 .vscode/
+
+# Debug HTML
+debug_*.html

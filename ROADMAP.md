@@ -25,7 +25,7 @@ Status: abgeschlossen
 * Mehrere Exemplare erkennen
 * Zentralbibliothek vs. Zweigstellen unterscheiden
 
-Status: in Arbeit
+Status: abgeschlossen
 
 ---
 

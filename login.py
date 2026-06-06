@@ -1,7 +1,6 @@
 import os
 import requests
 from bs4 import BeautifulSoup
-from dotenv import load_dotenv
 from client import build_url, get, post
 
 LOGIN_PAGE_URL = build_url("/webOPACClient/start.do?StartPage=UserAccount")
@@ -29,7 +28,6 @@ def extract_login_payload(html):
 
 
 def login():
-    load_dotenv()
 
     session = requests.Session()
 

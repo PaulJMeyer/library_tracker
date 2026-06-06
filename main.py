@@ -1,16 +1,24 @@
-from client import get
+from client import get, build_url
 from login import login
 from parser import parse_availability_page
 from wishlist import get_all_availability_links
+from dotenv import load_dotenv
 
+load_dotenv()
 
 STATUS_ORDER = {
     "ausleihbar": 0,
     "bestellbar": 1,
-    "entliehen": 2,
-    "unbekannt": 3,
+    "entliehen":  2,
+    "bestellt":   3,
+    "unbekannt":  4,
 }
 
+EXEMPLAR_TAB_URL = build_url(
+    "/webOPACClient/singleHit.do"
+    "?methodToCall=activateTab"
+    "&tab=showExemplarMemorizeActive"
+)
 
 def main():
     session = login()
@@ -21,7 +29,8 @@ def main():
     items = []
 
     for link in links:
-        response = get(session, link)
+        get(session, link)                                    # Kontext setzen
+        response = get(session, EXEMPLAR_TAB_URL)            # Tabelle abrufen
         item = parse_availability_page(response.text)
         items.append(item)
 
@@ -34,10 +43,7 @@ def main():
         print(f"\n[{item['overall_status'].upper()}] {item['title']}")
 
         for copy in item["copies"]:
-            print(
-                f"  - {copy['branch']} | "
-                f"{copy['status_text']}"
-            )
+            print(f"  - {copy['branch']} | {copy['status_text']}")
 
 
 if __name__ == "__main__":
