@@ -20,10 +20,12 @@ def get_wishlist_page(session: Session, cur_pos: int = 1) -> str:
 def extract_availability_links(html: str) -> list[str]:
     soup = BeautifulSoup(html, "html.parser")
 
-    links = []
+    links: list[str] = []
 
     for a in soup.find_all("a"):
         href = a.get("href", "")
+        if not isinstance(href, str):
+            continue
         if "runMemorizeAvailability" in href:
             links.append(build_url(href))
 
@@ -31,7 +33,7 @@ def extract_availability_links(html: str) -> list[str]:
 
 
 def get_all_availability_links(session: Session) -> list[str]:
-    all_links = []
+    all_links: list[str] = []
     cur_pos = 1
 
     while True:

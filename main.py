@@ -1,6 +1,6 @@
 from client import get, build_url
 from login import login
-from parser import parse_availability_page
+from library_parser import parse_availability_page
 from wishlist import get_all_availability_links
 from dotenv import load_dotenv
 from models import Item
@@ -40,10 +40,10 @@ def main() -> None:
         key=lambda item: STATUS_ORDER.get(item["overall_status"], 99)
     )
 
-    for item in items:
-        print(f"\n[{item['overall_status'].upper()}] {item['title']}")
+    for entry in items:
+        print(f"\n[{entry['overall_status'].upper()}] {entry['title']}")
 
-        for copy in item["copies"]:
+        for copy in entry["copies"]:
             print(f"  - {copy['branch']} | {copy['status_text']}")
 
 

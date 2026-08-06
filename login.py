@@ -1,5 +1,5 @@
 import os
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from client import build_url, get, post
 from requests import Session, Response
 
@@ -15,7 +15,7 @@ def extract_login_payload(html: str) -> dict:
     soup = BeautifulSoup(html, "html.parser")
 
     csid_input = soup.find("input", {"name": "CSId"})
-    if csid_input is None:
+    if not isinstance(csid_input, Tag):
         raise ValueError("CSId wurde nicht gefunden.")
 
     return {
