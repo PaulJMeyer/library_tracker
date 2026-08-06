@@ -1,17 +1,17 @@
 import os
-import requests
 from bs4 import BeautifulSoup
 from client import build_url, get, post
+from requests import Session, Response
 
 LOGIN_PAGE_URL = build_url("/webOPACClient/start.do?StartPage=UserAccount")
 LOGIN_URL = build_url("/webOPACClient/login.do")
 
 
-def get_login_page(session):
+def get_login_page(session: Session) -> Response:
     return get(session, LOGIN_PAGE_URL, delay=False)
 
 
-def extract_login_payload(html):
+def extract_login_payload(html: str) -> dict:
     soup = BeautifulSoup(html, "html.parser")
 
     csid_input = soup.find("input", {"name": "CSId"})
@@ -27,9 +27,9 @@ def extract_login_payload(html):
     }
 
 
-def login():
+def login() -> Session:
 
-    session = requests.Session()
+    session = Session()
 
     login_page = get_login_page(session)
     payload = extract_login_payload(login_page.text)

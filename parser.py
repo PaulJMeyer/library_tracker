@@ -1,6 +1,7 @@
 import re
 
 from bs4 import BeautifulSoup
+from models import Copy, Item
 
 
 CENTRAL_BRANCH_KEYWORD = "10-Zentralbibliothek"
@@ -32,8 +33,8 @@ def normalize_copy_status(status_text: str) -> str:
     return "unbekannt"
 
 
-def parse_copies(soup: BeautifulSoup) -> list[dict]:
-    copies = []
+def parse_copies(soup: BeautifulSoup) -> list[Copy]:
+    copies: list[Copy] = []
 
     # Alle Datenzeilen: row border-bottom py-1
     for row in soup.find_all("div", class_=lambda c: c and "row" in c and "py-1" in c):
@@ -74,7 +75,7 @@ def parse_copies(soup: BeautifulSoup) -> list[dict]:
     return copies
 
 
-def classify_item(copies: list[dict]) -> str:
+def classify_item(copies: list[Copy]) -> str:
     if not copies:
         return "unbekannt"
 
@@ -107,12 +108,12 @@ def parse_title(soup: BeautifulSoup) -> str:
     return "(Titel unbekannt)"
 
 
-def parse_availability_page(html: str) -> dict:
+def parse_availability_page(html: str) -> Item:
     soup = BeautifulSoup(html, "html.parser")
     copies = parse_copies(soup)
 
     return {
         "title":          parse_title(soup),
         "overall_status": classify_item(copies),
-        "copies":         copies,
+        "copies":         copies
     }

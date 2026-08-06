@@ -3,6 +3,7 @@ from login import login
 from parser import parse_availability_page
 from wishlist import get_all_availability_links
 from dotenv import load_dotenv
+from models import Item
 
 load_dotenv()
 
@@ -20,13 +21,13 @@ EXEMPLAR_TAB_URL = build_url(
     "&tab=showExemplarMemorizeActive"
 )
 
-def main():
+def main() -> None:
     session = login()
 
     links = get_all_availability_links(session)
     print(f"Gefundene Medien: {len(links)}")
 
-    items = []
+    items: list[Item] = []
 
     for link in links:
         get(session, link)                                    # Kontext setzen

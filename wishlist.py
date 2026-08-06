@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+from requests import Session
 
 from client import build_url, get
 
@@ -6,7 +7,7 @@ from client import build_url, get
 WISHLIST_URL = build_url("/webOPACClient/memorizelist.do")
 
 
-def get_wishlist_page(session, cur_pos: int = 1) -> str:
+def get_wishlist_page(session: Session, cur_pos: int = 1) -> str:
     if cur_pos == 1:
         url = f"{WISHLIST_URL}?methodToCall=show"
     else:
@@ -29,7 +30,7 @@ def extract_availability_links(html: str) -> list[str]:
     return links
 
 
-def get_all_availability_links(session) -> list[str]:
+def get_all_availability_links(session: Session) -> list[str]:
     all_links = []
     cur_pos = 1
 
