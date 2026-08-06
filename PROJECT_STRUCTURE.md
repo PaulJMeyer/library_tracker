@@ -46,13 +46,14 @@ Extrahiert Informationen aus den HTML-Seiten.
 Aufgaben:
 
 * Titel extrahieren
-* Status erkennen
+* Mehrere Exemplare pro Werk erkennen (`parse_copies`)
+* Zweigstelle vs. Zentralbibliothek unterscheiden (`is_central`)
+* Status pro Exemplar normalisieren (`normalize_copy_status`) und Gesamtstatus ableiten (`classify_item`)
+* Rückgabedatum aus dem Status-Text extrahieren (`extract_due_date`) — Wert liegt vor, wird aber noch nicht ausgegeben
 * Zukünftig:
 
-  * Exemplare
-  * Zweigstellen
-  * Rückgabedaten
-  * Bestellmöglichkeiten
+  * Rückgabedaten in der Ausgabe anzeigen
+  * Bestellmöglichkeiten (automatische Bestellung)
 
 ---
 
@@ -76,8 +77,6 @@ Enthält ausschließlich:
 
 * LIBRARY_USERNAME
 * LIBRARY_PASSWORD
-
-Diese Datei wird niemals in Git versioniert.
 
 ---
 

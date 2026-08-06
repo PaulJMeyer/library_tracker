@@ -22,12 +22,16 @@ Das Projekt ist ausschließlich für den privaten Gebrauch vorgesehen.
 * Auslesen der persönlichen Merkliste
 * Unterstützung beliebig vieler Merklisten-Seiten
 * Aufruf der Detailseiten aller Werke
+* Erkennung mehrerer Exemplare eines Werkes
+* Unterscheidung zwischen Zentralbibliothek und Zweigstellen
 * Erkennung der Zustände:
 
-  * ausleihbar
+  * ausleihbar (verfügbar in der Zentralbibliothek)
+  * bestellbar (kostenlos aus einer Zweigstelle)
   * entliehen
   * bestellt
-* Sortierte Ausgabe der Ergebnisse
+* Extraktion des Rückgabedatums aus dem Status-Text (wird aktuell noch nicht in der Ausgabe angezeigt)
+* Sortierte Ausgabe der Ergebnisse nach diesem Schema
 
 ---
 
@@ -35,11 +39,8 @@ Das Projekt ist ausschließlich für den privaten Gebrauch vorgesehen.
 
 ### Priorität hoch
 
-* Erkennung mehrerer Exemplare eines Werkes
-* Unterscheidung zwischen Zentralbibliothek und Zweigstellen
-* Erkennung kostenlos bestellbarer Exemplare
+* Anzeige von Rückgabedaten in der Ausgabe (Extraktion ist bereits implementiert)
 * Übersicht über ausgeliehene Medien
-* Anzeige von Rückgabedaten
 * Erkennung verlängerbarer Medien
 * Übersicht über bereits bestellte Medien
 
