@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: library-tracker
+Version: 0.3.0
+Summary: Persönliche Merklisten-Auswertung für die Stadtbibliothek Bremen
+Requires-Python: >=3.11
+Requires-Dist: beautifulsoup4==4.14.3
+Requires-Dist: python-dotenv==1.2.2
+Requires-Dist: requests==2.34.2
+Provides-Extra: dev
+Requires-Dist: pytest==9.1.1; extra == "dev"
+Requires-Dist: mypy==1.14.1; extra == "dev"
+Requires-Dist: types-requests>=2.33.0; extra == "dev"
+Requires-Dist: types-beautifulsoup4>=4.12.0; extra == "dev"

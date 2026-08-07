@@ -1,9 +1,9 @@
-from client import get, build_url
-from login import login
-from library_parser import parse_availability_page
-from wishlist import get_all_availability_links
+from library_tracker.client import get, build_url
+from library_tracker.login import login
+from library_tracker.library_parser import parse_availability_page
+from library_tracker.wishlist import get_all_availability_links
 from dotenv import load_dotenv
-from models import Item
+from library_tracker.models import Item
 
 load_dotenv()
 
@@ -45,7 +45,3 @@ def main() -> None:
 
         for copy in entry["copies"]:
             print(f"  - {copy['branch']} | {copy['status_text']}")
-
-
-if __name__ == "__main__":
-    main()

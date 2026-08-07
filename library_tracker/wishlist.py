@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 from requests import Session
 
-from client import build_url, get
+from library_tracker.client import build_url, get
 
 
 WISHLIST_URL = build_url("/webOPACClient/memorizelist.do")

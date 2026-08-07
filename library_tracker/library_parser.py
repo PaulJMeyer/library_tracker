@@ -1,7 +1,7 @@
 import re
 
 from bs4 import BeautifulSoup
-from models import Copy, Item
+from library_tracker.models import Copy, Item
 
 
 CENTRAL_BRANCH_KEYWORD = "10-Zentralbibliothek"

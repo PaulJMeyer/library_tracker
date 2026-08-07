@@ -1,0 +1,2 @@
+[console_scripts]
+library-tracker = library_tracker.main:main

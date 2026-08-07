@@ -1,6 +1,6 @@
 import os
 from bs4 import BeautifulSoup, Tag
-from client import build_url, get, post
+from library_tracker.client import build_url, get, post
 from requests import Session, Response
 
 LOGIN_PAGE_URL = build_url("/webOPACClient/start.do?StartPage=UserAccount")
