@@ -1,0 +1,36 @@
+name: Scheduled scrape
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # täglich um 6:00 UTC (7:00/8:00 Bremer Zeit, je nach Sommerzeit)
+  workflow_dispatch:        # erlaubt manuellen Start über den "Run workflow"-Button
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package
+        run: pip install -e .
+
+      - name: Run scraper
+        env:
+          LIBRARY_USERNAME: ${{ secrets.LIBRARY_USERNAME }}
+          LIBRARY_PASSWORD: ${{ secrets.LIBRARY_PASSWORD }}
+        run: python -m library_tracker.main
+
+      - name: Commit updated results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add results.md
+          git diff --cached --quiet && echo "Keine Änderungen." || git commit -m "Update results.md [automated]"
+          git push
