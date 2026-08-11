@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package with dev dependencies
+        run: pip install -e ".[dev]" pytest-cov
+
+      - name: Type check with mypy
+        run: mypy .
+
+      - name: Run tests with coverage
+        run: pytest --cov=library_tracker --cov-report=term-missing
