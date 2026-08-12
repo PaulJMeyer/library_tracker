@@ -2,63 +2,75 @@
 
 ## Version 0.1
 
-* Projekt aufsetzen
-* Login implementieren
-* Merkliste auslesen
+* Set up the project
+* Implement login
+* Read the wish list
 
-Status: abgeschlossen
+Status: done
 
 ---
 
 ## Version 0.2
 
-* Detailseiten aufrufen
-* Status erkennen
-* Sortierte Ausgabe
+* Fetch detail pages
+* Detect status
+* Sorted output
 
-Status: abgeschlossen
+Status: done
 
 ---
 
 ## Version 0.3
 
-* Mehrere Exemplare erkennen
-* Zentralbibliothek vs. Zweigstellen unterscheiden
+* Detect multiple copies
+* Distinguish central library vs. branch libraries
 
-Status: abgeschlossen
+Status: done
 
 ---
 
 ## Version 0.4
 
-* Kontoübersicht
-* Rückgabedaten
-* Verlängerungsmöglichkeiten
+* Type hints across all modules, checked with mypy
+* pytest test suite for the core parsing/business logic
+* Installable package structure (`pyproject.toml`)
+* CI via GitHub Actions (mypy + pytest on every push/PR)
+* Scheduled daily scrape via GitHub Actions (cron), writing results to `results.md`
+
+Status: done
 
 ---
 
 ## Version 0.5
 
-* Bestellübersicht
-* Abholstatus
-* Historie
+* Account overview
+* Show due dates in the output (extraction is already implemented)
+* Renewal options
 
 ---
 
 ## Version 0.6
 
-* Manuelle kostenlose Bestellung
-* Sicherheitsabfrage
+* Order overview
+* Pickup status
+* History
+
+---
+
+## Version 0.7
+
+* Manually trigger free orders
+* Confirmation prompt before ordering
 
 ---
 
 ## Version 1.0
 
-Vollständige private Bibliotheksverwaltung:
+Complete private library management:
 
-* Merkliste
-* Ausleihen
-* Bestellungen
-* Verlängerungen
-* Komfortfunktionen
-* Sichere Trennung zwischen kostenlosen Bestellungen und kostenpflichtigen Vormerkungen
+* Wish list
+* Loans
+* Orders
+* Renewals
+* Convenience features
+* Clear separation between free orders and paid reservations ("Vormerkung")
