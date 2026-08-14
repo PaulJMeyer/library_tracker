@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-08-13 07:06 UTC
+Zuletzt aktualisiert: 2026-08-14 07:02 UTC
 
 ## [Ausleihbar] Mit Physik auf der Suche nach dem Sinn des Lebens
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
@@ -26,17 +26,6 @@ Zuletzt aktualisiert: 2026-08-13 07:06 UTC
 ## [Ausleihbar] ¬The Witcher - Der Rand der Welt
 - 10-Zentralbibliothek / 2.OG Wall-Flügel | ausleihbar
 
-## [Ausleihbar] ¬Der Buchspazierer
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
-- 20-Osterholz / Romane A-Z | andere Zweigstelle (ausleihbar)
-- 21-Vahr / Romane von A-Z | andere Zweigstelle (ausleihbar)
-- 31-Huchting / Literatur & Sprache / Romane | andere Zweigstelle (ausleihbar)
-- 60-Vegesack / EG Romane A-Z | andere Zweigstelle (ausleihbar)
-- 61-Lesum / Romane nach Themen | andere Zweigstelle (ausleihbar)
-- 70-Busbibliothek / E-Abteilung | andere Zweigstelle (ausleihbar)
-- 71-Bibliothek i.d. JVA nicht online / Oslebshausen | nicht verfügbar / entleihbar
-
 ## [Ausleihbar] Fahrenheit 451
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | ausleihbar
 - 21-Vahr / Medien nach Themen | andere Zweigstelle (ausleihbar)
@@ -52,7 +41,7 @@ Zuletzt aktualisiert: 2026-08-13 07:06 UTC
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
 
 ## [Ausleihbar] Klasse
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | Sie haben dieses Medium bereits ausgeliehen.
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 31.08.2026
 - 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (entliehen)
@@ -71,10 +60,8 @@ Zuletzt aktualisiert: 2026-08-13 07:06 UTC
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
 - 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (entliehen)
 
-## [Bestellbar] Farm der Tiere
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 25.08.2026
-- 20-Osterholz / Romane A-Z | andere Zweigstelle (ausleihbar)
-- 21-Vahr / Romane von A-Z | andere Zweigstelle (ausleihbar)
+## [Bestellbar] Cthulhus Ruf
+- 50-Gröpelingen / OG Literatur & Sprachen | andere Zweigstelle (ausleihbar)
 
 ## [Entliehen] ¬Das Erbe des Weißen Wolfs
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | Sie haben dieses Medium bereits ausgeliehen.
@@ -89,10 +76,7 @@ Zuletzt aktualisiert: 2026-08-13 07:06 UTC
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | entliehen bis 14.08.2026
 
 ## [Entliehen] Erdsee - Die zweite Trilogie
-- 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 04.09.2026
-
-## [Entliehen] Cthulhus Ruf
-- 50-Gröpelingen / OG Literatur & Sprachen | andere Zweigstelle (entliehen)
+- 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 03.09.2026
 
 ## [Entliehen] ¬The Necronomicon
 - 10-Zentralbibliothek / 2.OG Wall-Flügel | entliehen bis 29.08.2026
