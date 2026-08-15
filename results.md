@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-08-14 07:02 UTC
+Zuletzt aktualisiert: 2026-08-15 06:16 UTC
 
 ## [Ausleihbar] Mit Physik auf der Suche nach dem Sinn des Lebens
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
@@ -40,12 +40,8 @@ Zuletzt aktualisiert: 2026-08-14 07:02 UTC
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | ausleihbar
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
 
-## [Ausleihbar] Klasse
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | Sie haben dieses Medium bereits ausgeliehen.
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 31.08.2026
-- 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (entliehen)
-- 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
+## [Ausleihbar] Aufstieg und Fall der Menschheit
+- 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
 
 ## [Ausleihbar] Live forever?
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
@@ -72,8 +68,12 @@ Zuletzt aktualisiert: 2026-08-14 07:02 UTC
 ## [Entliehen] ¬Der Krieg der Welten
 - 61-Lesum / Romane nach Themen | andere Zweigstelle (entliehen)
 
-## [Entliehen] Aufstieg und Fall der Menschheit
-- 10-Zentralbibliothek / 2.OG Schnoor-Flügel | entliehen bis 14.08.2026
+## [Entliehen] Klasse
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | Sie haben dieses Medium bereits ausgeliehen.
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 04.09.2026
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 31.08.2026
+- 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (entliehen)
+- 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
 
 ## [Entliehen] Erdsee - Die zweite Trilogie
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 03.09.2026
