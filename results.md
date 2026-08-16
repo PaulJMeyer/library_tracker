@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-08-15 06:16 UTC
+Zuletzt aktualisiert: 2026-08-16 06:18 UTC
 
 ## [Ausleihbar] Mit Physik auf der Suche nach dem Sinn des Lebens
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
