@@ -43,8 +43,8 @@ Status: done
 
 ## Version 0.5
 
-* Account overview
-* Show due dates in the output (extraction is already implemented)
+* Account overview - DONE
+* Show due dates in the output (extraction is already implemented) - DONE
 * Renewal options
 
 ---

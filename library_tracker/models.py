@@ -13,3 +13,14 @@ class Item(TypedDict):
     title:              str
     overall_status:     str
     copies:             list[Copy]
+
+
+class Loan(TypedDict):
+    title:              str
+    author:             str
+    media_number:       str
+    signature:          str
+    branch:             str
+    borrowed_since:     str | None
+    due_date:           str | None
+    renewal_note:       str

@@ -49,8 +49,8 @@ This project is intended exclusively for private use.
 
 ### High priority
 
-* Show due dates in the output (extraction is already implemented)
-* Overview of currently checked-out items
+* Show due dates in the output (extraction is already implemented) - DONE
+* Overview of currently checked-out items - DONE
 * Detection of renewable items
 * Overview of already-ordered items
 
