@@ -44,6 +44,7 @@ def test_extract_due_date(status_text, expected):
         ("Ausleihbar", "ausleihbar"),
         ("Bestellbar", "bestellbar"),
         ("bereits bestellt", "bestellt"),
+        ("Sie haben dieses Medium bereits ausgeliehen.", "entliehen"),
         ("Verfügbar in Zweigstelle", "ausleihbar"),
         ("entliehen bis 01.01.2027", "entliehen"),
         ("irgendein anderer Text", "unbekannt"),

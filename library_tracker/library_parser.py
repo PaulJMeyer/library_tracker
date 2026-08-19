@@ -23,6 +23,8 @@ def normalize_copy_status(status_text: str) -> str:
 
     if "bereits bestellt" in text:
         return "bestellt"
+    if "bereits ausgeliehen" in text:
+        return "entliehen"
     if "bestellbar" in text:
         return "bestellbar"
     if "ausleihbar" in text or "verfügbar" in text:
