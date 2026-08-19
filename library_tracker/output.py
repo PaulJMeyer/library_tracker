@@ -1,7 +1,7 @@
 import datetime
 from pathlib import Path
 
-from library_tracker.models import Copy, Item
+from library_tracker.models import Copy, Item, Loan
 
 
 STATUS_LABELS = {
@@ -93,3 +93,15 @@ def print_results_console(items: list[Item]) -> None:
         print(f"\n[{entry['overall_status'].upper()}] {entry['title']}")
         for copy in entry["copies"]:
             print(f"  - {format_copy_line(copy)}")
+
+
+def print_loans_console(loans: list[Loan]) -> None:
+    print(f"\n=== Kontoübersicht: Ausgeliehene Medien ({len(loans)}) ===")
+ 
+    for loan in loans:
+        due = loan["due_date"] or "?"
+        since = loan["borrowed_since"] or "?"
+        print(f"\n{loan['title']} ({loan['author']})")
+        print(f"  {loan['signature']} | {loan['branch']}")
+        print(f"  Ausgeliehen seit: {since} | Fällig: {due}")
+        print(f"  {loan['renewal_note']}")

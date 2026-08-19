@@ -5,6 +5,7 @@ library_tracker/
 ├── library_tracker/
 │   ├── __init__.py
 │   ├── __main__.py
+│   ├── account.py
 │   ├── client.py
 │   ├── library_parser.py
 │   ├── login.py
@@ -14,7 +15,9 @@ library_tracker/
 │   └── wishlist.py
 ├── tests/
 │   ├── __init__.py
+│   ├── test_account.py
 │   ├── test_library_parser.py
+│   ├── test_output.py
 │   └── test_wishlist.py
 ├── .github/
 |   ├── AI_CONTEXT.md
@@ -88,7 +91,32 @@ Responsibilities:
 
 ## models.py
 
-`TypedDict` definitions for the data structures shared across the project (`Copy`, `Item`), used for precise type checking with `mypy` instead of generic `dict`.
+`TypedDict` definitions for the data structures shared across the project (`Copy`, `Item`, `Loan`), used for precise type checking with `mypy` instead of generic `dict`.
+
+---
+
+## output.py
+
+All output/formatting logic, kept separate from orchestration (`main.py`) and business logic (`library_parser.py`).
+
+Responsibilities:
+
+* `format_copy_line()` — format a single copy's line, including due date if available and not already part of the status text
+* `format_results_markdown()` — build the full Markdown report
+* `write_results_markdown()` — write the report to `results.md`
+* `print_results_console()` — console output, using the same `format_copy_line()` as the Markdown output
+
+
+---
+
+## account.py
+
+Handles the account overview.
+
+Responsibilities:
+
+* Load account page
+* Extract borrowed book info
 
 ---
 
@@ -108,19 +136,6 @@ Current flow:
 
 ---
 
-## output.py
-
-All output/formatting logic, kept separate from orchestration (`main.py`) and business logic (`library_parser.py`).
-
-Responsibilities:
-
-* `format_copy_line()` — format a single copy's line, including due date if available and not already part of the status text
-* `format_results_markdown()` — build the full Markdown report
-* `write_results_markdown()` — write the report to `results.md`
-* `print_results_console()` — console output, using the same `format_copy_line()` as the Markdown output
-
----
-
 ## __main__.py
 
 Enables running the package directly via `python -m library_tracker`; simply calls `main()` from `main.py`.
@@ -133,6 +148,8 @@ Enables running the package directly via `python -m library_tracker`; simply cal
 
 * `test_library_parser.py` — `clean_text`, `extract_due_date`, `normalize_copy_status`, `classify_item`, `parse_title`
 * `test_wishlist.py` — `extract_availability_links`
+* `test_account.py` — `parse_loans`, `parse_loan_dates`
+* `test_output.py` — `format_copy_line`, `format_status_summary`
 
 `client.py` and `login.py` (real HTTP calls) are not yet covered — this would require mocking `requests.Session` and is planned for a later step.
 

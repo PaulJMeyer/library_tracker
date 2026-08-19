@@ -94,11 +94,11 @@ Implemented:
 * Installable package structure (`pyproject.toml`)
 * CI via GitHub Actions (mypy + pytest on every push/PR)
 * Scheduled daily scrape via GitHub Actions (cron), writing results to `results.md`
+* Account overview
+* Show due dates in the output
 
 Planned:
 
-* Account overview
-* Show due dates in the output (extraction already implemented)
 * Renewals
 * Orders
 * Further features
