@@ -10,6 +10,7 @@ library_tracker/
 │   ├── login.py
 │   ├── main.py
 │   ├── models.py
+│   ├── output.py
 │   └── wishlist.py
 ├── tests/
 │   ├── __init__.py
@@ -97,13 +98,26 @@ Entry point of the program.
 
 Current flow:
 
+
 1. Login
 2. Load wish list
 3. Iterate over all titles
 4. Determine status
-5. Produce sorted output (console + `results.md`)
+5. Sort results
+6. Delegate console and file output to `output.py`
 
-Also contains `format_results_markdown()` / `write_results_markdown()`, used both by the interactive run and by the scheduled GitHub Actions scrape.
+---
+
+## output.py
+
+All output/formatting logic, kept separate from orchestration (`main.py`) and business logic (`library_parser.py`).
+
+Responsibilities:
+
+* `format_copy_line()` — format a single copy's line, including due date if available and not already part of the status text
+* `format_results_markdown()` — build the full Markdown report
+* `write_results_markdown()` — write the report to `results.md`
+* `print_results_console()` — console output, using the same `format_copy_line()` as the Markdown output
 
 ---
 

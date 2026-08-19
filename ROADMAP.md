@@ -74,3 +74,4 @@ Complete private library management:
 * Renewals
 * Convenience features
 * Clear separation between free orders and paid reservations ("Vormerkung")
+* Automatically remove titles from the wish list once detected as already borrowed
