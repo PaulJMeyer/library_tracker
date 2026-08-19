@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-08-18 06:20 UTC
+Zuletzt aktualisiert: 2026-08-19 06:21 UTC
 
 ## [Ausleihbar] Mit Physik auf der Suche nach dem Sinn des Lebens
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
@@ -16,7 +16,7 @@ Zuletzt aktualisiert: 2026-08-18 06:20 UTC
 - 70-Busbibliothek / E-Abteilung | andere Zweigstelle (ausleihbar)
 
 ## [Ausleihbar] Nexus
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 22.08.2026
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 22.08.2026
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
@@ -52,10 +52,6 @@ Zuletzt aktualisiert: 2026-08-18 06:20 UTC
 ## [Ausleihbar] ¬Die Pharma-Lüge
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
 
-## [Ausleihbar] ¬Der Fremde
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
-- 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (entliehen)
-
 ## [Bestellbar] Cthulhus Ruf
 - 50-Gröpelingen / OG Literatur & Sprachen | andere Zweigstelle (ausleihbar)
 
@@ -83,3 +79,7 @@ Zuletzt aktualisiert: 2026-08-18 06:20 UTC
 
 ## [Entliehen] ¬Die Entdeckung der Langsamkeit
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 07.09.2026
+
+## [Entliehen] ¬Der Fremde
+- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 08.09.2026
+- 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (entliehen)
