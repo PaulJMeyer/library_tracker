@@ -17,6 +17,7 @@ Zuletzt aktualisiert: 2026-08-19 11:39 UTC
 
 ## [Ausleihbar] Nexus
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 22.08.2026
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
@@ -42,6 +43,8 @@ Zuletzt aktualisiert: 2026-08-19 11:39 UTC
 
 ## [Ausleihbar] Aufstieg und Fall der Menschheit
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
+## [Ausleihbar] Aufstieg und Fall der Menschheit
+- 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
 
 ## [Ausleihbar] Live forever?
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
@@ -52,6 +55,8 @@ Zuletzt aktualisiert: 2026-08-19 11:39 UTC
 ## [Ausleihbar] ¬Die Pharma-Lüge
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
 
+## [Bestellbar] Cthulhus Ruf
+- 50-Gröpelingen / OG Literatur & Sprachen | andere Zweigstelle (ausleihbar)
 ## [Bestellbar] Cthulhus Ruf
 - 50-Gröpelingen / OG Literatur & Sprachen | andere Zweigstelle (ausleihbar)
 
@@ -70,8 +75,15 @@ Zuletzt aktualisiert: 2026-08-19 11:39 UTC
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 31.08.2026
 - 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (entliehen)
 - 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
+## [Entliehen] Klasse
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | Sie haben dieses Medium bereits ausgeliehen.
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 04.09.2026
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 31.08.2026
+- 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (entliehen)
+- 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
 
 ## [Entliehen] Erdsee - Die zweite Trilogie
+- 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 03.09.2026
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 03.09.2026
 
 ## [Entliehen] ¬The Necronomicon
@@ -79,6 +91,10 @@ Zuletzt aktualisiert: 2026-08-19 11:39 UTC
 
 ## [Entliehen] ¬Die Entdeckung der Langsamkeit
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 07.09.2026
+
+## [Entliehen] ¬Der Fremde
+- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 08.09.2026
+- 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (entliehen)
 
 ## [Entliehen] ¬Der Fremde
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 08.09.2026
