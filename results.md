@@ -1,10 +1,10 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-08-19 12:32 UTC
+Zuletzt aktualisiert: 2026-08-20 06:22 UTC
 
 ## Übersicht
 
-**Ausleihbar (12):**
+**Ausleihbar (13):**
 - Mit Physik auf der Suche nach dem Sinn des Lebens
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
@@ -14,6 +14,7 @@ Zuletzt aktualisiert: 2026-08-19 12:32 UTC
 - Wir
 - ¬Die Zeitmaschine
 - Aufstieg und Fall der Menschheit
+- Klasse
 - Live forever?
 - ¬Die kürzeste Geschichte der Erde
 - ¬Die Pharma-Lüge
@@ -64,6 +65,13 @@ Zuletzt aktualisiert: 2026-08-19 12:32 UTC
 ## [Ausleihbar] Aufstieg und Fall der Menschheit
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
 
+## [Ausleihbar] Klasse
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | Sie haben dieses Medium bereits ausgeliehen.
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 31.08.2026
+- 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (entliehen)
+- 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
+
 ## [Ausleihbar] Live forever?
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
 
@@ -84,13 +92,6 @@ Zuletzt aktualisiert: 2026-08-19 12:32 UTC
 
 ## [Entliehen] ¬Der Krieg der Welten
 - 61-Lesum / Romane nach Themen | andere Zweigstelle (entliehen)
-
-## [Entliehen] Klasse
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | Sie haben dieses Medium bereits ausgeliehen.
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 04.09.2026
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 31.08.2026
-- 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (entliehen)
-- 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
 
 ## [Entliehen] Erdsee - Die zweite Trilogie
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 03.09.2026
