@@ -17,3 +17,6 @@ data/
 
 # Debug HTML
 debug_*.html
+
+# egg.info
+*.egg-info/
