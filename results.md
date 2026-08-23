@@ -1,15 +1,14 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-08-22 06:17 UTC
+Zuletzt aktualisiert: 2026-08-23 06:19 UTC
 
 ## Übersicht
 
-**Ausleihbar (13):**
+**Ausleihbar (12):**
 - Mit Physik auf der Suche nach dem Sinn des Lebens
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
 - ¬The Witcher - Der Rand der Welt
-- Fahrenheit 451
 - Wir
 - Wir
 - ¬Die Zeitmaschine
@@ -19,7 +18,8 @@ Zuletzt aktualisiert: 2026-08-22 06:17 UTC
 - ¬Die kürzeste Geschichte der Erde
 - ¬Die Pharma-Lüge
 
-**Bestellbar (1):**
+**Bestellbar (2):**
+- Fahrenheit 451
 - Cthulhus Ruf
 
 ## Details
@@ -47,10 +47,6 @@ Zuletzt aktualisiert: 2026-08-22 06:17 UTC
 
 ## [Ausleihbar] ¬The Witcher - Der Rand der Welt
 - 10-Zentralbibliothek / 2.OG Wall-Flügel | ausleihbar
-
-## [Ausleihbar] Fahrenheit 451
-- 10-Zentralbibliothek / 1.OG Romane nach Themen | ausleihbar
-- 21-Vahr / Medien nach Themen | andere Zweigstelle (ausleihbar)
 
 ## [Ausleihbar] Wir
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
@@ -80,6 +76,10 @@ Zuletzt aktualisiert: 2026-08-22 06:17 UTC
 
 ## [Ausleihbar] ¬Die Pharma-Lüge
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
+
+## [Bestellbar] Fahrenheit 451
+- 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 12.09.2026
+- 21-Vahr / Medien nach Themen | andere Zweigstelle (ausleihbar)
 
 ## [Bestellbar] Cthulhus Ruf
 - 50-Gröpelingen / OG Literatur & Sprachen | andere Zweigstelle (ausleihbar)
