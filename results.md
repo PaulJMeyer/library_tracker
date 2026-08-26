@@ -1,10 +1,10 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-08-25 06:23 UTC
+Zuletzt aktualisiert: 2026-08-26 06:24 UTC
 
 ## Übersicht
 
-**Ausleihbar (12):**
+**Ausleihbar (13):**
 - Mit Physik auf der Suche nach dem Sinn des Lebens
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
@@ -17,6 +17,7 @@ Zuletzt aktualisiert: 2026-08-25 06:23 UTC
 - Live forever?
 - ¬Die kürzeste Geschichte der Erde
 - ¬Die Pharma-Lüge
+- ¬Der Fremde
 
 **Bestellbar (2):**
 - Fahrenheit 451
@@ -66,7 +67,7 @@ Zuletzt aktualisiert: 2026-08-25 06:23 UTC
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 31.08.2026
 - 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (entliehen)
-- 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
+- 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (ausleihbar)
 
 ## [Ausleihbar] Live forever?
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
@@ -76,6 +77,10 @@ Zuletzt aktualisiert: 2026-08-25 06:23 UTC
 
 ## [Ausleihbar] ¬Die Pharma-Lüge
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
+
+## [Ausleihbar] ¬Der Fremde
+- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
+- 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (entliehen)
 
 ## [Bestellbar] Fahrenheit 451
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 12.09.2026
@@ -101,7 +106,3 @@ Zuletzt aktualisiert: 2026-08-25 06:23 UTC
 
 ## [Entliehen] ¬Die Entdeckung der Langsamkeit
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 07.09.2026
-
-## [Entliehen] ¬Der Fremde
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 08.09.2026
-- 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (entliehen)
