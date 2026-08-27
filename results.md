@@ -1,10 +1,10 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-08-26 06:24 UTC
+Zuletzt aktualisiert: 2026-08-27 16:54 UTC
 
 ## Übersicht
 
-**Ausleihbar (13):**
+**Ausleihbar (14):**
 - Mit Physik auf der Suche nach dem Sinn des Lebens
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
@@ -14,6 +14,7 @@ Zuletzt aktualisiert: 2026-08-26 06:24 UTC
 - ¬Die Zeitmaschine
 - Aufstieg und Fall der Menschheit
 - Klasse
+- ¬The Necronomicon
 - Live forever?
 - ¬Die kürzeste Geschichte der Erde
 - ¬Die Pharma-Lüge
@@ -69,6 +70,9 @@ Zuletzt aktualisiert: 2026-08-26 06:24 UTC
 - 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (entliehen)
 - 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (ausleihbar)
 
+## [Ausleihbar] ¬The Necronomicon
+- 10-Zentralbibliothek / 2.OG Wall-Flügel | ausleihbar
+
 ## [Ausleihbar] Live forever?
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
 
@@ -100,9 +104,6 @@ Zuletzt aktualisiert: 2026-08-26 06:24 UTC
 
 ## [Entliehen] Erdsee - Die zweite Trilogie
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 03.09.2026
-
-## [Entliehen] ¬The Necronomicon
-- 10-Zentralbibliothek / 2.OG Wall-Flügel | entliehen bis 29.08.2026
 
 ## [Entliehen] ¬Die Entdeckung der Langsamkeit
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 07.09.2026
