@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-08-27 16:54 UTC
+Zuletzt aktualisiert: 2026-08-28 17:45 UTC
 
 ## Übersicht
 
@@ -68,7 +68,7 @@ Zuletzt aktualisiert: 2026-08-27 16:54 UTC
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 31.08.2026
 - 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (entliehen)
-- 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (ausleihbar)
+- 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
 
 ## [Ausleihbar] ¬The Necronomicon
 - 10-Zentralbibliothek / 2.OG Wall-Flügel | ausleihbar
