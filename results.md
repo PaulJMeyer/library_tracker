@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-08-28 17:45 UTC
+Zuletzt aktualisiert: 2026-08-29 11:50 UTC
 
 ## Übersicht
 
@@ -103,7 +103,7 @@ Zuletzt aktualisiert: 2026-08-28 17:45 UTC
 - 61-Lesum / Romane nach Themen | andere Zweigstelle (entliehen)
 
 ## [Entliehen] Erdsee - Die zweite Trilogie
-- 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 03.09.2026
+- 10-Zentralbibliothek / 1.OG Romane nach Themen | frei (seit heute zurück)
 
 ## [Entliehen] ¬Die Entdeckung der Langsamkeit
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 07.09.2026
