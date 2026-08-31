@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-08-30 10:46 UTC
+Zuletzt aktualisiert: 2026-08-31 11:55 UTC
 
 ## Übersicht
 
@@ -65,10 +65,10 @@ Zuletzt aktualisiert: 2026-08-30 10:46 UTC
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
 
 ## [Ausleihbar] Klasse
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | Sie haben dieses Medium bereits ausgeliehen.
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | frei (seit heute zurück)
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 31.08.2026
-- 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (entliehen)
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | frei (seit heute zurück)
+- 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (ausleihbar)
 - 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
 
 ## [Ausleihbar] Erdsee - Die zweite Trilogie
@@ -88,7 +88,7 @@ Zuletzt aktualisiert: 2026-08-30 10:46 UTC
 
 ## [Ausleihbar] ¬Der Fremde
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
-- 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (entliehen)
+- 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (ausleihbar)
 
 ## [Bestellbar] Fahrenheit 451
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 12.09.2026
