@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-08-31 11:55 UTC
+Zuletzt aktualisiert: 2026-09-01 10:35 UTC
 
 ## Übersicht
 
@@ -41,7 +41,7 @@ Zuletzt aktualisiert: 2026-08-31 11:55 UTC
 - 70-Busbibliothek / E-Abteilung | andere Zweigstelle (ausleihbar)
 
 ## [Ausleihbar] Nexus
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 21.09.2026
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 14.09.2026
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 10.09.2026
@@ -65,9 +65,9 @@ Zuletzt aktualisiert: 2026-08-31 11:55 UTC
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
 
 ## [Ausleihbar] Klasse
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | frei (seit heute zurück)
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | frei (seit heute zurück)
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
 - 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (ausleihbar)
 - 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
 
@@ -97,9 +97,6 @@ Zuletzt aktualisiert: 2026-08-31 11:55 UTC
 ## [Bestellbar] Cthulhus Ruf
 - 50-Gröpelingen / OG Literatur & Sprachen | andere Zweigstelle (ausleihbar)
 
-## [Entliehen] ¬Das Erbe des Weißen Wolfs
-- 10-Zentralbibliothek / 1.OG Romane nach Themen | Sie haben dieses Medium bereits ausgeliehen.
-
 ## [Entliehen] Mieses Karma
 - 71-Bibliothek i.d. JVA nicht online / Oslebshausen | entliehen
 
@@ -108,3 +105,6 @@ Zuletzt aktualisiert: 2026-08-31 11:55 UTC
 
 ## [Entliehen] ¬Die Entdeckung der Langsamkeit
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 07.09.2026
+
+## [Entliehen] ¬Das Erbe des Weißen Wolfs
+- 10-Zentralbibliothek / 1.OG Romane nach Themen | Sie haben dieses Medium bereits ausgeliehen.
