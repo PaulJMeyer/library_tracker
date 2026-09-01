@@ -39,7 +39,7 @@ Central HTTP helper functions.
 Responsibilities:
 
 * URL construction
-* GET requests
+* GET requests (with optional query parameters, safely URL-encoded by `requests`)
 * POST requests
 * Timeout
 * Request delays
@@ -67,7 +67,8 @@ Responsibilities:
 
 * Load wish list pages
 * Handle pagination
-* Extract availability links
+* Extract per-page wish-list entries (checkbox UUID + availability link) plus the page's hidden form fields (`CSId`, `curPos`, `displayType`, `selectedMemorizeList`) via `extract_memorize_page()` / `get_all_memorize_pages()`
+* Remove selected entries from the wish list on the library website via `remove_entries()` (GET request against `memorizelist.do?methodToCall=deleteSelectedEntries`)
 
 ---
 
@@ -91,7 +92,7 @@ Responsibilities:
 
 ## models.py
 
-`TypedDict` definitions for the data structures shared across the project (`Copy`, `Item`, `Loan`), used for precise type checking with `mypy` instead of generic `dict`.
+`TypedDict` definitions for the data structures shared across the project (`Copy`, `Item`, `Loan`, `MemorizeEntry`, `MemorizePage`), used for precise type checking with `mypy` instead of generic `dict`.
 
 ---
 
@@ -126,12 +127,11 @@ Entry point of the program.
 
 Current flow:
 
-
 1. Login
-2. Load wish list
-3. Iterate over all titles
-4. Determine status
-5. Sort results
+2. Load wish list pages (`get_all_memorize_pages`)
+3. For each page: classify each entry's status; collect already-borrowed entries separately, excluding them from the report
+4. Remove already-borrowed entries from the wish list on that page
+5. Sort the remaining (non-borrowed) results
 6. Delegate console and file output to `output.py`
 
 ---
@@ -144,10 +144,12 @@ Enables running the package directly via `python -m library_tracker`; simply cal
 
 ## tests/
 
+## tests/
+
 `pytest` suite covering the pure parsing/business logic:
 
 * `test_library_parser.py` — `clean_text`, `extract_due_date`, `normalize_copy_status`, `classify_item`, `parse_title`
-* `test_wishlist.py` — `extract_availability_links`
+* `test_wishlist.py` — `extract_memorize_page`, `remove_entries`, `get_all_memorize_pages`
 * `test_account.py` — `parse_loans`, `parse_loan_dates`
 * `test_output.py` — `format_copy_line`, `format_status_summary`
 

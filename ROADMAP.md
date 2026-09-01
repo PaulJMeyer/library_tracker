@@ -49,6 +49,15 @@ Status: done
 
 ---
 
+## Version 0.55
+
+* Automatically remove already-borrowed titles from the wish list
+* Titles classified as `entliehen` are excluded from `results.md`
+
+Status: done
+
+---
+
 ## Version 0.6
 
 * Order overview
@@ -74,4 +83,4 @@ Complete private library management:
 * Renewals
 * Convenience features
 * Clear separation between free orders and paid reservations ("Vormerkung")
-* Automatically remove titles from the wish list once detected as already borrowed
+* Automatically remove titles from the wish list once detected as already borrowed - DONE

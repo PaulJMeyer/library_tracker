@@ -13,11 +13,13 @@ def build_url(path: str) -> str:
     return urljoin(BASE_URL, path)
 
 
-def get(session: requests.Session, url: str, *, delay: bool = True) -> requests.Response:
+def get(session: requests.Session, url: str, *, params: dict[str, str] | None = None,
+        delay: bool = True) -> requests.Response:
+    
     if delay:
         time.sleep(REQUEST_DELAY)
 
-    response = session.get(url, timeout=REQUEST_TIMEOUT)
+    response = session.get(url, params=params, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
     return response
 

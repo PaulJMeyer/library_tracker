@@ -1,10 +1,10 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-09-01 10:35 UTC
+Zuletzt aktualisiert: 2026-09-01 14:23 UTC
 
 ## Übersicht
 
-**Ausleihbar (15):**
+**Ausleihbar (14):**
 - Mit Physik auf der Suche nach dem Sinn des Lebens
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
@@ -14,7 +14,6 @@ Zuletzt aktualisiert: 2026-09-01 10:35 UTC
 - ¬Die Zeitmaschine
 - Aufstieg und Fall der Menschheit
 - Klasse
-- Erdsee - Die zweite Trilogie
 - ¬The Necronomicon
 - Live forever?
 - ¬Die kürzeste Geschichte der Erde
@@ -71,9 +70,6 @@ Zuletzt aktualisiert: 2026-09-01 10:35 UTC
 - 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (ausleihbar)
 - 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
 
-## [Ausleihbar] Erdsee - Die zweite Trilogie
-- 10-Zentralbibliothek / 1.OG Romane nach Themen | ausleihbar
-
 ## [Ausleihbar] ¬The Necronomicon
 - 10-Zentralbibliothek / 2.OG Wall-Flügel | ausleihbar
 
@@ -96,15 +92,3 @@ Zuletzt aktualisiert: 2026-09-01 10:35 UTC
 
 ## [Bestellbar] Cthulhus Ruf
 - 50-Gröpelingen / OG Literatur & Sprachen | andere Zweigstelle (ausleihbar)
-
-## [Entliehen] Mieses Karma
-- 71-Bibliothek i.d. JVA nicht online / Oslebshausen | entliehen
-
-## [Entliehen] ¬Der Krieg der Welten
-- 61-Lesum / Romane nach Themen | andere Zweigstelle (entliehen)
-
-## [Entliehen] ¬Die Entdeckung der Langsamkeit
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 07.09.2026
-
-## [Entliehen] ¬Das Erbe des Weißen Wolfs
-- 10-Zentralbibliothek / 1.OG Romane nach Themen | Sie haben dieses Medium bereits ausgeliehen.
