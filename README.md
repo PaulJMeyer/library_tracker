@@ -33,6 +33,8 @@ This project is intended exclusively for private use.
   * `entliehen` (checked out)
   * `bestellt` (already ordered)
 * Extraction of due dates from the status text (not yet shown in the output)
+* Automatic removal of already-borrowed titles from the wish list (real deletion via the
+  library website, not just filtered from the report)
 * Sorted output of results following this order
 
 ### Engineering / project setup
@@ -51,6 +53,7 @@ This project is intended exclusively for private use.
 
 * Show due dates in the output (extraction is already implemented) - DONE
 * Overview of currently checked-out items - DONE
+* Automatic removal of already-borrowed titles from the wish list - DONE
 * Detection of renewable items
 * Overview of already-ordered items
 

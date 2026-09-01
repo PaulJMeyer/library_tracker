@@ -24,3 +24,16 @@ class Loan(TypedDict):
     borrowed_since:     str | None
     due_date:           str | None
     renewal_note:       str
+
+
+class MemorizeEntry(TypedDict):
+    uuid:               str
+    availability_link:  str
+
+
+class MemorizePage(TypedDict):
+    cur_pos:                    str
+    cs_id:                      str
+    display_type:               str
+    selected_memorize_list:     str
+    entries:                    list[MemorizeEntry]
