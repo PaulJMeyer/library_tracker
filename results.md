@@ -1,19 +1,17 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-09-01 14:23 UTC
+Zuletzt aktualisiert: 2026-09-02 10:00 UTC
 
 ## Übersicht
 
-**Ausleihbar (14):**
+**Ausleihbar (12):**
 - Mit Physik auf der Suche nach dem Sinn des Lebens
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
 - ¬The Witcher - Der Rand der Welt
 - Wir
-- Wir
 - ¬Die Zeitmaschine
 - Aufstieg und Fall der Menschheit
-- Klasse
 - ¬The Necronomicon
 - Live forever?
 - ¬Die kürzeste Geschichte der Erde
@@ -53,22 +51,12 @@ Zuletzt aktualisiert: 2026-09-01 14:23 UTC
 ## [Ausleihbar] Wir
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
 
-## [Ausleihbar] Wir
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
-
 ## [Ausleihbar] ¬Die Zeitmaschine
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | ausleihbar
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
 
 ## [Ausleihbar] Aufstieg und Fall der Menschheit
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
-
-## [Ausleihbar] Klasse
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
-- 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (ausleihbar)
-- 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
 
 ## [Ausleihbar] ¬The Necronomicon
 - 10-Zentralbibliothek / 2.OG Wall-Flügel | ausleihbar
