@@ -1,18 +1,16 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-09-05 09:31 UTC
+Zuletzt aktualisiert: 2026-09-06 09:44 UTC
 
 ## Übersicht
 
-**Ausleihbar (11):**
+**Ausleihbar (9):**
 - Mit Physik auf der Suche nach dem Sinn des Lebens
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
 - ¬The Witcher - Der Rand der Welt
-- Wir
 - ¬Die Zeitmaschine
 - Aufstieg und Fall der Menschheit
-- ¬The Necronomicon
 - Live forever?
 - ¬Die kürzeste Geschichte der Erde
 - ¬Die Pharma-Lüge
@@ -48,18 +46,12 @@ Zuletzt aktualisiert: 2026-09-05 09:31 UTC
 ## [Ausleihbar] ¬The Witcher - Der Rand der Welt
 - 10-Zentralbibliothek / 2.OG Wall-Flügel | ausleihbar
 
-## [Ausleihbar] Wir
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
-
 ## [Ausleihbar] ¬Die Zeitmaschine
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | ausleihbar
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
 
 ## [Ausleihbar] Aufstieg und Fall der Menschheit
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
-
-## [Ausleihbar] ¬The Necronomicon
-- 10-Zentralbibliothek / 2.OG Wall-Flügel | ausleihbar
 
 ## [Ausleihbar] Live forever?
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
