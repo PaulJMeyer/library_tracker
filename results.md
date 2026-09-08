@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-09-07 10:48 UTC
+Zuletzt aktualisiert: 2026-09-08 10:09 UTC
 
 ## Übersicht
 
@@ -15,8 +15,7 @@ Zuletzt aktualisiert: 2026-09-07 10:48 UTC
 - ¬Die kürzeste Geschichte der Erde
 - ¬Die Pharma-Lüge
 
-**Bestellbar (3):**
-- Fahrenheit 451
+**Bestellbar (2):**
 - Cthulhus Ruf
 - ¬Der Fremde
 
@@ -61,10 +60,6 @@ Zuletzt aktualisiert: 2026-09-07 10:48 UTC
 
 ## [Ausleihbar] ¬Die Pharma-Lüge
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
-
-## [Bestellbar] Fahrenheit 451
-- 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 12.09.2026
-- 21-Vahr / Medien nach Themen | andere Zweigstelle (ausleihbar)
 
 ## [Bestellbar] Cthulhus Ruf
 - 50-Gröpelingen / OG Literatur & Sprachen | andere Zweigstelle (ausleihbar)
