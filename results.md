@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-09-10 10:06 UTC
+Zuletzt aktualisiert: 2026-09-11 10:04 UTC
 
 ## Übersicht
 
@@ -15,7 +15,8 @@ Zuletzt aktualisiert: 2026-09-10 10:06 UTC
 - ¬Die kürzeste Geschichte der Erde
 - ¬Die Pharma-Lüge
 
-**Bestellbar (2):**
+**Bestellbar (3):**
+- ¬Der Krieg der Welten
 - Cthulhus Ruf
 - ¬Der Fremde
 
@@ -60,6 +61,9 @@ Zuletzt aktualisiert: 2026-09-10 10:06 UTC
 
 ## [Ausleihbar] ¬Die Pharma-Lüge
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
+
+## [Bestellbar] ¬Der Krieg der Welten
+- 61-Lesum / Romane nach Themen | andere Zweigstelle (ausleihbar)
 
 ## [Bestellbar] Cthulhus Ruf
 - 50-Gröpelingen / OG Literatur & Sprachen | andere Zweigstelle (ausleihbar)
