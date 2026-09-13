@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from requests import Session
 
 from library_tracker.client import build_url, get
@@ -18,25 +18,32 @@ def get_wishlist_page(session: Session, cur_pos: int = 1) -> str:
     return response.text
 
 
+def _tag_value(tag: Tag, attr: str) -> str:
+    value = tag.get(attr, "")
+    if isinstance(value, list):
+        return value[0] if value else ""
+    return value
+
+
 def extract_memorize_page(html: str, cur_pos: int) -> MemorizePage:
     soup = BeautifulSoup(html, "html.parser")
 
     form = soup.find("form", id="MemorizeBean")
     hidden_values: dict[str, str] = {}
-    if form is not None:
+    if isinstance(form, Tag):
         for name in ("selectedMemorizeList", "displayType", "CSId"):
             tag = form.find("input", attrs={"name": name})
-            hidden_values[name] = tag.get("value", "") if tag else ""
+            hidden_values[name] = _tag_value(tag, "value") if isinstance(tag, Tag) else ""
 
     entries: list[MemorizeEntry] = []
     for row in soup.select("div.row.border-bottom"):
         checkbox = row.find("input", type="checkbox")
         link = row.find("a", href=lambda h: isinstance(h, str) and "runMemorizeAvailability" in h)
-        if checkbox is None or link is None:
+        if not isinstance(checkbox, Tag) or not isinstance(link, Tag):
             continue
         entries.append({
-            "uuid": checkbox.get("value", ""),
-            "availability_link": build_url(link["href"]),
+            "uuid": _tag_value(checkbox, "value"),
+            "availability_link": build_url(_tag_value(link, "href")),
         })
 
     return {
