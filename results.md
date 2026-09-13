@@ -1,28 +1,24 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-09-01 14:23 UTC
+Zuletzt aktualisiert: 2026-09-13 10:41 UTC
 
 ## Übersicht
 
-**Ausleihbar (14):**
+**Ausleihbar (9):**
 - Mit Physik auf der Suche nach dem Sinn des Lebens
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
 - ¬The Witcher - Der Rand der Welt
-- Wir
-- Wir
 - ¬Die Zeitmaschine
 - Aufstieg und Fall der Menschheit
-- Klasse
-- ¬The Necronomicon
 - Live forever?
 - ¬Die kürzeste Geschichte der Erde
 - ¬Die Pharma-Lüge
-- ¬Der Fremde
 
-**Bestellbar (2):**
-- Fahrenheit 451
+**Bestellbar (3):**
+- ¬Der Krieg der Welten
 - Cthulhus Ruf
+- ¬Der Fremde
 
 ## Details
 
@@ -43,18 +39,12 @@ Zuletzt aktualisiert: 2026-09-01 14:23 UTC
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 21.09.2026
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 14.09.2026
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 10.09.2026
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 30.09.2026
 - 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (ausleihbar)
 - 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (ausleihbar)
 
 ## [Ausleihbar] ¬The Witcher - Der Rand der Welt
 - 10-Zentralbibliothek / 2.OG Wall-Flügel | ausleihbar
-
-## [Ausleihbar] Wir
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
-
-## [Ausleihbar] Wir
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
 
 ## [Ausleihbar] ¬Die Zeitmaschine
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | ausleihbar
@@ -62,16 +52,6 @@ Zuletzt aktualisiert: 2026-09-01 14:23 UTC
 
 ## [Ausleihbar] Aufstieg und Fall der Menschheit
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
-
-## [Ausleihbar] Klasse
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
-- 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (ausleihbar)
-- 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
-
-## [Ausleihbar] ¬The Necronomicon
-- 10-Zentralbibliothek / 2.OG Wall-Flügel | ausleihbar
 
 ## [Ausleihbar] Live forever?
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
@@ -82,13 +62,12 @@ Zuletzt aktualisiert: 2026-09-01 14:23 UTC
 ## [Ausleihbar] ¬Die Pharma-Lüge
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
 
-## [Ausleihbar] ¬Der Fremde
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
-- 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (ausleihbar)
-
-## [Bestellbar] Fahrenheit 451
-- 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 12.09.2026
-- 21-Vahr / Medien nach Themen | andere Zweigstelle (ausleihbar)
+## [Bestellbar] ¬Der Krieg der Welten
+- 61-Lesum / Romane nach Themen | andere Zweigstelle (ausleihbar)
 
 ## [Bestellbar] Cthulhus Ruf
 - 50-Gröpelingen / OG Literatur & Sprachen | andere Zweigstelle (ausleihbar)
+
+## [Bestellbar] ¬Der Fremde
+- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 23.09.2026
+- 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (ausleihbar)
