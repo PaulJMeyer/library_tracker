@@ -32,4 +32,4 @@ include = ["library_tracker*"]
 testpaths = ["tests"]
 
 [tool.mypy]
-files = ["library_tracker"]
+files = ["library_tracker", "tests"]
