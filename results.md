@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-09-13 10:41 UTC
+Zuletzt aktualisiert: 2026-09-14 11:02 UTC
 
 ## Übersicht
 
@@ -37,7 +37,7 @@ Zuletzt aktualisiert: 2026-09-13 10:41 UTC
 
 ## [Ausleihbar] Nexus
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 21.09.2026
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 14.09.2026
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 05.10.2026
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 30.09.2026
 - 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (ausleihbar)
