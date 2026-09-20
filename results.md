@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-09-19 09:48 UTC
+Zuletzt aktualisiert: 2026-09-20 10:10 UTC
 
 ## Übersicht
 
@@ -47,7 +47,7 @@ Zuletzt aktualisiert: 2026-09-19 09:48 UTC
 - 10-Zentralbibliothek / 2.OG Wall-Flügel | ausleihbar
 
 ## [Ausleihbar] ¬Die Zeitmaschine
-- 10-Zentralbibliothek / 1.OG Romane nach Themen | ausleihbar
+- 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 10.10.2026
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
 
 ## [Ausleihbar] Aufstieg und Fall der Menschheit
