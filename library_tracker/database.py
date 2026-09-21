@@ -4,17 +4,19 @@ import datetime
 import sqlite3
 from collections.abc import Iterable
 from pathlib import Path
+from typing import cast
 
-from library_tracker.models import Item
+from library_tracker.models import AvailabilitySnapshot, Item
 
 
 DEFAULT_DB_PATH = Path("data/library_tracker.db")
+
+SnapshotRow = tuple[str, str, str, str, str | None]
 
 
 def get_connection(path: Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
     """Create a SQLite connection and enable foreign-key enforcement."""
     path.parent.mkdir(parents=True, exist_ok=True)
-
     connection = sqlite3.connect(path)
     connection.execute("PRAGMA foreign_keys = ON")
     return connection
@@ -71,7 +73,6 @@ def persist_items(
         raise ValueError("checked_at must be timezone-aware")
 
     checked_at_iso = timestamp.astimezone(datetime.timezone.utc).isoformat()
-
     with connection:
         for item in items:
             for copy in item["copies"]:
@@ -102,7 +103,6 @@ def persist_items(
                         checked_at_iso,
                     ),
                 )
-
                 connection.execute(
                     """
                     INSERT INTO availability_snapshots (
@@ -122,3 +122,66 @@ def persist_items(
                         copy["due_date"],
                     ),
                 )
+
+
+def _snapshot_from_row(row: SnapshotRow) -> AvailabilitySnapshot:
+    return {
+        "media_number": row[0],
+        "checked_at": row[1],
+        "status": row[2],
+        "status_text": row[3],
+        "due_date": row[4],
+    }
+
+
+def get_copy_history(
+    connection: sqlite3.Connection,
+    media_number: str,
+) -> list[AvailabilitySnapshot]:
+    """Return all stored snapshots for one copy, oldest first."""
+    rows = connection.execute(
+        """
+        SELECT
+            media_number,
+            checked_at,
+            status,
+            status_text,
+            due_date
+        FROM availability_snapshots
+        WHERE media_number = ?
+        ORDER BY checked_at ASC, id ASC
+        """,
+        (media_number,),
+    ).fetchall()
+
+    return [
+        _snapshot_from_row(cast(SnapshotRow, row))
+        for row in rows
+    ]
+
+
+def get_latest_snapshot(
+    connection: sqlite3.Connection,
+    media_number: str,
+) -> AvailabilitySnapshot | None:
+    """Return the newest stored snapshot for one copy, if available."""
+    row = connection.execute(
+        """
+        SELECT
+            media_number,
+            checked_at,
+            status,
+            status_text,
+            due_date
+        FROM availability_snapshots
+        WHERE media_number = ?
+        ORDER BY checked_at DESC, id DESC
+        LIMIT 1
+        """,
+        (media_number,),
+    ).fetchone()
+
+    if row is None:
+        return None
+
+    return _snapshot_from_row(cast(SnapshotRow, row))
