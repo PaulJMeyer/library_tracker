@@ -1,5 +1,6 @@
 import datetime
 import sqlite3
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -45,14 +46,17 @@ def make_item(
 
 
 @pytest.fixture
-def connection(tmp_path: Path) -> sqlite3.Connection:
+def connection(
+    tmp_path: Path,
+) -> Iterator[sqlite3.Connection]:
     db_path = tmp_path / "nested" / "library_tracker.db"
     db_connection = get_connection(db_path)
     initialize_database(db_connection)
 
-    yield db_connection
-
-    db_connection.close()
+    try:
+        yield db_connection
+    finally:
+        db_connection.close()
 
 
 def test_get_connection_creates_parent_directory_and_database(
