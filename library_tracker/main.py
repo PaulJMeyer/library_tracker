@@ -1,20 +1,31 @@
-from library_tracker.client import get, build_url
-from library_tracker.models import Item
-from library_tracker.login import login
-from library_tracker.library_parser import parse_availability_page
-from library_tracker.wishlist import get_all_memorize_pages, remove_entries
-from library_tracker.account import get_account_page, parse_loans
-from library_tracker.output import print_results_console, print_loans_console, write_results_markdown
 from dotenv import load_dotenv
+
+from library_tracker.account import get_account_page, parse_loans
+from library_tracker.client import build_url, get
+from library_tracker.database import (
+    get_connection,
+    initialize_database,
+    persist_items,
+)
+from library_tracker.library_parser import parse_availability_page
+from library_tracker.login import login
+from library_tracker.models import Item
+from library_tracker.output import (
+    print_loans_console,
+    print_results_console,
+    write_results_markdown,
+)
+from library_tracker.wishlist import get_all_memorize_pages, remove_entries
+
 
 load_dotenv()
 
 STATUS_ORDER = {
     "ausleihbar": 0,
     "bestellbar": 1,
-    "entliehen":  2,
-    "bestellt":   3,
-    "unbekannt":  4,
+    "entliehen": 2,
+    "bestellt": 3,
+    "unbekannt": 4,
 }
 
 EXEMPLAR_TAB_URL = build_url(
@@ -32,6 +43,7 @@ def main() -> None:
     print(f"Gefundene Medien: {total_entries}")
 
     items: list[Item] = []
+    scraped_items: list[Item] = []
 
     for page in pages:
         entliehen_uuids: list[str] = []
@@ -40,6 +52,7 @@ def main() -> None:
             get(session, entry["availability_link"])
             response = get(session, EXEMPLAR_TAB_URL)
             item = parse_availability_page(response.text)
+            scraped_items.append(item)
 
             if item["overall_status"] == "entliehen":
                 entliehen_uuids.append(entry["uuid"])
@@ -48,11 +61,21 @@ def main() -> None:
 
         if entliehen_uuids:
             removed = remove_entries(session, page, entliehen_uuids)
-            print(f"Entfernt: {len(entliehen_uuids)} Titel (Erfolg: {removed})")
+            print(
+                f"Entfernt: {len(entliehen_uuids)} Titel "
+                f"(Erfolg: {removed})"
+            )
+
+    connection = get_connection()
+    try:
+        initialize_database(connection)
+        persist_items(connection, scraped_items)
+    finally:
+        connection.close()
 
     items = sorted(
         items,
-        key=lambda item: STATUS_ORDER.get(item["overall_status"], 99)
+        key=lambda item: STATUS_ORDER.get(item["overall_status"], 99),
     )
 
     print_results_console(items)

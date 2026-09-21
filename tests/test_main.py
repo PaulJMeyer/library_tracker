@@ -1,3 +1,4 @@
+import sqlite3
 from typing import cast
 from unittest.mock import MagicMock, patch
 
@@ -23,6 +24,7 @@ def test_main_runs_complete_workflow(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     session, session_mock = make_session_mock()
+    connection_mock = MagicMock(spec=sqlite3.Connection)
 
     page: MemorizePage = {
         "cur_pos": "1",
@@ -97,6 +99,16 @@ def test_main_runs_complete_workflow(
             return_value=True,
         ) as mock_remove_entries,
         patch(
+            "library_tracker.main.get_connection",
+            return_value=connection_mock,
+        ) as mock_get_connection,
+        patch(
+            "library_tracker.main.initialize_database"
+        ) as mock_initialize_database,
+        patch(
+            "library_tracker.main.persist_items"
+        ) as mock_persist_items,
+        patch(
             "library_tracker.main.print_results_console"
         ) as mock_print_results,
         patch(
@@ -122,7 +134,28 @@ def test_main_runs_complete_workflow(
         ["loaned-uuid"],
     )
 
-    result_items = cast(list[Item], mock_print_results.call_args.args[0])
+    mock_get_connection.assert_called_once_with()
+    mock_initialize_database.assert_called_once_with(connection_mock)
+
+    persisted_items = cast(
+        list[Item],
+        mock_persist_items.call_args.args[1],
+    )
+    assert [item["title"] for item in persisted_items] == [
+        "Loaned Book",
+        "Orderable Book",
+        "Available Book",
+    ]
+    mock_persist_items.assert_called_once_with(
+        connection_mock,
+        persisted_items,
+    )
+    connection_mock.close.assert_called_once_with()
+
+    result_items = cast(
+        list[Item],
+        mock_print_results.call_args.args[0],
+    )
     assert [item["title"] for item in result_items] == [
         "Available Book",
         "Orderable Book",
