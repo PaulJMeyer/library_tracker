@@ -7,6 +7,8 @@ import pytest
 
 from library_tracker.database import (
     get_connection,
+    get_copy_history,
+    get_latest_snapshot,
     initialize_database,
     persist_items,
 )
@@ -52,7 +54,6 @@ def connection(
     db_path = tmp_path / "nested" / "library_tracker.db"
     db_connection = get_connection(db_path)
     initialize_database(db_connection)
-
     try:
         yield db_connection
     finally:
@@ -128,7 +129,6 @@ def test_persist_items_stores_copy_and_snapshot(
         [item],
         checked_at=checked_at,
     )
-
     copy_row = connection.execute(
         """
         SELECT
@@ -150,7 +150,6 @@ def test_persist_items_stores_copy_and_snapshot(
         1,
         "2026-09-21T18:30:00+00:00",
     )
-
     snapshot_row = connection.execute(
         """
         SELECT
@@ -188,7 +187,6 @@ def test_persist_items_stores_multiple_copies(
     item = make_item(copies=copies)
 
     persist_items(connection, [item])
-
     copy_count = connection.execute(
         "SELECT COUNT(*) FROM copies"
     ).fetchone()
@@ -219,7 +217,6 @@ def test_persist_items_updates_copy_and_keeps_history(
         0,
         tzinfo=datetime.timezone.utc,
     )
-
     first_item = make_item(
         copies=[
             make_copy(
@@ -239,7 +236,6 @@ def test_persist_items_updates_copy_and_keeps_history(
             )
         ]
     )
-
     persist_items(
         connection,
         [first_item],
@@ -264,7 +260,6 @@ def test_persist_items_updates_copy_and_keeps_history(
         "S Test Updated",
         "2026-09-22T08:00:00+00:00",
     )
-
     snapshots = connection.execute(
         """
         SELECT status, due_date
@@ -302,7 +297,6 @@ def test_persist_items_stores_due_date(
         FROM availability_snapshots
         """
     ).fetchone()
-
     assert row == ("30.09.2026",)
 
 
@@ -320,3 +314,158 @@ def test_persist_items_rejects_naive_timestamp(
             [make_item()],
             checked_at=naive_timestamp,
         )
+
+
+def test_get_copy_history_returns_snapshots_oldest_first(
+    connection: sqlite3.Connection,
+) -> None:
+    later = datetime.datetime(
+        2026,
+        9,
+        22,
+        8,
+        0,
+        tzinfo=datetime.timezone.utc,
+    )
+    earlier = datetime.datetime(
+        2026,
+        9,
+        21,
+        8,
+        0,
+        tzinfo=datetime.timezone.utc,
+    )
+
+    persist_items(
+        connection,
+        [
+            make_item(
+                copies=[
+                    make_copy(
+                        status="ausleihbar",
+                        status_text="Ausleihbar",
+                    )
+                ]
+            )
+        ],
+        checked_at=later,
+    )
+    persist_items(
+        connection,
+        [
+            make_item(
+                copies=[
+                    make_copy(
+                        status="entliehen",
+                        status_text="entliehen bis 22.09.2026",
+                        due_date="22.09.2026",
+                    )
+                ]
+            )
+        ],
+        checked_at=earlier,
+    )
+
+    history = get_copy_history(
+        connection,
+        "123456789",
+    )
+
+    assert history == [
+        {
+            "media_number": "123456789",
+            "checked_at": "2026-09-21T08:00:00+00:00",
+            "status": "entliehen",
+            "status_text": "entliehen bis 22.09.2026",
+            "due_date": "22.09.2026",
+        },
+        {
+            "media_number": "123456789",
+            "checked_at": "2026-09-22T08:00:00+00:00",
+            "status": "ausleihbar",
+            "status_text": "Ausleihbar",
+            "due_date": None,
+        },
+    ]
+
+
+def test_get_copy_history_unknown_copy_returns_empty_list(
+    connection: sqlite3.Connection,
+) -> None:
+    assert get_copy_history(
+        connection,
+        "999999999",
+    ) == []
+
+
+def test_get_latest_snapshot_returns_newest_snapshot(
+    connection: sqlite3.Connection,
+) -> None:
+    first_check = datetime.datetime(
+        2026,
+        9,
+        21,
+        8,
+        0,
+        tzinfo=datetime.timezone.utc,
+    )
+    second_check = datetime.datetime(
+        2026,
+        9,
+        22,
+        8,
+        0,
+        tzinfo=datetime.timezone.utc,
+    )
+
+    persist_items(
+        connection,
+        [
+            make_item(
+                copies=[
+                    make_copy(
+                        status="entliehen",
+                        status_text="entliehen bis 22.09.2026",
+                        due_date="22.09.2026",
+                    )
+                ]
+            )
+        ],
+        checked_at=first_check,
+    )
+    persist_items(
+        connection,
+        [
+            make_item(
+                copies=[
+                    make_copy(
+                        status="ausleihbar",
+                        status_text="Ausleihbar",
+                    )
+                ]
+            )
+        ],
+        checked_at=second_check,
+    )
+
+    latest = get_latest_snapshot(
+        connection,
+        "123456789",
+    )
+
+    assert latest == {
+        "media_number": "123456789",
+        "checked_at": "2026-09-22T08:00:00+00:00",
+        "status": "ausleihbar",
+        "status_text": "Ausleihbar",
+        "due_date": None,
+    }
+
+
+def test_get_latest_snapshot_unknown_copy_returns_none(
+    connection: sqlite3.Connection,
+) -> None:
+    assert get_latest_snapshot(
+        connection,
+        "999999999",
+    ) is None

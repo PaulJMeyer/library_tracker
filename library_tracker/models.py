@@ -1,5 +1,6 @@
 from typing import TypedDict
 
+
 class Copy(TypedDict):
     media_number:   str
     signature:      str
@@ -8,6 +9,7 @@ class Copy(TypedDict):
     status:         str
     due_date:       str | None
     is_central:     bool
+
 
 class Item(TypedDict):
     title:              str
@@ -37,3 +39,11 @@ class MemorizePage(TypedDict):
     display_type:               str
     selected_memorize_list:     str
     entries:                    list[MemorizeEntry]
+
+
+class AvailabilitySnapshot(TypedDict):
+    media_number: str
+    checked_at: str
+    status: str
+    status_text: str
+    due_date: str | None
