@@ -23,7 +23,7 @@ dev = [
 ]
 
 [project.scripts]
-library-tracker = "library_tracker.main:main"
+library-tracker = "library_tracker.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["library_tracker*"]
