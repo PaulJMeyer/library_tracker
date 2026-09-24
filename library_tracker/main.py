@@ -2,11 +2,7 @@ from dotenv import load_dotenv
 
 from library_tracker.account import get_account_page, parse_loans
 from library_tracker.client import build_url, get
-from library_tracker.database import (
-    get_connection,
-    initialize_database,
-    persist_items,
-)
+from library_tracker.database import get_connection, initialize_database
 from library_tracker.library_parser import parse_availability_page
 from library_tracker.login import login
 from library_tracker.models import Item
@@ -15,6 +11,7 @@ from library_tracker.output import (
     print_results_console,
     write_results_markdown,
 )
+from library_tracker.repository import persist_items
 from library_tracker.wishlist import get_all_memorize_pages, remove_entries
 
 
