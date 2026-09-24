@@ -32,18 +32,9 @@ def test_main_runs_complete_workflow(
         "display_type": "short",
         "selected_memorize_list": "",
         "entries": [
-            {
-                "uuid": "loaned-uuid",
-                "availability_link": "url-1",
-            },
-            {
-                "uuid": "orderable-uuid",
-                "availability_link": "url-2",
-            },
-            {
-                "uuid": "available-uuid",
-                "availability_link": "url-3",
-            },
+            {"uuid": "loaned-uuid", "availability_link": "url-1"},
+            {"uuid": "orderable-uuid", "availability_link": "url-2"},
+            {"uuid": "available-uuid", "availability_link": "url-3"},
         ],
     }
 
@@ -74,25 +65,15 @@ def test_main_runs_complete_workflow(
     ]
 
     with (
-        patch(
-            "library_tracker.main.login",
-            return_value=session_mock,
-        ),
+        patch("library_tracker.main.login", return_value=session_mock),
         patch(
             "library_tracker.main.get_all_memorize_pages",
             return_value=[page],
         ),
-        patch(
-            "library_tracker.main.get",
-            side_effect=detail_responses,
-        ),
+        patch("library_tracker.main.get", side_effect=detail_responses),
         patch(
             "library_tracker.main.parse_availability_page",
-            side_effect=[
-                loaned_item,
-                orderable_item,
-                available_item,
-            ],
+            side_effect=[loaned_item, orderable_item, available_item],
         ),
         patch(
             "library_tracker.main.remove_entries",
@@ -105,9 +86,7 @@ def test_main_runs_complete_workflow(
         patch(
             "library_tracker.main.initialize_database"
         ) as mock_initialize_database,
-        patch(
-            "library_tracker.main.persist_items"
-        ) as mock_persist_items,
+        patch("library_tracker.main.persist_items") as mock_persist_items,
         patch(
             "library_tracker.main.print_results_console"
         ) as mock_print_results,
@@ -118,10 +97,7 @@ def test_main_runs_complete_workflow(
             "library_tracker.main.get_account_page",
             return_value="<html></html>",
         ),
-        patch(
-            "library_tracker.main.parse_loans",
-            return_value=loans,
-        ),
+        patch("library_tracker.main.parse_loans", return_value=loans),
         patch(
             "library_tracker.main.print_loans_console"
         ) as mock_print_loans,
@@ -133,14 +109,10 @@ def test_main_runs_complete_workflow(
         page,
         ["loaned-uuid"],
     )
-
     mock_get_connection.assert_called_once_with()
     mock_initialize_database.assert_called_once_with(connection_mock)
 
-    persisted_items = cast(
-        list[Item],
-        mock_persist_items.call_args.args[1],
-    )
+    persisted_items = cast(list[Item], mock_persist_items.call_args.args[1])
     assert [item["title"] for item in persisted_items] == [
         "Loaned Book",
         "Orderable Book",
@@ -152,15 +124,11 @@ def test_main_runs_complete_workflow(
     )
     connection_mock.close.assert_called_once_with()
 
-    result_items = cast(
-        list[Item],
-        mock_print_results.call_args.args[0],
-    )
+    result_items = cast(list[Item], mock_print_results.call_args.args[0])
     assert [item["title"] for item in result_items] == [
         "Available Book",
         "Orderable Book",
     ]
-
     mock_write_results.assert_called_once_with(result_items)
     mock_print_loans.assert_called_once_with(loans)
 
