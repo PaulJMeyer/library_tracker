@@ -1,184 +1,402 @@
-# Project Structure
+# Project Structure – Library Tracker
 
-```
+Overview of the current layout, module responsibilities, data flow, and testing strategy.
+
+## Directory tree
+
+```text
 library_tracker/
 ├── library_tracker/
 │   ├── __init__.py
 │   ├── __main__.py
 │   ├── account.py
+│   ├── cli.py
 │   ├── client.py
+│   ├── database.py
 │   ├── library_parser.py
 │   ├── login.py
 │   ├── main.py
 │   ├── models.py
 │   ├── output.py
+│   ├── repository.py
 │   └── wishlist.py
 ├── tests/
 │   ├── __init__.py
 │   ├── test_account.py
+│   ├── test_cli.py
+│   ├── test_client.py
+│   ├── test_database.py
+│   ├── test_entrypoint.py
 │   ├── test_library_parser.py
+│   ├── test_login.py
+│   ├── test_main.py
 │   ├── test_output.py
+│   ├── test_repository.py
 │   └── test_wishlist.py
 ├── .github/
-|   ├── AI_CONTEXT.md
+│   ├── AI_CONTEXT.md
 │   └── workflows/
 │       ├── ci.yml
 │       └── scrape.yml
+├── data/
+│   └── library_tracker.db
 ├── .env
+├── .gitignore
 ├── pyproject.toml
 ├── README.md
 └── ROADMAP.md
 ```
 
+`data/` and SQLite database files are local runtime data and are ignored by Git.
+
 ---
 
-## client.py
+## Architecture
+
+The project separates external communication, parsing, orchestration, persistence, and presentation.
+
+```text
+cli / main
+   ├── client / login
+   ├── wishlist / account
+   ├── library_parser
+   ├── output
+   └── database
+          ↓
+      repository
+          ↓
+        SQLite
+```
+
+More specifically:
+
+- `client.py` handles reusable HTTP operations.
+- `login.py` handles authentication.
+- `wishlist.py` and `account.py` load account-specific pages.
+- `library_parser.py` converts HTML into typed application data.
+- `models.py` defines shared `TypedDict` structures.
+- `database.py` owns SQLite connection and schema setup.
+- `repository.py` owns persistence and queries.
+- `main.py` orchestrates a scrape.
+- `cli.py` routes user commands.
+- `output.py` formats console and Markdown output.
+
+---
+
+## `client.py`
 
 Central HTTP helper functions.
 
 Responsibilities:
 
-* URL construction
-* GET requests (with optional query parameters, safely URL-encoded by `requests`)
-* POST requests
-* Timeout
-* Request delays
+- URL construction
+- GET requests
+- POST requests
+- request timeout
+- request delay
+- HTTP error propagation
+
+External requests are mocked in the test suite.
 
 ---
 
-## login.py
+## `login.py`
 
-Manages the login process.
+Handles the login process.
 
 Responsibilities:
 
-* Fetch the login page
-* Extract the CSId
-* Perform the login
-* Return the session
+- create a requests session
+- fetch the login page
+- extract the CSId
+- build the login payload
+- submit credentials
+- validate the resulting session
+
+Credentials are read from environment variables.
 
 ---
 
-## wishlist.py
+## `wishlist.py`
 
 Handles the personal wish list.
 
 Responsibilities:
 
-* Load wish list pages
-* Handle pagination
-* Extract per-page wish-list entries (checkbox UUID + availability link) plus the page's hidden form fields (`CSId`, `curPos`, `displayType`, `selectedMemorizeList`) via `extract_memorize_page()` / `get_all_memorize_pages()`
-* Remove selected entries from the wish list on the library website via `remove_entries()` (GET request against `memorizelist.do?methodToCall=deleteSelectedEntries`)
+- load wish-list pages
+- handle pagination
+- extract entry UUIDs
+- extract availability links
+- remove selected entries from the wish list
 
 ---
 
-## library_parser.py
-
-Extracts information from the HTML pages.
-
-Responsibilities:
-
-* Extract title
-* Detect multiple copies per title (`parse_copies`)
-* Distinguish branch vs. central library (`is_central`)
-* Normalize per-copy status (`normalize_copy_status`) and derive overall status (`classify_item`)
-* Extract due date from the status text (`extract_due_date`) — value is available but not yet shown in the output
-* Future:
-
-  * Show due dates in the output
-  * Order options (automatic ordering)
-
----
-
-## models.py
-
-`TypedDict` definitions for the data structures shared across the project (`Copy`, `Item`, `Loan`, `MemorizeEntry`, `MemorizePage`), used for precise type checking with `mypy` instead of generic `dict`.
-
----
-
-## output.py
-
-All output/formatting logic, kept separate from orchestration (`main.py`) and business logic (`library_parser.py`).
-
-Responsibilities:
-
-* `format_copy_line()` — format a single copy's line, including due date if available and not already part of the status text
-* `format_results_markdown()` — build the full Markdown report
-* `write_results_markdown()` — write the report to `results.md`
-* `print_results_console()` — console output, using the same `format_copy_line()` as the Markdown output
-
-
----
-
-## account.py
+## `account.py`
 
 Handles the account overview.
 
 Responsibilities:
 
-* Load account page
-* Extract borrowed book info
+- load the account page
+- parse currently borrowed items
+- extract borrowing and due dates
+- extract branch information
+- extract renewal notes
 
 ---
 
-## main.py
+## `library_parser.py`
 
-Entry point of the program.
+Converts availability HTML into typed application data.
+
+Responsibilities:
+
+- clean text
+- extract title
+- detect multiple copies per title
+- extract media number, signature, and branch
+- distinguish central library from branch libraries
+- normalize per-copy status
+- derive overall item status
+- extract due dates
+- create `Item` and `Copy` structures
+
+---
+
+## `models.py`
+
+Defines the shared typed structures used throughout the application.
+
+Current models include:
+
+- `Copy`
+- `Item`
+- `Loan`
+- `MemorizeEntry`
+- `MemorizePage`
+- `AvailabilitySnapshot`
+
+The project uses `TypedDict` instead of generic dictionaries so that `mypy` can validate data passed between modules.
+
+---
+
+## `database.py`
+
+Owns SQLite infrastructure rather than application-specific persistence logic.
+
+Responsibilities:
+
+- define the default database path
+- create the database directory when needed
+- open SQLite connections
+- enable foreign-key enforcement
+- initialize tables and indexes
+
+Current schema:
+
+### `copies`
+
+Stores current metadata for each known physical copy.
+
+Important fields:
+
+- `media_number` — primary key
+- `title`
+- `signature`
+- `branch`
+- `is_central`
+- `last_seen_at`
+
+### `availability_snapshots`
+
+Stores historical availability states.
+
+Important fields:
+
+- `id` — primary key
+- `media_number` — foreign key to `copies`
+- `checked_at`
+- `status`
+- `status_text`
+- `due_date`
+
+An index on `(media_number, checked_at)` supports history queries.
+
+---
+
+## `repository.py`
+
+Owns application-specific persistence and read queries.
+
+Responsibilities:
+
+- upsert current copy metadata
+- store availability snapshots
+- retrieve the full history of one copy
+- retrieve the newest snapshot of one copy
+
+Current public functions:
+
+```text
+persist_items()
+get_copy_history()
+get_latest_snapshot()
+```
+
+This separation keeps database setup independent from business-oriented data access.
+
+---
+
+## `output.py`
+
+Contains output and formatting logic.
+
+Responsibilities:
+
+- format individual copy lines
+- create status summaries
+- build the Markdown report
+- write `results.md`
+- print wish-list results to the console
+- print borrowed items to the console
+
+---
+
+## `main.py`
+
+Orchestrates one complete scrape.
 
 Current flow:
 
-1. Login
-2. Load wish list pages (`get_all_memorize_pages`)
-3. For each page: classify each entry's status; collect already-borrowed entries separately, excluding them from the report
-4. Remove already-borrowed entries from the wish list on that page
-5. Sort the remaining (non-borrowed) results
-6. Delegate console and file output to `output.py`
+1. Log in.
+2. Load all wish-list pages.
+3. Fetch availability details for every entry.
+4. Parse title and copy information.
+5. Collect all scraped items for persistence.
+6. Remove fully checked-out titles from the wish list where applicable.
+7. Initialize SQLite.
+8. Persist copy metadata and availability snapshots.
+9. Sort remaining wish-list items by status.
+10. Print results and write `results.md`.
+11. Load and print currently borrowed items.
+
+`main.py` does not contain SQL directly.
 
 ---
 
-## __main__.py
+## `cli.py`
 
-Enables running the package directly via `python -m library_tracker`; simply calls `main()` from `main.py`.
+Command-line interface built with the Python standard library.
 
----
+Commands:
 
-## tests/
-
-## tests/
-
-`pytest` suite covering the pure parsing/business logic:
-
-* `test_library_parser.py` — `clean_text`, `extract_due_date`, `normalize_copy_status`, `classify_item`, `parse_title`
-* `test_wishlist.py` — `extract_memorize_page`, `remove_entries`, `get_all_memorize_pages`
-* `test_account.py` — `parse_loans`, `parse_loan_dates`
-* `test_output.py` — `format_copy_line`, `format_status_summary`
-
-`client.py` and `login.py` (real HTTP calls) are not yet covered — this would require mocking `requests.Session` and is planned for a later step.
-
----
-
-## .github/workflows/
-
-* `ci.yml` — runs `mypy` and `pytest` (with coverage) on every push/PR to `master`
-* `scrape.yml` — scheduled daily scrape (cron) plus manual trigger; reads `LIBRARY_USERNAME`/`LIBRARY_PASSWORD` from GitHub Secrets and commits the updated `results.md` back to the repo
-
----
-
-## .env
-
-Used for local development only. Contains exclusively:
-
-* LIBRARY_USERNAME
-* LIBRARY_PASSWORD
-
-Never committed to git. In CI/scheduled runs, the equivalent values come from GitHub Secrets instead.
-
----
-
-## pyproject.toml
-
-Package definition and dependencies (replaces `requirements.txt`). Installed locally via:
-
+```bash
+python -m library_tracker
+python -m library_tracker scrape
+python -m library_tracker history <media_number>
 ```
-pip install -e ".[dev]"
+
+Responsibilities:
+
+- argument parsing
+- route the default/scrape command to `main.py`
+- query SQLite history by media number
+- format history output
+- return meaningful exit codes
+
+---
+
+## `__main__.py`
+
+Package entry point.
+
+Running:
+
+```bash
+python -m library_tracker
+```
+
+delegates to the CLI.
+
+---
+
+## Tests
+
+The test suite covers parsing, application logic, HTTP wrappers, login behavior, output, SQLite infrastructure, repository operations, CLI routing, and orchestration.
+
+Important groups:
+
+- `test_client.py` — HTTP helper behavior
+- `test_login.py` — login parsing and mocked login flow
+- `test_wishlist.py` — wish-list parsing, pagination, and removal
+- `test_library_parser.py` — availability parsing and status logic
+- `test_account.py` — account/loan parsing
+- `test_output.py` — console and Markdown formatting
+- `test_database.py` — SQLite connection and schema initialization
+- `test_repository.py` — persistence and history queries
+- `test_cli.py` — scrape/history command routing and output
+- `test_main.py` — end-to-end orchestration with mocked boundaries
+- `test_entrypoint.py` — package entry point
+
+SQLite tests use temporary databases created by pytest.
+
+The project currently reaches approximately 99% test coverage. Coverage is useful as a quality signal, but future development prioritizes meaningful behavioral tests rather than maintaining an arbitrary percentage.
+
+---
+
+## GitHub Actions
+
+### `ci.yml`
+
+Runs automated quality checks on pushes and pull requests.
+
+Current checks:
+
+- `mypy`
+- `pytest`
+- coverage
+
+### `scrape.yml`
+
+Runs the tracker on a schedule and can also be triggered manually.
+
+Responsibilities:
+
+- install the package
+- read credentials from GitHub Secrets
+- run the scraper
+- update `results.md`
+
+A future step is to persist the SQLite database between independent workflow runs so that the scheduled job also builds long-term history.
+
+---
+
+## Local configuration
+
+### `.env`
+
+Local credentials only:
+
+```text
+LIBRARY_USERNAME=...
+LIBRARY_PASSWORD=...
+```
+
+Never committed to Git.
+
+### `pyproject.toml`
+
+Defines:
+
+- package metadata
+- runtime dependencies
+- development dependencies
+- console script
+- pytest configuration
+- mypy configuration
+
+Install locally with:
+
+```bash
+python -m pip install -e ".[dev]"
 ```
