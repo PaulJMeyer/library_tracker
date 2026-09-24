@@ -2,8 +2,12 @@ name: Scheduled scrape
 
 on:
   schedule:
-    - cron: "0 6 * * *"   # täglich um 6:00 UTC (7:00/8:00 Bremer Zeit, je nach Sommerzeit)
-  workflow_dispatch:        # erlaubt manuellen Start über den "Run workflow"-Button
+    - cron: "0 6 * * *"   # täglich um 6:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
 
 jobs:
   scrape:
@@ -21,11 +25,41 @@ jobs:
       - name: Install package
         run: pip install -e .
 
+      - name: Restore previous SQLite database
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p data
+
+          RUN_ID=$(gh run list \
+            --workflow scrape.yml \
+            --status success \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId')
+
+          if [ -n "$RUN_ID" ]; then
+            gh run download "$RUN_ID" \
+              --name library-tracker-db \
+              --dir data \
+              || echo "No previous database artifact found."
+          else
+            echo "No previous successful workflow run found."
+          fi
+
       - name: Run scraper
         env:
           LIBRARY_USERNAME: ${{ secrets.LIBRARY_USERNAME }}
           LIBRARY_PASSWORD: ${{ secrets.LIBRARY_PASSWORD }}
-        run: python -m library_tracker.main
+        run: python -m library_tracker
+
+      - name: Upload SQLite database
+        uses: actions/upload-artifact@v4
+        with:
+          name: library-tracker-db
+          path: data/library_tracker.db
+          retention-days: 90
+          if-no-files-found: error
 
       - name: Commit updated results
         run: |
