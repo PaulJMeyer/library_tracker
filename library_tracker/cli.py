@@ -4,13 +4,10 @@ import argparse
 import sqlite3
 from collections.abc import Sequence
 
-from library_tracker.database import (
-    get_connection,
-    get_copy_history,
-    initialize_database,
-)
+from library_tracker.database import get_connection, initialize_database
 from library_tracker.main import main as run_scrape
 from library_tracker.models import AvailabilitySnapshot
+from library_tracker.repository import get_copy_history
 
 
 def build_parser() -> argparse.ArgumentParser:
