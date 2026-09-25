@@ -1,23 +1,23 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-09-24 10:34 UTC
+Zuletzt aktualisiert: 2026-09-25 10:38 UTC
 
 ## Übersicht
 
-**Ausleihbar (9):**
+**Ausleihbar (10):**
 - Mit Physik auf der Suche nach dem Sinn des Lebens
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
 - ¬The Witcher - Der Rand der Welt
+- Wir
 - ¬Die Zeitmaschine
 - Aufstieg und Fall der Menschheit
 - Live forever?
 - ¬Die kürzeste Geschichte der Erde
 - ¬Die Pharma-Lüge
 
-**Bestellbar (3):**
+**Bestellbar (2):**
 - ¬Der Krieg der Welten
-- Cthulhus Ruf
 - ¬Der Fremde
 
 ## Details
@@ -46,6 +46,9 @@ Zuletzt aktualisiert: 2026-09-24 10:34 UTC
 ## [Ausleihbar] ¬The Witcher - Der Rand der Welt
 - 10-Zentralbibliothek / 2.OG Wall-Flügel | ausleihbar
 
+## [Ausleihbar] Wir
+- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
+
 ## [Ausleihbar] ¬Die Zeitmaschine
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 10.10.2026
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
@@ -65,9 +68,6 @@ Zuletzt aktualisiert: 2026-09-24 10:34 UTC
 ## [Bestellbar] ¬Der Krieg der Welten
 - 61-Lesum / Romane nach Themen | andere Zweigstelle (ausleihbar)
 
-## [Bestellbar] Cthulhus Ruf
-- 50-Gröpelingen / OG Literatur & Sprachen | andere Zweigstelle (ausleihbar)
-
 ## [Bestellbar] ¬Der Fremde
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 23.09.2026
+- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 16.10.2026
 - 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (ausleihbar)
