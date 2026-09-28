@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-09-27 10:54 UTC
+Zuletzt aktualisiert: 2026-09-28 12:05 UTC
 
 ## Übersicht
 
@@ -35,7 +35,7 @@ Zuletzt aktualisiert: 2026-09-27 10:54 UTC
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 09.10.2026
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 05.10.2026
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 30.09.2026
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 19.10.2026
 - 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (ausleihbar)
 - 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
 
