@@ -1,16 +1,15 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-09-28 12:05 UTC
+Zuletzt aktualisiert: 2026-09-29 11:38 UTC
 
 ## Übersicht
 
-**Ausleihbar (9):**
+**Ausleihbar (8):**
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
 - ¬The Witcher - Der Rand der Welt
 - Wir
 - ¬Die Zeitmaschine
-- Aufstieg und Fall der Menschheit
 - Live forever?
 - ¬Die kürzeste Geschichte der Erde
 - ¬Die Pharma-Lüge
@@ -48,9 +47,6 @@ Zuletzt aktualisiert: 2026-09-28 12:05 UTC
 ## [Ausleihbar] ¬Die Zeitmaschine
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 10.10.2026
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
-
-## [Ausleihbar] Aufstieg und Fall der Menschheit
-- 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
 
 ## [Ausleihbar] Live forever?
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
