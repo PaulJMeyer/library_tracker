@@ -1,13 +1,14 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-09-29 11:38 UTC
+Zuletzt aktualisiert: 2026-09-30 11:26 UTC
 
 ## Übersicht
 
-**Ausleihbar (8):**
+**Ausleihbar (9):**
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
 - ¬The Witcher - Der Rand der Welt
+- Fahrenheit 451
 - Wir
 - ¬Die Zeitmaschine
 - Live forever?
@@ -40,6 +41,10 @@ Zuletzt aktualisiert: 2026-09-29 11:38 UTC
 
 ## [Ausleihbar] ¬The Witcher - Der Rand der Welt
 - 10-Zentralbibliothek / 2.OG Wall-Flügel | ausleihbar
+
+## [Ausleihbar] Fahrenheit 451
+- 10-Zentralbibliothek / 1.OG Romane nach Themen | ausleihbar
+- 21-Vahr / Medien nach Themen | andere Zweigstelle (entliehen)
 
 ## [Ausleihbar] Wir
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
