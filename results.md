@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-10-01 11:53 UTC
+Zuletzt aktualisiert: 2026-10-02 11:25 UTC
 
 ## Übersicht
 
@@ -44,7 +44,7 @@ Zuletzt aktualisiert: 2026-10-01 11:53 UTC
 
 ## [Ausleihbar] Fahrenheit 451
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | ausleihbar
-- 21-Vahr / Medien nach Themen | andere Zweigstelle (entliehen)
+- 21-Vahr / Medien nach Themen | andere Zweigstelle (ausleihbar)
 
 ## [Ausleihbar] Wir
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
