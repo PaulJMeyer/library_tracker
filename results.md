@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-10-10 11:26 UTC
+Zuletzt aktualisiert: 2026-10-11 11:40 UTC
 
 ## Übersicht
 
