@@ -1,10 +1,10 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-10-12 13:37 UTC
+Zuletzt aktualisiert: 2026-10-13 13:00 UTC
 
 ## Übersicht
 
-**Ausleihbar (7):**
+**Ausleihbar (8):**
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
 - ¬The Witcher - Der Rand der Welt
@@ -12,11 +12,11 @@ Zuletzt aktualisiert: 2026-10-12 13:37 UTC
 - Live forever?
 - ¬Die kürzeste Geschichte der Erde
 - ¬Die Pharma-Lüge
+- ¬Der Fremde
 
-**Bestellbar (3):**
+**Bestellbar (2):**
 - Fahrenheit 451
 - ¬Der Krieg der Welten
-- ¬Der Fremde
 
 ## Details
 
@@ -53,13 +53,13 @@ Zuletzt aktualisiert: 2026-10-12 13:37 UTC
 ## [Ausleihbar] ¬Die Pharma-Lüge
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
 
+## [Ausleihbar] ¬Der Fremde
+- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
+- 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (ausleihbar)
+
 ## [Bestellbar] Fahrenheit 451
 - 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 02.11.2026
 - 21-Vahr / Medien nach Themen | andere Zweigstelle (ausleihbar)
 
 ## [Bestellbar] ¬Der Krieg der Welten
 - 61-Lesum / Romane nach Themen | andere Zweigstelle (ausleihbar)
-
-## [Bestellbar] ¬Der Fremde
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | frei (seit heute zurück)
-- 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (ausleihbar)
