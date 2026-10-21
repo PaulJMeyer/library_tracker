@@ -1,15 +1,14 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-10-20 10:29 UTC
+Zuletzt aktualisiert: 2026-10-21 10:40 UTC
 
 ## Übersicht
 
-**Ausleihbar (10):**
+**Ausleihbar (9):**
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
 - ¬The Witcher - Der Rand der Welt
 - Wir
-- ¬Die Zeitmaschine
 - Aufstieg und Fall der Menschheit
 - Live forever?
 - ¬Die kürzeste Geschichte der Erde
@@ -37,7 +36,7 @@ Zuletzt aktualisiert: 2026-10-20 10:29 UTC
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
-- 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (ausleihbar)
+- 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (entliehen)
 - 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
 
 ## [Ausleihbar] ¬The Witcher - Der Rand der Welt
@@ -45,10 +44,6 @@ Zuletzt aktualisiert: 2026-10-20 10:29 UTC
 
 ## [Ausleihbar] Wir
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
-
-## [Ausleihbar] ¬Die Zeitmaschine
-- 10-Zentralbibliothek / 1.OG Romane nach Themen | ausleihbar
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 02.11.2026
 
 ## [Ausleihbar] Aufstieg und Fall der Menschheit
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
