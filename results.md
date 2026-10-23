@@ -1,10 +1,11 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-10-22 10:43 UTC
+Zuletzt aktualisiert: 2026-10-23 10:35 UTC
 
 ## Übersicht
 
-**Ausleihbar (9):**
+**Ausleihbar (10):**
+- Mit Physik auf der Suche nach dem Sinn des Lebens
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
 - ¬The Witcher - Der Rand der Welt
@@ -20,6 +21,9 @@ Zuletzt aktualisiert: 2026-10-22 10:43 UTC
 - ¬Der Krieg der Welten
 
 ## Details
+
+## [Ausleihbar] Mit Physik auf der Suche nach dem Sinn des Lebens
+- 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
 
 ## [Ausleihbar] 21 Lektionen für das 21. Jahrhundert
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
