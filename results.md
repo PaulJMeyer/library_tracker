@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-10-23 10:35 UTC
+Zuletzt aktualisiert: 2026-10-24 09:53 UTC
 
 ## Übersicht
 
@@ -66,7 +66,7 @@ Zuletzt aktualisiert: 2026-10-23 10:35 UTC
 - 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (ausleihbar)
 
 ## [Bestellbar] Fahrenheit 451
-- 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 02.11.2026
+- 10-Zentralbibliothek / 1.OG Romane nach Themen | frei (seit heute zurück)
 - 21-Vahr / Medien nach Themen | andere Zweigstelle (ausleihbar)
 
 ## [Bestellbar] ¬Der Krieg der Welten
