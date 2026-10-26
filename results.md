@@ -1,10 +1,10 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-10-25 10:13 UTC
+Zuletzt aktualisiert: 2026-10-26 11:37 UTC
 
 ## Übersicht
 
-**Ausleihbar (11):**
+**Ausleihbar (10):**
 - Mit Physik auf der Suche nach dem Sinn des Lebens
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
@@ -15,10 +15,10 @@ Zuletzt aktualisiert: 2026-10-25 10:13 UTC
 - Live forever?
 - ¬Die kürzeste Geschichte der Erde
 - ¬Die Pharma-Lüge
-- ¬Der Fremde
 
-**Bestellbar (1):**
+**Bestellbar (2):**
 - ¬Der Krieg der Welten
+- ¬Der Fremde
 
 ## Details
 
@@ -65,9 +65,9 @@ Zuletzt aktualisiert: 2026-10-25 10:13 UTC
 ## [Ausleihbar] ¬Die Pharma-Lüge
 - 10-Zentralbibliothek / 2.OG Schnoor-Flügel | ausleihbar
 
-## [Ausleihbar] ¬Der Fremde
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
-- 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (ausleihbar)
-
 ## [Bestellbar] ¬Der Krieg der Welten
 - 61-Lesum / Romane nach Themen | andere Zweigstelle (ausleihbar)
+
+## [Bestellbar] ¬Der Fremde
+- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 16.11.2026
+- 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (ausleihbar)
