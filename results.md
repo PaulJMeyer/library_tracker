@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-10-26 11:37 UTC
+Zuletzt aktualisiert: 2026-10-27 11:07 UTC
 
 ## Übersicht
 
@@ -27,7 +27,7 @@ Zuletzt aktualisiert: 2026-10-26 11:37 UTC
 
 ## [Ausleihbar] 21 Lektionen für das 21. Jahrhundert
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 16.11.2026
 - 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (ausleihbar)
 - 31-Huchting / Geschichte & Gesellschaft | andere Zweigstelle (ausleihbar)
 - 50-Gröpelingen / OG Geschichte & Gesellschaft | andere Zweigstelle (ausleihbar)
