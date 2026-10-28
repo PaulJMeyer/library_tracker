@@ -8,6 +8,8 @@ from library_tracker.database import get_connection, initialize_database
 from library_tracker.main import main as run_scrape
 from library_tracker.models import AvailabilitySnapshot
 from library_tracker.repository import get_copy_history
+from library_tracker.reado import (ReadoWishlistError,
+                                   read_reado_wishlist)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -33,6 +35,22 @@ def build_parser() -> argparse.ArgumentParser:
     history_parser.add_argument(
         "media_number",
         help="Media number of the library copy.",
+    )
+
+    reado_parser = subparsers.add_parser(
+        "reado-wishlist",
+        help="Read ISBNs from a public READO wishlist.",
+    )
+
+    reado_parser.add_argument(
+        "wishlist_url",
+        help="Public READO wishlist URL.",
+    )
+
+    reado_parser.add_argument(
+        "--headed",
+        action="store_true",
+        help="Show the browser while reading READO.",
     )
 
     return parser
@@ -79,6 +97,31 @@ def run_history_command(media_number: str) -> int:
     return 0 if found else 1
 
 
+def run_reado_wishlist_command(
+    wishlist_url: str,
+    *,
+    headed: bool = False,
+) -> int:
+    try:
+        entries = read_reado_wishlist(
+            wishlist_url,
+            headless=not headed,
+        )
+    except ReadoWishlistError as exc:
+        print(f"READO error: {exc}")
+        return 1
+
+    print(f"READO wishlist: {len(entries)} books")
+
+    for entry in entries:
+        print(
+            f'{entry["isbn13"]} | '
+            f'{entry["reado_url"]}'
+        )
+
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -89,6 +132,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "history":
         return run_history_command(str(args.media_number))
+
+    if args.command == "reado-wishlist":
+        return run_reado_wishlist_command(
+            str(args.wishlist_url),
+            headed=bool(args.headed),
+        )
 
     parser.error(f"Unknown command: {args.command}")
     return 2
