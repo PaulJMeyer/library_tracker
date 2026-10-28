@@ -5,11 +5,14 @@ import sqlite3
 import os
 from collections.abc import Sequence
 from dotenv import load_dotenv
+from datetime import UTC, datetime
 
-from library_tracker.database import get_connection, initialize_database
+from library_tracker.database import (get_connection,
+                                      initialize_database)
 from library_tracker.main import main as run_scrape
 from library_tracker.models import AvailabilitySnapshot
-from library_tracker.repository import get_copy_history
+from library_tracker.repository import (get_copy_history,
+                                        sync_reado_wishlist)
 from library_tracker.reado import (ReadoWishlistError,
                                    read_reado_wishlist)
 
@@ -124,7 +127,32 @@ def run_reado_wishlist_command(
         print(f"READO error: {exc}")
         return 1
 
+    checked_at = datetime.now(UTC).isoformat(
+        timespec="seconds"
+    )
+
+    connection = get_connection()
+
+    try:
+        initialize_database(connection)
+
+        sync_result = sync_reado_wishlist(
+            connection,
+            entries,
+            checked_at,
+        )
+    finally:
+        connection.close()
+
     print(f"READO wishlist: {len(entries)} books")
+    print(
+        "New books: "
+        f'{len(sync_result["new_entries"])}'
+    )
+    print(
+        "Removed books: "
+        f'{len(sync_result["removed_isbns"])}'
+    )
 
     for entry in entries:
         print(
