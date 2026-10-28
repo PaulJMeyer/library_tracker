@@ -5,7 +5,10 @@ import sqlite3
 from collections.abc import Iterable
 from typing import cast
 
-from library_tracker.models import AvailabilitySnapshot, Item
+from library_tracker.models import (AvailabilitySnapshot,
+                                    Item,
+                                    ReadoWishlistEntry,
+                                    ReadoWishlistSyncResult)
 
 
 SnapshotRow = tuple[str, str, str, str, str | None]
@@ -138,3 +141,82 @@ def get_latest_snapshot(
         return None
 
     return _snapshot_from_row(cast(SnapshotRow, row))
+
+
+def sync_reado_wishlist(
+    connection: sqlite3.Connection,
+    entries: list[ReadoWishlistEntry],
+    checked_at: str,
+) -> ReadoWishlistSyncResult:
+    existing_isbns = {
+        row[0]
+        for row in connection.execute(
+            "SELECT isbn13 FROM reado_books"
+        )
+    }
+
+    active_isbns = {
+        row[0]
+        for row in connection.execute(
+            """
+            SELECT isbn13
+            FROM reado_books
+            WHERE on_wishlist = 1
+            """
+        )
+    }
+
+    current_isbns = {
+        entry["isbn13"]
+        for entry in entries
+    }
+
+    new_entries = [
+        entry
+        for entry in entries
+        if entry["isbn13"] not in existing_isbns
+    ]
+
+    removed_isbns = sorted(
+        active_isbns - current_isbns
+    )
+
+    connection.execute(
+        """
+        UPDATE reado_books
+        SET on_wishlist = 0
+        """
+    )
+
+    connection.executemany(
+        """
+        INSERT INTO reado_books (
+            isbn13,
+            reado_url,
+            first_seen_at,
+            last_seen_at,
+            on_wishlist
+        )
+        VALUES (?, ?, ?, ?, 1)
+        ON CONFLICT(isbn13) DO UPDATE SET
+            reado_url = excluded.reado_url,
+            last_seen_at = excluded.last_seen_at,
+            on_wishlist = 1
+        """,
+        [
+            (
+                entry["isbn13"],
+                entry["reado_url"],
+                checked_at,
+                checked_at,
+            )
+            for entry in entries
+        ],
+    )
+
+    connection.commit()
+
+    return {
+        "new_entries": new_entries,
+        "removed_isbns": removed_isbns,
+    }

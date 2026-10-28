@@ -52,3 +52,9 @@ class AvailabilitySnapshot(TypedDict):
 class ReadoWishlistEntry(TypedDict):
     isbn13: str
     reado_url: str
+
+
+class ReadoWishlistSyncResult(TypedDict):
+    new_entries: list[ReadoWishlistEntry]
+    removed_isbns: list[str]
+
