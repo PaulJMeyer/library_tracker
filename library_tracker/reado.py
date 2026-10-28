@@ -72,7 +72,7 @@ def _collect_entries(page: Page) -> list[ReadoWishlistEntry]:
 def read_reado_wishlist(
     wishlist_url: str,
     *,
-    headless: bool = True,
+    headless: bool = False,
     max_scrolls: int = 120,
     stable_rounds: int = 4,
     scroll_wait_ms: int = 700,
@@ -95,7 +95,10 @@ def read_reado_wishlist(
         )
 
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=headless)
+        browser = playwright.chromium.launch(
+            headless=headless,
+            channel="chromium",
+        )
         page = browser.new_page(
             viewport={"width": 1280, "height": 900},
         )
