@@ -47,3 +47,8 @@ class AvailabilitySnapshot(TypedDict):
     status: str
     status_text: str
     due_date: str | None
+
+
+class ReadoWishlistEntry(TypedDict):
+    isbn13: str
+    reado_url: str

@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from typing import cast
 from unittest.mock import MagicMock, patch
@@ -9,8 +10,11 @@ from library_tracker.cli import (
     main,
     print_copy_history,
     run_history_command,
+    get_reado_wishlist_url,
 )
 from library_tracker.models import AvailabilitySnapshot
+
+from library_tracker.reado import ReadoWishlistError
 
 
 def make_connection_mock() -> tuple[sqlite3.Connection, MagicMock]:
@@ -166,3 +170,36 @@ def test_main_history_command() -> None:
     mock_run_history_command.assert_called_once_with(
         "123456789"
     )
+
+
+def test_get_reado_wishlist_url_from_environment() -> None:
+    with patch.dict(
+        os.environ,
+        {
+            "READO_WISHLIST_URL": (
+                "https://reado.app/de/lists/_wishlist"
+                "?source=profile&userId=test"
+            )
+        },
+    ):
+        result = get_reado_wishlist_url()
+
+    assert result == (
+        "https://reado.app/de/lists/_wishlist"
+        "?source=profile&userId=test"
+    )
+
+
+def test_get_reado_wishlist_url_missing() -> None:
+    with (
+        patch.dict(
+            os.environ,
+            {},
+            clear=True,
+        ),
+        pytest.raises(
+            ReadoWishlistError,
+            match="READO_WISHLIST_URL is not configured",
+        ),
+    ):
+        get_reado_wishlist_url()
