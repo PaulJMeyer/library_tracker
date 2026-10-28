@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-10-27 11:07 UTC
+Zuletzt aktualisiert: 2026-10-28 11:43 UTC
 
 ## Übersicht
 
@@ -16,9 +16,8 @@ Zuletzt aktualisiert: 2026-10-27 11:07 UTC
 - ¬Die kürzeste Geschichte der Erde
 - ¬Die Pharma-Lüge
 
-**Bestellbar (2):**
+**Bestellbar (1):**
 - ¬Der Krieg der Welten
-- ¬Der Fremde
 
 ## Details
 
@@ -67,7 +66,3 @@ Zuletzt aktualisiert: 2026-10-27 11:07 UTC
 
 ## [Bestellbar] ¬Der Krieg der Welten
 - 61-Lesum / Romane nach Themen | andere Zweigstelle (ausleihbar)
-
-## [Bestellbar] ¬Der Fremde
-- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | entliehen bis 16.11.2026
-- 60-Vegesack / EG Romane nach Themen | andere Zweigstelle (ausleihbar)
