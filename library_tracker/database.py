@@ -50,3 +50,22 @@ def initialize_database(connection: sqlite3.Connection) -> None:
             ON availability_snapshots (media_number, checked_at)
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS reado_books (
+                isbn13 TEXT PRIMARY KEY,
+                reado_url TEXT NOT NULL,
+                first_seen_at TEXT NOT NULL,
+                last_seen_at TEXT NOT NULL,
+                on_wishlist INTEGER NOT NULL
+                    CHECK (on_wishlist IN (0, 1))
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_reado_books_on_wishlist
+            ON reado_books(on_wishlist)
+            """
+        )
