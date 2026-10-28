@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import sqlite3
+import os
 from collections.abc import Sequence
+from dotenv import load_dotenv
 
 from library_tracker.database import get_connection, initialize_database
 from library_tracker.main import main as run_scrape
@@ -10,6 +12,10 @@ from library_tracker.models import AvailabilitySnapshot
 from library_tracker.repository import get_copy_history
 from library_tracker.reado import (ReadoWishlistError,
                                    read_reado_wishlist)
+
+
+
+load_dotenv()
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -43,17 +49,23 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     reado_parser.add_argument(
-        "wishlist_url",
-        help="Public READO wishlist URL.",
-    )
-
-    reado_parser.add_argument(
-        "--headed",
+        "--headless",
         action="store_true",
-        help="Show the browser while reading READO.",
+        help="Run the READO browser without a visible window.",
     )
 
     return parser
+
+
+def get_reado_wishlist_url() -> str:
+    wishlist_url = os.getenv("READO_WISHLIST_URL")
+
+    if not wishlist_url:
+        raise ReadoWishlistError(
+            "READO_WISHLIST_URL is not configured."
+        )
+
+    return wishlist_url
 
 
 def format_history_line(snapshot: AvailabilitySnapshot) -> str:
@@ -98,14 +110,15 @@ def run_history_command(media_number: str) -> int:
 
 
 def run_reado_wishlist_command(
-    wishlist_url: str,
     *,
-    headed: bool = False,
+    headless: bool = False,
 ) -> int:
     try:
+        wishlist_url = get_reado_wishlist_url()
+
         entries = read_reado_wishlist(
             wishlist_url,
-            headless=not headed,
+            headless=headless,
         )
     except ReadoWishlistError as exc:
         print(f"READO error: {exc}")
@@ -135,8 +148,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "reado-wishlist":
         return run_reado_wishlist_command(
-            str(args.wishlist_url),
-            headed=bool(args.headed),
+            headless=bool(args.headless),
         )
 
     parser.error(f"Unknown command: {args.command}")
