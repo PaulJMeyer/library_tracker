@@ -14,9 +14,13 @@ from library_tracker.models import      (AvailabilitySnapshot,
                                          ReadoListType,
                                          ReadoListEntry)
 from library_tracker.repository import  (get_copy_history,
-                                         sync_reado_list)
+                                         sync_reado_list,
+                                         get_unresolved_reado_isbns,
+                                         save_openlibrary_resolutions)
 from library_tracker.reado import       (ReadoWishlistError,
                                          read_reado_list)
+from library_tracker.openlibrary import (OpenLibraryClient,
+                                         OpenLibraryError)
 
 
 load_dotenv()
@@ -50,6 +54,14 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser(
         "scrape",
         help="Run the normal library scrape.",
+    )
+
+    subparsers.add_parser(
+        "openlibrary-resolve",
+        help=(
+            "Resolve uncached READO ISBNs "
+            "with Open Library."
+        ),
     )
 
     history_parser = subparsers.add_parser(
@@ -214,6 +226,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             headless=bool(args.headless),
         )
 
+    if args.command == "openlibrary-resolve":
+        return run_openlibrary_resolve_command()
+
     parser.error(f"Unknown command: {args.command}")
     return 2
 
@@ -288,5 +303,98 @@ def run_reado_sync_command(
 
     finally:
         connection.close()
+
+    return 0
+
+
+def get_openlibrary_contact_email() -> str:
+    contact_email = os.getenv(
+        "OPENLIBRARY_CONTACT_EMAIL"
+    )
+
+    if not contact_email:
+        raise OpenLibraryError(
+            "OPENLIBRARY_CONTACT_EMAIL "
+            "is not configured."
+        )
+
+    return contact_email
+
+
+def run_openlibrary_resolve_command() -> int:
+    try:
+        contact_email = (
+            get_openlibrary_contact_email()
+        )
+    except OpenLibraryError as exc:
+        print(f"Open Library error: {exc}")
+        return 1
+
+    connection = get_connection()
+
+    try:
+        initialize_database(connection)
+
+        unresolved_isbns = (
+            get_unresolved_reado_isbns(
+                connection
+            )
+        )
+
+        print(
+            "Unresolved ISBNs: "
+            f"{len(unresolved_isbns)}"
+        )
+
+        if not unresolved_isbns:
+            return 0
+
+        client = OpenLibraryClient(
+            contact_email
+        )
+
+        try:
+            resolutions = client.resolve_isbns(
+                unresolved_isbns
+            )
+        except OpenLibraryError as exc:
+            print(
+                f"Open Library error: {exc}"
+            )
+            return 1
+
+        resolved_at = datetime.now(
+            UTC
+        ).isoformat(
+            timespec="seconds"
+        )
+
+        save_openlibrary_resolutions(
+            connection,
+            resolutions,
+            resolved_at,
+        )
+
+    finally:
+        connection.close()
+
+    resolved = sum(
+        result["status"] == "resolved"
+        for result in resolutions
+    )
+
+    not_found = sum(
+        result["status"] == "not_found"
+        for result in resolutions
+    )
+
+    ambiguous = sum(
+        result["status"] == "ambiguous"
+        for result in resolutions
+    )
+
+    print(f"Resolved: {resolved}")
+    print(f"Not found: {not_found}")
+    print(f"Ambiguous: {ambiguous}")
 
     return 0

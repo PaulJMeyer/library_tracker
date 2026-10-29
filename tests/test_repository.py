@@ -13,7 +13,9 @@ from library_tracker.models import      (Copy,
 from library_tracker.repository import  (get_copy_history,
                                         get_latest_snapshot,
                                         persist_items,
-                                        sync_reado_list)
+                                        sync_reado_list,
+                                        get_unresolved_reado_isbns,
+                                        save_openlibrary_resolutions)
 
 
 def make_copy(
@@ -454,3 +456,75 @@ def test_sync_reado_list_keeps_other_lists_active(
         ("tbr", 1),
         ("wishlist", 0),
     ]
+
+
+def test_get_unresolved_reado_isbns(
+    connection: sqlite3.Connection,
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO reado_books (
+            isbn13,
+            reado_url,
+            first_seen_at,
+            last_seen_at
+        )
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            "9783423449229",
+            "https://reado.app/book/a",
+            "2026-10-29T10:00:00+00:00",
+            "2026-10-29T10:00:00+00:00",
+        ),
+    )
+    connection.commit()
+
+    assert get_unresolved_reado_isbns(
+        connection
+    ) == [
+        "9783423449229"
+    ]
+
+
+def test_resolved_isbn_is_not_unresolved_again(
+    connection: sqlite3.Connection,
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO reado_books (
+            isbn13,
+            reado_url,
+            first_seen_at,
+            last_seen_at
+        )
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            "9783423449229",
+            "https://reado.app/book/a",
+            "2026-10-29T10:00:00+00:00",
+            "2026-10-29T10:00:00+00:00",
+        ),
+    )
+
+    save_openlibrary_resolutions(
+        connection,
+        [
+            {
+                "isbn13": "9783423449229",
+                "status": "resolved",
+                "work_key": "OL123W",
+                "title": "Example",
+                "error_message": None,
+            }
+        ],
+        "2026-10-29T11:00:00+00:00",
+    )
+
+    assert (
+        get_unresolved_reado_isbns(
+            connection
+        )
+        == []
+    )
