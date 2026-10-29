@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sqlite3
 import os
+import time
 from collections.abc import Sequence
 from dotenv import load_dotenv
 from datetime import UTC, datetime
@@ -18,7 +19,9 @@ from library_tracker.repository import  (get_copy_history,
                                          get_unresolved_reado_isbns,
                                          save_openlibrary_resolutions,
                                          get_googlebooks_fallback_isbns,
-                                         save_googlebooks_resolutions)
+                                         save_googlebooks_resolutions,
+                                         get_unsynced_wishlist_work_keys,
+                                         save_openlibrary_editions)
 from library_tracker.reado import       (ReadoWishlistError,
                                          read_reado_list)
 from library_tracker.openlibrary import (OpenLibraryClient,
@@ -73,6 +76,14 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Resolve Open Library fallback ISBNs "
             "with Google Books."
+        ),
+    )
+
+    subparsers.add_parser(
+        "openlibrary-editions",
+        help=(
+            "Cache German and English print "
+            "editions for wishlist works."
         ),
     )
 
@@ -243,6 +254,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "googlebooks-resolve":
         return run_googlebooks_resolve_command()
+
+    if args.command == "openlibrary-editions":
+        return run_openlibrary_editions_command()
 
     parser.error(f"Unknown command: {args.command}")
     return 2
@@ -501,5 +515,89 @@ def run_googlebooks_resolve_command() -> int:
     print(f"Not found: {not_found}")
     print(f"Ambiguous: {ambiguous}")
     print(f"Failed: {failed}")
+
+    return 0
+
+
+def run_openlibrary_editions_command() -> int:
+    try:
+        contact_email = (
+            get_openlibrary_contact_email()
+        )
+    except OpenLibraryError as exc:
+        print(f"Open Library error: {exc}")
+        return 1
+
+    connection = get_connection()
+
+    try:
+        initialize_database(connection)
+
+        work_keys = (
+            get_unsynced_wishlist_work_keys(
+                connection
+            )
+        )
+
+        print(
+            "Wishlist works needing editions: "
+            f"{len(work_keys)}"
+        )
+
+        if not work_keys:
+            return 0
+
+        client = OpenLibraryClient(
+            contact_email
+        )
+
+        total_editions = 0
+
+        for index, work_key in enumerate(
+            work_keys,
+            start=1,
+        ):
+            try:
+                editions = (
+                    client.get_work_editions(
+                        work_key
+                    )
+                )
+            except OpenLibraryError as exc:
+                print(
+                    f"Open Library error: {exc}"
+                )
+                return 1
+
+            synced_at = datetime.now(
+                UTC
+            ).isoformat(
+                timespec="seconds"
+            )
+
+            save_openlibrary_editions(
+                connection,
+                work_key,
+                editions,
+                synced_at,
+            )
+
+            total_editions += len(editions)
+
+            print(
+                f"[{index}/{len(work_keys)}] "
+                f"{work_key}: "
+                f"{len(editions)} relevant editions"
+            )
+
+            time.sleep(0.5)
+
+    finally:
+        connection.close()
+
+    print(
+        "Relevant editions cached: "
+        f"{total_editions}"
+    )
 
     return 0

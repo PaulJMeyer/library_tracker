@@ -15,7 +15,9 @@ from library_tracker.repository import  (get_copy_history,
                                         persist_items,
                                         sync_reado_list,
                                         get_unresolved_reado_isbns,
-                                        save_openlibrary_resolutions)
+                                        save_openlibrary_resolutions,
+                                        get_unsynced_wishlist_work_keys,
+                                        save_openlibrary_editions)
 
 
 def make_copy(
@@ -524,6 +526,180 @@ def test_resolved_isbn_is_not_unresolved_again(
 
     assert (
         get_unresolved_reado_isbns(
+            connection
+        )
+        == []
+    )
+
+
+def test_get_unsynced_wishlist_work_keys(
+    connection: sqlite3.Connection,
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO reado_books (
+            isbn13,
+            reado_url,
+            first_seen_at,
+            last_seen_at
+        )
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            "9783423449229",
+            "https://reado.app/book/example",
+            "2026-10-29T10:00:00+00:00",
+            "2026-10-29T10:00:00+00:00",
+        ),
+    )
+
+    connection.execute(
+        """
+        INSERT INTO reado_list_memberships (
+            isbn13,
+            list_type,
+            first_seen_at,
+            last_seen_at,
+            is_active
+        )
+        VALUES (?, 'wishlist', ?, ?, 1)
+        """,
+        (
+            "9783423449229",
+            "2026-10-29T10:00:00+00:00",
+            "2026-10-29T10:00:00+00:00",
+        ),
+    )
+
+    connection.execute(
+        """
+        INSERT INTO openlibrary_works (
+            work_key,
+            title
+        )
+        VALUES (?, ?)
+        """,
+        (
+            "OL123W",
+            "Example Book",
+        ),
+    )
+
+    connection.execute(
+        """
+        INSERT INTO bibliographic_resolutions (
+            isbn13,
+            status,
+            work_key,
+            resolved_at,
+            source,
+            error_message
+        )
+        VALUES (?, 'resolved', ?, ?, 'openlibrary', NULL)
+        """,
+        (
+            "9783423449229",
+            "OL123W",
+            "2026-10-29T11:00:00+00:00",
+        ),
+    )
+
+    connection.commit()
+
+    assert get_unsynced_wishlist_work_keys(
+        connection
+    ) == [
+        "OL123W"
+    ]
+
+
+def test_synced_work_is_not_returned_again(
+    connection: sqlite3.Connection,
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO reado_books (
+            isbn13,
+            reado_url,
+            first_seen_at,
+            last_seen_at
+        )
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            "9783423449229",
+            "https://reado.app/book/example",
+            "2026-10-29T10:00:00+00:00",
+            "2026-10-29T10:00:00+00:00",
+        ),
+    )
+
+    connection.execute(
+        """
+        INSERT INTO reado_list_memberships (
+            isbn13,
+            list_type,
+            first_seen_at,
+            last_seen_at,
+            is_active
+        )
+        VALUES (?, 'wishlist', ?, ?, 1)
+        """,
+        (
+            "9783423449229",
+            "2026-10-29T10:00:00+00:00",
+            "2026-10-29T10:00:00+00:00",
+        ),
+    )
+
+    connection.execute(
+        """
+        INSERT INTO openlibrary_works (
+            work_key,
+            title
+        )
+        VALUES ('OL123W', 'Example Book')
+        """
+    )
+
+    connection.execute(
+        """
+        INSERT INTO bibliographic_resolutions (
+            isbn13,
+            status,
+            work_key,
+            resolved_at,
+            source,
+            error_message
+        )
+        VALUES (
+            '9783423449229',
+            'resolved',
+            'OL123W',
+            '2026-10-29T11:00:00+00:00',
+            'openlibrary',
+            NULL
+        )
+        """
+    )
+
+    connection.execute(
+        """
+        INSERT INTO openlibrary_edition_syncs (
+            work_key,
+            synced_at
+        )
+        VALUES (
+            'OL123W',
+            '2026-10-29T12:00:00+00:00'
+        )
+        """
+    )
+
+    connection.commit()
+
+    assert (
+        get_unsynced_wishlist_work_keys(
             connection
         )
         == []

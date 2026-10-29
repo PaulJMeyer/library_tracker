@@ -181,6 +181,71 @@ def initialize_database(connection: sqlite3.Connection) -> None:
             """
         )
 
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS openlibrary_editions (
+                edition_key TEXT PRIMARY KEY,
+                work_key TEXT NOT NULL,
+                title TEXT NOT NULL,
+                physical_format TEXT,
+                print_status TEXT NOT NULL
+                    CHECK (
+                        print_status IN (
+                            'confirmed',
+                            'unknown'
+                        )
+                    ),
+                FOREIGN KEY (work_key)
+                    REFERENCES openlibrary_works(work_key)
+                    ON DELETE CASCADE
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS openlibrary_edition_languages (
+                edition_key TEXT NOT NULL,
+                language TEXT NOT NULL
+                    CHECK (language IN ('de', 'en')),
+                PRIMARY KEY (edition_key, language),
+                FOREIGN KEY (edition_key)
+                    REFERENCES openlibrary_editions(edition_key)
+                    ON DELETE CASCADE
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS openlibrary_edition_isbns (
+                edition_key TEXT NOT NULL,
+                isbn_type TEXT NOT NULL,
+                isbn TEXT NOT NULL,
+                PRIMARY KEY (
+                    edition_key,
+                    isbn_type,
+                    isbn
+                ),
+                FOREIGN KEY (edition_key)
+                    REFERENCES openlibrary_editions(edition_key)
+                    ON DELETE CASCADE
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS openlibrary_edition_syncs (
+                work_key TEXT PRIMARY KEY,
+                synced_at TEXT NOT NULL,
+                FOREIGN KEY (work_key)
+                    REFERENCES openlibrary_works(work_key)
+                    ON DELETE CASCADE
+            )
+            """
+        )
+
         _migrate_reado_list_memberships(connection)
 
         connection.commit()

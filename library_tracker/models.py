@@ -2,6 +2,14 @@ from typing import (TypedDict,
                     Literal)
 
 
+ReadoListType = Literal[
+    "wishlist",
+    "tbr",
+    "reading",
+    "completed",
+]
+
+
 OpenLibraryResolutionStatus = Literal[
     "resolved",
     "not_found",
@@ -9,12 +17,21 @@ OpenLibraryResolutionStatus = Literal[
     "failed",
 ]
 
-
 GoogleBooksResolutionStatus = Literal[
     "found",
     "not_found",
     "ambiguous",
     "failed",
+]
+
+EditionLanguage = Literal[
+    "de",
+    "en",
+]
+
+PrintStatus = Literal[
+    "confirmed",
+    "unknown",
 ]
 
 
@@ -66,14 +83,6 @@ class AvailabilitySnapshot(TypedDict):
     due_date: str | None
 
 
-ReadoListType = Literal[
-    "wishlist",
-    "tbr",
-    "reading",
-    "completed",
-]
-
-
 class ReadoListEntry(TypedDict):
     isbn13: str
     reado_url: str
@@ -107,4 +116,19 @@ class GoogleBooksResolution(TypedDict):
     publisher: str | None
     published_date: str | None
     identifiers: list[GoogleBooksIdentifier]
-    error_message: str | None
+    error_message: str | None#
+
+
+class OpenLibraryEditionIdentifier(TypedDict):
+    type: str
+    identifier: str
+
+
+class OpenLibraryEdition(TypedDict):
+    edition_key: str
+    work_key: str
+    title: str
+    languages: list[EditionLanguage]
+    physical_format: str | None
+    print_status: PrintStatus
+    identifiers: list[OpenLibraryEditionIdentifier]
