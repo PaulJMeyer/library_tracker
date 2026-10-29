@@ -125,6 +125,62 @@ def initialize_database(connection: sqlite3.Connection) -> None:
             """
         )
 
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS google_books_volumes (
+                volume_id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                authors_json TEXT NOT NULL,
+                language TEXT,
+                publisher TEXT,
+                published_date TEXT
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS google_books_identifiers (
+                volume_id TEXT NOT NULL,
+                identifier_type TEXT NOT NULL,
+                identifier TEXT NOT NULL,
+                PRIMARY KEY (
+                    volume_id,
+                    identifier_type,
+                    identifier
+                ),
+                FOREIGN KEY (volume_id)
+                    REFERENCES google_books_volumes(volume_id)
+                    ON DELETE CASCADE
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS google_books_resolutions (
+                isbn13 TEXT PRIMARY KEY,
+                status TEXT NOT NULL
+                    CHECK (
+                        status IN (
+                            'found',
+                            'not_found',
+                            'ambiguous',
+                            'failed'
+                        )
+                    ),
+                volume_id TEXT,
+                resolved_at TEXT NOT NULL,
+                error_message TEXT,
+                FOREIGN KEY (isbn13)
+                    REFERENCES reado_books(isbn13)
+                    ON DELETE CASCADE,
+                FOREIGN KEY (volume_id)
+                    REFERENCES google_books_volumes(volume_id)
+            )
+            """
+        )
+
         _migrate_reado_list_memberships(connection)
 
         connection.commit()

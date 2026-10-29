@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import sqlite3
+import json
 from collections.abc import Iterable
 from typing import cast
 
@@ -10,7 +11,8 @@ from library_tracker.models import (AvailabilitySnapshot,
                                     ReadoListEntry,
                                     ReadoListSyncResult,
                                     ReadoListType,
-                                    OpenLibraryResolution)
+                                    OpenLibraryResolution,
+                                    GoogleBooksResolution)
 
 
 SnapshotRow = tuple[str, str, str, str, str | None]
@@ -324,6 +326,128 @@ def save_openlibrary_resolutions(
                 resolution["isbn13"],
                 resolution["status"],
                 work_key,
+                resolved_at,
+                resolution["error_message"],
+            ),
+        )
+
+    connection.commit()
+
+
+def get_googlebooks_fallback_isbns(
+    connection: sqlite3.Connection,
+) -> list[str]:
+    rows = connection.execute(
+        """
+        SELECT br.isbn13
+        FROM bibliographic_resolutions AS br
+        LEFT JOIN google_books_resolutions AS gbr
+            ON gbr.isbn13 = br.isbn13
+        WHERE br.source = 'openlibrary'
+          AND br.status = 'not_found'
+          AND gbr.isbn13 IS NULL
+        ORDER BY br.isbn13
+        """
+    ).fetchall()
+
+    return [
+        str(row[0])
+        for row in rows
+    ]
+
+
+def save_googlebooks_resolutions(
+    connection: sqlite3.Connection,
+    resolutions: list[GoogleBooksResolution],
+    resolved_at: str,
+) -> None:
+    for resolution in resolutions:
+        volume_id = resolution["volume_id"]
+
+        if (
+            resolution["status"] == "found"
+            and volume_id is not None
+            and resolution["title"] is not None
+        ):
+            connection.execute(
+                """
+                INSERT INTO google_books_volumes (
+                    volume_id,
+                    title,
+                    authors_json,
+                    language,
+                    publisher,
+                    published_date
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(volume_id) DO UPDATE SET
+                    title = excluded.title,
+                    authors_json = excluded.authors_json,
+                    language = excluded.language,
+                    publisher = excluded.publisher,
+                    published_date = excluded.published_date
+                """,
+                (
+                    volume_id,
+                    resolution["title"],
+                    json.dumps(
+                        resolution["authors"],
+                        ensure_ascii=False,
+                    ),
+                    resolution["language"],
+                    resolution["publisher"],
+                    resolution["published_date"],
+                ),
+            )
+
+            connection.execute(
+                """
+                DELETE FROM google_books_identifiers
+                WHERE volume_id = ?
+                """,
+                (volume_id,),
+            )
+
+            connection.executemany(
+                """
+                INSERT INTO google_books_identifiers (
+                    volume_id,
+                    identifier_type,
+                    identifier
+                )
+                VALUES (?, ?, ?)
+                """,
+                [
+                    (
+                        volume_id,
+                        identifier["type"],
+                        identifier["identifier"],
+                    )
+                    for identifier
+                    in resolution["identifiers"]
+                ],
+            )
+
+        connection.execute(
+            """
+            INSERT INTO google_books_resolutions (
+                isbn13,
+                status,
+                volume_id,
+                resolved_at,
+                error_message
+            )
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(isbn13) DO UPDATE SET
+                status = excluded.status,
+                volume_id = excluded.volume_id,
+                resolved_at = excluded.resolved_at,
+                error_message = excluded.error_message
+            """,
+            (
+                resolution["isbn13"],
+                resolution["status"],
+                volume_id,
                 resolved_at,
                 resolution["error_message"],
             ),

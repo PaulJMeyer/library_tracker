@@ -10,6 +10,14 @@ OpenLibraryResolutionStatus = Literal[
 ]
 
 
+GoogleBooksResolutionStatus = Literal[
+    "found",
+    "not_found",
+    "ambiguous",
+    "failed",
+]
+
+
 class Copy(TypedDict):
     media_number:   str
     signature:      str
@@ -81,4 +89,22 @@ class OpenLibraryResolution(TypedDict):
     status: OpenLibraryResolutionStatus
     work_key: str | None
     title: str | None
+    error_message: str | None
+
+
+class GoogleBooksIdentifier(TypedDict):
+    type: str
+    identifier: str
+
+
+class GoogleBooksResolution(TypedDict):
+    isbn13: str
+    status: GoogleBooksResolutionStatus
+    volume_id: str | None
+    title: str | None
+    authors: list[str]
+    language: str | None
+    publisher: str | None
+    published_date: str | None
+    identifiers: list[GoogleBooksIdentifier]
     error_message: str | None

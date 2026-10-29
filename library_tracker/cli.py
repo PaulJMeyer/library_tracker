@@ -16,11 +16,15 @@ from library_tracker.models import      (AvailabilitySnapshot,
 from library_tracker.repository import  (get_copy_history,
                                          sync_reado_list,
                                          get_unresolved_reado_isbns,
-                                         save_openlibrary_resolutions)
+                                         save_openlibrary_resolutions,
+                                         get_googlebooks_fallback_isbns,
+                                         save_googlebooks_resolutions)
 from library_tracker.reado import       (ReadoWishlistError,
                                          read_reado_list)
 from library_tracker.openlibrary import (OpenLibraryClient,
                                          OpenLibraryError)
+from library_tracker.googlebooks import (GoogleBooksClient,
+                                         GoogleBooksError)
 
 
 load_dotenv()
@@ -61,6 +65,14 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Resolve uncached READO ISBNs "
             "with Open Library."
+        ),
+    )
+
+    subparsers.add_parser(
+        "googlebooks-resolve",
+        help=(
+            "Resolve Open Library fallback ISBNs "
+            "with Google Books."
         ),
     )
 
@@ -229,6 +241,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "openlibrary-resolve":
         return run_openlibrary_resolve_command()
 
+    if args.command == "googlebooks-resolve":
+        return run_googlebooks_resolve_command()
+
     parser.error(f"Unknown command: {args.command}")
     return 2
 
@@ -396,5 +411,95 @@ def run_openlibrary_resolve_command() -> int:
     print(f"Resolved: {resolved}")
     print(f"Not found: {not_found}")
     print(f"Ambiguous: {ambiguous}")
+
+    return 0
+
+
+def get_google_books_api_key() -> str:
+    api_key = os.getenv("GOOGLE_BOOKS_API_KEY")
+
+    if not api_key:
+        raise GoogleBooksError(
+            "GOOGLE_BOOKS_API_KEY is not configured."
+        )
+
+    return api_key
+
+
+def run_googlebooks_resolve_command() -> int:
+    try:
+        api_key = get_google_books_api_key()
+    except GoogleBooksError as exc:
+        print(f"Google Books error: {exc}")
+        return 1
+
+    connection = get_connection()
+
+    try:
+        initialize_database(connection)
+
+        fallback_isbns = (
+            get_googlebooks_fallback_isbns(
+                connection
+            )
+        )
+
+        print(
+            "Google Books fallback ISBNs: "
+            f"{len(fallback_isbns)}"
+        )
+
+        if not fallback_isbns:
+            return 0
+
+        client = GoogleBooksClient(api_key)
+
+        try:
+            resolutions = client.resolve_isbns(
+                fallback_isbns
+            )
+        except GoogleBooksError as exc:
+            print(f"Google Books error: {exc}")
+            return 1
+
+        resolved_at = datetime.now(
+            UTC
+        ).isoformat(
+            timespec="seconds"
+        )
+
+        save_googlebooks_resolutions(
+            connection,
+            resolutions,
+            resolved_at,
+        )
+
+    finally:
+        connection.close()
+
+    found = sum(
+        result["status"] == "found"
+        for result in resolutions
+    )
+
+    not_found = sum(
+        result["status"] == "not_found"
+        for result in resolutions
+    )
+
+    ambiguous = sum(
+        result["status"] == "ambiguous"
+        for result in resolutions
+    )
+
+    failed = sum(
+        result["status"] == "failed"
+        for result in resolutions
+    )
+
+    print(f"Found: {found}")
+    print(f"Not found: {not_found}")
+    print(f"Ambiguous: {ambiguous}")
+    print(f"Failed: {failed}")
 
     return 0
