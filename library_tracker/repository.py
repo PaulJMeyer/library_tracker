@@ -12,7 +12,8 @@ from library_tracker.models import (AvailabilitySnapshot,
                                     ReadoListSyncResult,
                                     ReadoListType,
                                     OpenLibraryResolution,
-                                    GoogleBooksResolution)
+                                    GoogleBooksResolution,
+                                    OpenLibraryEdition)
 
 
 SnapshotRow = tuple[str, str, str, str, str | None]
@@ -454,3 +455,121 @@ def save_googlebooks_resolutions(
         )
 
     connection.commit()
+
+
+def get_unsynced_wishlist_work_keys(
+    connection: sqlite3.Connection,
+) -> list[str]:
+    rows = connection.execute(
+        """
+        SELECT DISTINCT br.work_key
+        FROM reado_list_memberships AS rlm
+        JOIN bibliographic_resolutions AS br
+            ON br.isbn13 = rlm.isbn13
+        LEFT JOIN openlibrary_edition_syncs AS oes
+            ON oes.work_key = br.work_key
+        WHERE rlm.list_type = 'wishlist'
+          AND rlm.is_active = 1
+          AND br.source = 'openlibrary'
+          AND br.status = 'resolved'
+          AND br.work_key IS NOT NULL
+          AND oes.work_key IS NULL
+        ORDER BY br.work_key
+        """
+    ).fetchall()
+
+    return [
+        str(row[0])
+        for row in rows
+    ]
+
+
+def save_openlibrary_editions(
+    connection: sqlite3.Connection,
+    work_key: str,
+    editions: list[OpenLibraryEdition],
+    synced_at: str,
+) -> None:
+    with connection:
+        connection.execute(
+            """
+            DELETE FROM openlibrary_editions
+            WHERE work_key = ?
+            """,
+            (work_key,),
+        )
+
+        for edition in editions:
+            connection.execute(
+                """
+                INSERT INTO openlibrary_editions (
+                    edition_key,
+                    work_key,
+                    title,
+                    physical_format,
+                    print_status
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    edition["edition_key"],
+                    edition["work_key"],
+                    edition["title"],
+                    edition["physical_format"],
+                    edition["print_status"],
+                ),
+            )
+
+            connection.executemany(
+                """
+                INSERT INTO openlibrary_edition_languages (
+                    edition_key,
+                    language
+                )
+                VALUES (?, ?)
+                """,
+                [
+                    (
+                        edition["edition_key"],
+                        language,
+                    )
+                    for language
+                    in edition["languages"]
+                ],
+            )
+
+            connection.executemany(
+                """
+                INSERT INTO openlibrary_edition_isbns (
+                    edition_key,
+                    isbn_type,
+                    isbn
+                )
+                VALUES (?, ?, ?)
+                """,
+                [
+                    (
+                        edition["edition_key"],
+                        identifier["type"],
+                        identifier["identifier"],
+                    )
+                    for identifier
+                    in edition["identifiers"]
+                ],
+            )
+
+        connection.execute(
+            """
+            INSERT INTO openlibrary_edition_syncs (
+                work_key,
+                synced_at
+            )
+            VALUES (?, ?)
+            ON CONFLICT(work_key) DO UPDATE SET
+                synced_at = excluded.synced_at
+            """,
+            (
+                work_key,
+                synced_at,
+            ),
+        )
