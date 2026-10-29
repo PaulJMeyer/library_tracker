@@ -5,14 +5,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from library_tracker.cli import (
-    format_history_line,
-    main,
-    print_copy_history,
-    run_history_command,
-    get_reado_list_url,
-)
-from library_tracker.models import AvailabilitySnapshot
+from library_tracker.cli import     (format_history_line,
+                                     main,
+                                     print_copy_history,
+                                     run_history_command,
+                                     get_reado_list_url)
+
+from library_tracker.models import  (AvailabilitySnapshot,
+                                     ReadoListType)
 
 from library_tracker.reado import ReadoWishlistError
 
@@ -203,3 +203,60 @@ def test_get_reado_list_url_missing() -> None:
         ),
     ):
         get_reado_list_url("wishlist")
+
+
+def test_main_reado_sync_command() -> None:
+    with patch(
+        "library_tracker.cli.run_reado_sync_command",
+        return_value=0,
+    ) as mock_command:
+        exit_code = main(["reado-sync"])
+
+    assert exit_code == 0
+
+    mock_command.assert_called_once_with(
+        headless=False,
+    )
+
+
+def test_main_reado_sync_command_headless() -> None:
+    with patch(
+        "library_tracker.cli.run_reado_sync_command",
+        return_value=0,
+    ) as mock_command:
+        exit_code = main([
+            "reado-sync",
+            "--headless",
+        ])
+
+    assert exit_code == 0
+
+    mock_command.assert_called_once_with(
+        headless=True,
+    )
+
+
+@pytest.mark.parametrize(
+    ("list_type", "environment_variable"),
+    [
+        ("wishlist", "READO_WISHLIST_URL"),
+        ("tbr", "READO_TBR_URL"),
+        ("reading", "READO_READING_URL"),
+        ("completed", "READO_COMPLETED_URL"),
+    ],
+)
+def test_get_reado_list_url(
+    list_type: ReadoListType,
+    environment_variable: str,
+) -> None:
+    with patch.dict(
+        os.environ,
+        {
+            environment_variable:
+                "https://reado.app/de/lists/test"
+        },
+        clear=True,
+    ):
+        assert get_reado_list_url(list_type) == (
+            "https://reado.app/de/lists/test"
+        )

@@ -1,11 +1,9 @@
 import pytest
 
-from library_tracker.reado import (
-    ReadoWishlistError,
-    entries_from_hrefs,
-    parse_reado_book_href,
-    read_reado_wishlist,
-)
+from library_tracker.reado import   (ReadoWishlistError,
+                                     entries_from_hrefs,
+                                     parse_reado_book_href,
+                                     read_reado_list)
 
 
 def test_parse_reado_book_href_relative_german_url() -> None:
@@ -77,11 +75,11 @@ def test_entries_from_hrefs_deduplicates_same_isbn() -> None:
     ]
 
 
-def test_read_reado_wishlist_rejects_wrong_url() -> None:
+def test_read_reado_list_rejects_wrong_url() -> None:
     with pytest.raises(
         ReadoWishlistError,
-        match="Expected a public READO wishlist URL",
+        match="Expected a public READO URL",
     ):
-        read_reado_wishlist(
-            "https://example.com/wishlist",
+        read_reado_list(
+            "https://example.com/list",
         )
