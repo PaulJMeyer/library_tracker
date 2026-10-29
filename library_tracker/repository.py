@@ -7,8 +7,9 @@ from typing import cast
 
 from library_tracker.models import (AvailabilitySnapshot,
                                     Item,
-                                    ReadoWishlistEntry,
-                                    ReadoWishlistSyncResult)
+                                    ReadoListEntry,
+                                    ReadoListSyncResult,
+                                    ReadoListType)
 
 
 SnapshotRow = tuple[str, str, str, str, str | None]
@@ -143,26 +144,29 @@ def get_latest_snapshot(
     return _snapshot_from_row(cast(SnapshotRow, row))
 
 
-def sync_reado_wishlist(
+def sync_reado_list(
     connection: sqlite3.Connection,
-    entries: list[ReadoWishlistEntry],
+    entries: list[ReadoListEntry],
+    list_type: ReadoListType,
     checked_at: str,
-) -> ReadoWishlistSyncResult:
+) -> ReadoListSyncResult:
     existing_isbns = {
-        row[0]
+        str(row[0])
         for row in connection.execute(
             "SELECT isbn13 FROM reado_books"
         )
     }
 
     active_isbns = {
-        row[0]
+        str(row[0])
         for row in connection.execute(
             """
             SELECT isbn13
-            FROM reado_books
-            WHERE on_wishlist = 1
-            """
+            FROM reado_list_memberships
+            WHERE list_type = ?
+              AND is_active = 1
+            """,
+            (list_type,),
         )
     }
 
@@ -181,32 +185,57 @@ def sync_reado_wishlist(
         active_isbns - current_isbns
     )
 
-    connection.execute(
-        """
-        UPDATE reado_books
-        SET on_wishlist = 0
-        """
-    )
-
     connection.executemany(
         """
         INSERT INTO reado_books (
             isbn13,
             reado_url,
             first_seen_at,
-            last_seen_at,
-            on_wishlist
+            last_seen_at
         )
-        VALUES (?, ?, ?, ?, 1)
+        VALUES (?, ?, ?, ?)
         ON CONFLICT(isbn13) DO UPDATE SET
             reado_url = excluded.reado_url,
-            last_seen_at = excluded.last_seen_at,
-            on_wishlist = 1
+            last_seen_at = excluded.last_seen_at
         """,
         [
             (
                 entry["isbn13"],
                 entry["reado_url"],
+                checked_at,
+                checked_at,
+            )
+            for entry in entries
+        ],
+    )
+
+    connection.execute(
+        """
+        UPDATE reado_list_memberships
+        SET is_active = 0
+        WHERE list_type = ?
+        """,
+        (list_type,),
+    )
+
+    connection.executemany(
+        """
+        INSERT INTO reado_list_memberships (
+            isbn13,
+            list_type,
+            first_seen_at,
+            last_seen_at,
+            is_active
+        )
+        VALUES (?, ?, ?, ?, 1)
+        ON CONFLICT(isbn13, list_type) DO UPDATE SET
+            last_seen_at = excluded.last_seen_at,
+            is_active = 1
+        """,
+        [
+            (
+                entry["isbn13"],
+                list_type,
                 checked_at,
                 checked_at,
             )

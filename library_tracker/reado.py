@@ -6,7 +6,7 @@ from urllib.parse import urljoin, urlparse
 
 from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, sync_playwright
 
-from library_tracker.models import ReadoWishlistEntry
+from library_tracker.models import ReadoListEntry
 
 
 READO_BASE_URL = "https://reado.app"
@@ -19,7 +19,7 @@ class ReadoWishlistError(RuntimeError):
     """Raised when a READO wishlist cannot be read reliably."""
 
 
-def parse_reado_book_href(href: str) -> ReadoWishlistEntry | None:
+def parse_reado_book_href(href: str) -> ReadoListEntry | None:
     """Convert a READO book link into a wishlist entry."""
     absolute_url = urljoin(READO_BASE_URL, href)
     parsed = urlparse(absolute_url)
@@ -37,9 +37,9 @@ def parse_reado_book_href(href: str) -> ReadoWishlistEntry | None:
     }
 
 
-def entries_from_hrefs(hrefs: list[str]) -> list[ReadoWishlistEntry]:
+def entries_from_hrefs(hrefs: list[str]) -> list[ReadoListEntry]:
     """Extract unique READO book entries from raw anchor hrefs."""
-    entries_by_isbn: dict[str, ReadoWishlistEntry] = {}
+    entries_by_isbn: dict[str, ReadoListEntry] = {}
 
     for href in hrefs:
         entry = parse_reado_book_href(href)
@@ -54,7 +54,7 @@ def entries_from_hrefs(hrefs: list[str]) -> list[ReadoWishlistEntry]:
     )
 
 
-def _collect_entries(page: Page) -> list[ReadoWishlistEntry]:
+def _collect_entries(page: Page) -> list[ReadoListEntry]:
     locator = page.locator('a[href*="/book/"]')
     hrefs = cast(
         list[str],
@@ -76,7 +76,7 @@ def read_reado_wishlist(
     max_scrolls: int = 120,
     stable_rounds: int = 4,
     scroll_wait_ms: int = 700,
-) -> list[ReadoWishlistEntry]:
+) -> list[ReadoListEntry]:
     """
     Load a public READO wishlist and extract all ISBN-bearing book links.
 
@@ -123,7 +123,7 @@ def read_reado_wishlist(
 
             previous_count = -1
             unchanged_rounds = 0
-            entries: list[ReadoWishlistEntry] = []
+            entries: list[ReadoListEntry] = []
 
             for _ in range(max_scrolls):
                 entries = _collect_entries(page)

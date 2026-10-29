@@ -10,15 +10,22 @@ from datetime import UTC, datetime
 from library_tracker.database import (get_connection,
                                       initialize_database)
 from library_tracker.main import main as run_scrape
-from library_tracker.models import AvailabilitySnapshot
+from library_tracker.models import (AvailabilitySnapshot,
+                                    ReadoListType)
 from library_tracker.repository import (get_copy_history,
-                                        sync_reado_wishlist)
+                                        sync_reado_list)
 from library_tracker.reado import (ReadoWishlistError,
                                    read_reado_wishlist)
 
 
-
 load_dotenv()
+
+READO_LIST_ENV_VARS = {
+    "wishlist": "READO_WISHLIST_URL",
+    "tbr": "READO_TBR_URL",
+    "reading": "READO_READING_URL",
+    "completed": "READO_COMPLETED_URL",
+}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -60,15 +67,18 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def get_reado_wishlist_url() -> str:
-    wishlist_url = os.getenv("READO_WISHLIST_URL")
+def get_reado_list_url(
+    list_type: ReadoListType,
+) -> str:
+    variable_name = READO_LIST_ENV_VARS[list_type]
+    list_url = os.getenv(variable_name)
 
-    if not wishlist_url:
+    if not list_url:
         raise ReadoWishlistError(
-            "READO_WISHLIST_URL is not configured."
+            f"{variable_name} is not configured."
         )
 
-    return wishlist_url
+    return list_url
 
 
 def format_history_line(snapshot: AvailabilitySnapshot) -> str:
@@ -117,7 +127,7 @@ def run_reado_wishlist_command(
     headless: bool = False,
 ) -> int:
     try:
-        wishlist_url = get_reado_wishlist_url()
+        wishlist_url = get_reado_list_url("wishlist")
 
         entries = read_reado_wishlist(
             wishlist_url,
@@ -136,9 +146,10 @@ def run_reado_wishlist_command(
     try:
         initialize_database(connection)
 
-        sync_result = sync_reado_wishlist(
+        sync_result = sync_reado_list(
             connection,
             entries,
+            "wishlist",
             checked_at,
         )
     finally:

@@ -10,7 +10,7 @@ from library_tracker.cli import (
     main,
     print_copy_history,
     run_history_command,
-    get_reado_wishlist_url,
+    get_reado_list_url,
 )
 from library_tracker.models import AvailabilitySnapshot
 
@@ -172,7 +172,7 @@ def test_main_history_command() -> None:
     )
 
 
-def test_get_reado_wishlist_url_from_environment() -> None:
+def test_get_reado_list_url_from_environment() -> None:
     with patch.dict(
         os.environ,
         {
@@ -182,7 +182,7 @@ def test_get_reado_wishlist_url_from_environment() -> None:
             )
         },
     ):
-        result = get_reado_wishlist_url()
+        result = get_reado_list_url("wishlist")
 
     assert result == (
         "https://reado.app/de/lists/_wishlist"
@@ -190,7 +190,7 @@ def test_get_reado_wishlist_url_from_environment() -> None:
     )
 
 
-def test_get_reado_wishlist_url_missing() -> None:
+def test_get_reado_list_url_missing() -> None:
     with (
         patch.dict(
             os.environ,
@@ -202,4 +202,4 @@ def test_get_reado_wishlist_url_missing() -> None:
             match="READO_WISHLIST_URL is not configured",
         ),
     ):
-        get_reado_wishlist_url()
+        get_reado_list_url("wishlist")

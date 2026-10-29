@@ -1,4 +1,5 @@
-from typing import TypedDict
+from typing import (TypedDict,
+                    Literal)
 
 
 class Copy(TypedDict):
@@ -49,12 +50,19 @@ class AvailabilitySnapshot(TypedDict):
     due_date: str | None
 
 
-class ReadoWishlistEntry(TypedDict):
+ReadoListType = Literal[
+    "wishlist",
+    "tbr",
+    "reading",
+    "completed",
+]
+
+
+class ReadoListEntry(TypedDict):
     isbn13: str
     reado_url: str
 
 
-class ReadoWishlistSyncResult(TypedDict):
-    new_entries: list[ReadoWishlistEntry]
+class ReadoListSyncResult(TypedDict):
+    new_entries: list[ReadoListEntry]
     removed_isbns: list[str]
-
