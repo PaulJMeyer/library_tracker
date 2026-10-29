@@ -7,20 +7,28 @@ from collections.abc import Sequence
 from dotenv import load_dotenv
 from datetime import UTC, datetime
 
-from library_tracker.database import (get_connection,
-                                      initialize_database)
+from library_tracker.database import    (get_connection,
+                                         initialize_database)
 from library_tracker.main import main as run_scrape
-from library_tracker.models import (AvailabilitySnapshot,
-                                    ReadoListType)
-from library_tracker.repository import (get_copy_history,
-                                        sync_reado_list)
-from library_tracker.reado import (ReadoWishlistError,
-                                   read_reado_wishlist)
+from library_tracker.models import      (AvailabilitySnapshot,
+                                         ReadoListType,
+                                         ReadoListEntry)
+from library_tracker.repository import  (get_copy_history,
+                                         sync_reado_list)
+from library_tracker.reado import       (ReadoWishlistError,
+                                         read_reado_list)
 
 
 load_dotenv()
 
-READO_LIST_ENV_VARS = {
+READO_LIST_TYPES: tuple[ReadoListType, ...] = (
+    "wishlist",
+    "tbr",
+    "reading",
+    "completed",
+)
+
+READO_LIST_ENV_VARS: dict[ReadoListType, str] = {
     "wishlist": "READO_WISHLIST_URL",
     "tbr": "READO_TBR_URL",
     "reading": "READO_READING_URL",
@@ -59,6 +67,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     reado_parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="Run the READO browser without a visible window.",
+    )
+
+    reado_sync_parser = subparsers.add_parser(
+        "reado-sync",
+        help="Synchronize all configured READO lists.",
+    )
+
+    reado_sync_parser.add_argument(
         "--headless",
         action="store_true",
         help="Run the READO browser without a visible window.",
@@ -129,7 +148,7 @@ def run_reado_wishlist_command(
     try:
         wishlist_url = get_reado_list_url("wishlist")
 
-        entries = read_reado_wishlist(
+        entries = read_reado_list(
             wishlist_url,
             headless=headless,
         )
@@ -190,5 +209,84 @@ def main(argv: Sequence[str] | None = None) -> int:
             headless=bool(args.headless),
         )
 
+    if args.command == "reado-sync":
+        return run_reado_sync_command(
+            headless=bool(args.headless),
+        )
+
     parser.error(f"Unknown command: {args.command}")
     return 2
+
+
+def run_reado_sync_command(
+    *,
+    headless: bool = False,
+) -> int:
+    entries_by_list: dict[
+        ReadoListType,
+        list[ReadoListEntry],
+    ] = {}
+
+    try:
+        for list_type in READO_LIST_TYPES:
+            list_url = get_reado_list_url(list_type)
+
+            entries_by_list[list_type] = read_reado_list(
+                list_url,
+                headless=headless,
+            )
+
+    except ReadoWishlistError as exc:
+        print(f"READO error: {exc}")
+        return 1
+
+    checked_at = datetime.now(UTC).isoformat(
+        timespec="seconds"
+    )
+
+    connection = get_connection()
+
+    try:
+        initialize_database(connection)
+
+        total_new_isbns: set[str] = set()
+
+        for list_type in READO_LIST_TYPES:
+            entries = entries_by_list[list_type]
+
+            result = sync_reado_list(
+                connection,
+                entries,
+                list_type,
+                checked_at,
+            )
+
+            total_new_isbns.update(
+                entry["isbn13"]
+                for entry in result["new_entries"]
+            )
+
+            print(
+                f"READO {list_type}: "
+                f"{len(entries)} books"
+            )
+
+            print(
+                "  New to cache: "
+                f'{len(result["new_entries"])}'
+            )
+
+            print(
+                "  Removed from list: "
+                f'{len(result["removed_isbns"])}'
+            )
+
+        print(
+            "Total new books: "
+            f"{len(total_new_isbns)}"
+        )
+
+    finally:
+        connection.close()
+
+    return 0
