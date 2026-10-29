@@ -69,8 +69,8 @@ def _collect_entries(page: Page) -> list[ReadoListEntry]:
     return entries_from_hrefs(hrefs)
 
 
-def read_reado_wishlist(
-    wishlist_url: str,
+def read_reado_list(
+    list_url: str,
     *,
     headless: bool = False,
     max_scrolls: int = 120,
@@ -78,20 +78,16 @@ def read_reado_wishlist(
     scroll_wait_ms: int = 700,
 ) -> list[ReadoListEntry]:
     """
-    Load a public READO wishlist and extract all ISBN-bearing book links.
-
-    READO loads wishlist entries dynamically, so the page is scrolled until
-    the number of discovered ISBNs has remained unchanged for several rounds.
+    Load a public READO list and extract all ISBN-bearing book links.
     """
-    parsed_url = urlparse(wishlist_url)
+    parsed_url = urlparse(list_url)
+
     if (
         parsed_url.scheme != "https"
         or parsed_url.netloc != "reado.app"
-        or "/lists/_wishlist" not in parsed_url.path
     ):
         raise ReadoWishlistError(
-            "Expected a public READO wishlist URL "
-            "(https://reado.app/.../lists/_wishlist?...)."
+            "Expected a public READO URL."
         )
 
     with sync_playwright() as playwright:
@@ -99,13 +95,14 @@ def read_reado_wishlist(
             headless=headless,
             channel="chromium",
         )
+
         page = browser.new_page(
             viewport={"width": 1280, "height": 900},
         )
 
         try:
             page.goto(
-                wishlist_url,
+                list_url,
                 wait_until="domcontentloaded",
                 timeout=45_000,
             )
@@ -117,8 +114,7 @@ def read_reado_wishlist(
                 )
             except PlaywrightTimeoutError as exc:
                 raise ReadoWishlistError(
-                    "No book links appeared on the READO wishlist. "
-                    "Check that the list is public and the URL is correct."
+                    "No book links appeared on the READO list."
                 ) from exc
 
             previous_count = -1
@@ -145,5 +141,6 @@ def read_reado_wishlist(
                 page.wait_for_timeout(scroll_wait_ms)
 
             return entries
+
         finally:
             browser.close()
