@@ -89,6 +89,42 @@ def initialize_database(connection: sqlite3.Connection) -> None:
             """
         )
 
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS openlibrary_works (
+                work_key TEXT PRIMARY KEY,
+                title TEXT NOT NULL
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bibliographic_resolutions (
+                isbn13 TEXT PRIMARY KEY,
+                status TEXT NOT NULL
+                    CHECK (
+                        status IN (
+                            'resolved',
+                            'not_found',
+                            'ambiguous',
+                            'failed'
+                        )
+                    ),
+                work_key TEXT,
+                resolved_at TEXT NOT NULL,
+                source TEXT NOT NULL,
+                error_message TEXT,
+                FOREIGN KEY (isbn13)
+                    REFERENCES reado_books(isbn13)
+                    ON DELETE CASCADE,
+                FOREIGN KEY (work_key)
+                    REFERENCES openlibrary_works(work_key)
+            )
+            """
+        )
+
         _migrate_reado_list_memberships(connection)
 
         connection.commit()
