@@ -9,7 +9,8 @@ from library_tracker.models import (AvailabilitySnapshot,
                                     Item,
                                     ReadoListEntry,
                                     ReadoListSyncResult,
-                                    ReadoListType)
+                                    ReadoListType,
+                                    OpenLibraryResolution)
 
 
 SnapshotRow = tuple[str, str, str, str, str | None]
@@ -249,3 +250,83 @@ def sync_reado_list(
         "new_entries": new_entries,
         "removed_isbns": removed_isbns,
     }
+
+
+def get_unresolved_reado_isbns(
+    connection: sqlite3.Connection,
+) -> list[str]:
+    rows = connection.execute(
+        """
+        SELECT rb.isbn13
+        FROM reado_books AS rb
+        LEFT JOIN bibliographic_resolutions AS br
+            ON br.isbn13 = rb.isbn13
+        WHERE br.isbn13 IS NULL
+        ORDER BY rb.isbn13
+        """
+    ).fetchall()
+
+    return [
+        str(row[0])
+        for row in rows
+    ]
+
+
+def save_openlibrary_resolutions(
+    connection: sqlite3.Connection,
+    resolutions: list[OpenLibraryResolution],
+    resolved_at: str,
+) -> None:
+    for resolution in resolutions:
+        work_key = resolution["work_key"]
+        title = resolution["title"]
+
+        if (
+            resolution["status"] == "resolved"
+            and work_key is not None
+            and title is not None
+        ):
+            connection.execute(
+                """
+                INSERT INTO openlibrary_works (
+                    work_key,
+                    title
+                )
+                VALUES (?, ?)
+                ON CONFLICT(work_key) DO UPDATE SET
+                    title = excluded.title
+                """,
+                (
+                    work_key,
+                    title,
+                ),
+            )
+
+        connection.execute(
+            """
+            INSERT INTO bibliographic_resolutions (
+                isbn13,
+                status,
+                work_key,
+                resolved_at,
+                source,
+                error_message
+            )
+            VALUES (?, ?, ?, ?, 'openlibrary', ?)
+            ON CONFLICT(isbn13) DO UPDATE SET
+                status = excluded.status,
+                work_key = excluded.work_key,
+                resolved_at = excluded.resolved_at,
+                source = excluded.source,
+                error_message = excluded.error_message
+            """,
+            (
+                resolution["isbn13"],
+                resolution["status"],
+                work_key,
+                resolved_at,
+                resolution["error_message"],
+            ),
+        )
+
+    connection.commit()

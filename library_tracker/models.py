@@ -2,6 +2,14 @@ from typing import (TypedDict,
                     Literal)
 
 
+OpenLibraryResolutionStatus = Literal[
+    "resolved",
+    "not_found",
+    "ambiguous",
+    "failed",
+]
+
+
 class Copy(TypedDict):
     media_number:   str
     signature:      str
@@ -66,3 +74,11 @@ class ReadoListEntry(TypedDict):
 class ReadoListSyncResult(TypedDict):
     new_entries: list[ReadoListEntry]
     removed_isbns: list[str]
+
+
+class OpenLibraryResolution(TypedDict):
+    isbn13: str
+    status: OpenLibraryResolutionStatus
+    work_key: str | None
+    title: str | None
+    error_message: str | None
