@@ -5,13 +5,15 @@ from pathlib import Path
 
 import pytest
 
-from library_tracker.database import get_connection, initialize_database
-from library_tracker.models import Copy, Item
-from library_tracker.repository import (
-    get_copy_history,
-    get_latest_snapshot,
-    persist_items,
-)
+from library_tracker.database import    (get_connection,
+                                        initialize_database)
+from library_tracker.models import      (Copy,
+                                        Item,
+                                        ReadoListEntry)
+from library_tracker.repository import  (get_copy_history,
+                                        get_latest_snapshot,
+                                        persist_items,
+                                        sync_reado_list)
 
 
 def make_copy(
@@ -404,3 +406,51 @@ def test_get_latest_snapshot_unknown_copy_returns_none(
         connection,
         "999999999",
     ) is None
+
+
+def test_sync_reado_list_keeps_other_lists_active(
+    connection: sqlite3.Connection,
+) -> None:
+    entry: ReadoListEntry = {
+        "isbn13": "9783423449229",
+        "reado_url": (
+            "https://reado.app/de/book/a/"
+            "9783423449229"
+        ),
+    }
+
+    sync_reado_list(
+        connection,
+        [entry],
+        "wishlist",
+        "2026-10-28T15:00:00+00:00",
+    )
+
+    sync_reado_list(
+        connection,
+        [entry],
+        "tbr",
+        "2026-10-28T15:01:00+00:00",
+    )
+
+    sync_reado_list(
+        connection,
+        [],
+        "wishlist",
+        "2026-10-29T15:00:00+00:00",
+    )
+
+    rows = connection.execute(
+        """
+        SELECT list_type, is_active
+        FROM reado_list_memberships
+        WHERE isbn13 = ?
+        ORDER BY list_type
+        """,
+        ("9783423449229",),
+    ).fetchall()
+
+    assert rows == [
+        ("tbr", 1),
+        ("wishlist", 0),
+    ]
