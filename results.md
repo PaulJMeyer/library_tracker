@@ -1,15 +1,16 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-11-03 13:04 UTC
+Zuletzt aktualisiert: 2026-11-04 13:19 UTC
 
 ## Übersicht
 
-**Ausleihbar (9):**
+**Ausleihbar (10):**
 - Mit Physik auf der Suche nach dem Sinn des Lebens
 - 21 Lektionen für das 21. Jahrhundert
 - Nexus
 - ¬The Witcher - Der Rand der Welt
 - Wir
+- ¬Die Zeitmaschine
 - Aufstieg und Fall der Menschheit
 - Live forever?
 - ¬Die kürzeste Geschichte der Erde
@@ -46,6 +47,10 @@ Zuletzt aktualisiert: 2026-11-03 13:04 UTC
 - 10-Zentralbibliothek / 2.OG Wall-Flügel | ausleihbar
 
 ## [Ausleihbar] Wir
+- 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
+
+## [Ausleihbar] ¬Die Zeitmaschine
+- 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 10.11.2026
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
 
 ## [Ausleihbar] Aufstieg und Fall der Menschheit
