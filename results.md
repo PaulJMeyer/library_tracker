@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-11-04 13:19 UTC
+Zuletzt aktualisiert: 2026-11-05 13:33 UTC
 
 ## Übersicht
 
@@ -37,10 +37,10 @@ Zuletzt aktualisiert: 2026-11-04 13:19 UTC
 
 ## [Ausleihbar] Nexus
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
+- 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 26.11.2026
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
-- 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
-- 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (entliehen)
+- 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (ausleihbar)
 - 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
 
 ## [Ausleihbar] ¬The Witcher - Der Rand der Welt
