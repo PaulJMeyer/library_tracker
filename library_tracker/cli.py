@@ -28,6 +28,9 @@ from library_tracker.openlibrary import (OpenLibraryClient,
                                          OpenLibraryError)
 from library_tracker.googlebooks import (GoogleBooksClient,
                                          GoogleBooksError)
+from library_tracker.catalog import     (LibraryCatalogError,
+                                         search_catalog_by_isbn)
+from library_tracker.login import       login_with_csid
 
 
 load_dotenv()
@@ -116,6 +119,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--headless",
         action="store_true",
         help="Run the READO browser without a visible window.",
+    )
+
+    library_search_parser = (
+        subparsers.add_parser(
+            "library-search",
+            help=(
+                "Search the Stadtbibliothek "
+                "Bremen catalog by ISBN."
+            ),
+        )
+    )
+
+    library_search_parser.add_argument(
+        "isbn",
+        help="ISBN-10 or ISBN-13 to search.",
     )
 
     return parser
@@ -257,6 +275,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "openlibrary-editions":
         return run_openlibrary_editions_command()
+
+    if args.command == "library-search":
+        return run_library_search_command(
+            str(args.isbn)
+        )
 
     parser.error(f"Unknown command: {args.command}")
     return 2
@@ -599,5 +622,29 @@ def run_openlibrary_editions_command() -> int:
         "Relevant editions cached: "
         f"{total_editions}"
     )
+
+    return 0
+
+
+def run_library_search_command(
+    isbn: str,
+) -> int:
+    session, cs_id = login_with_csid()
+
+    try:
+        hits = search_catalog_by_isbn(
+            session,
+            cs_id,
+            isbn,
+        )
+    except LibraryCatalogError as exc:
+        print(f"Library catalog error: {exc}")
+        return 1
+
+    print(f"ISBN: {isbn}")
+    print(f"Catalog hits: {len(hits)}")
+
+    for hit in hits:
+        print(hit)
 
     return 0

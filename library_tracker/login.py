@@ -27,12 +27,13 @@ def extract_login_payload(html: str) -> dict:
     }
 
 
-def login() -> Session:
+def login_with_csid() -> tuple[Session, str]:
 
     session = Session()
 
     login_page = get_login_page(session)
     payload = extract_login_payload(login_page.text)
+    cs_id = str(payload["CSId"])
 
     response = post(session, LOGIN_URL, data=payload, delay=False)
     response.raise_for_status()
@@ -42,4 +43,9 @@ def login() -> Session:
 
     print("Login erfolgreich.")
 
+    return session, cs_id
+
+
+def login() -> Session:
+    session, _ = login_with_csid()
     return session
