@@ -132,3 +132,15 @@ class OpenLibraryEdition(TypedDict):
     physical_format: str | None
     print_status: PrintStatus
     identifiers: list[OpenLibraryEditionIdentifier]
+
+
+LibraryIsbnCandidateSource = Literal[
+    "reado",
+    "openlibrary_confirmed",
+    "openlibrary_unknown",
+]
+
+
+class LibraryIsbnCandidate(TypedDict):
+    isbn: str
+    source: LibraryIsbnCandidateSource
