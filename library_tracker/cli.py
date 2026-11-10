@@ -21,7 +21,8 @@ from library_tracker.repository import  (get_copy_history,
                                          get_googlebooks_fallback_isbns,
                                          save_googlebooks_resolutions,
                                          get_unsynced_wishlist_work_keys,
-                                         save_openlibrary_editions)
+                                         save_openlibrary_editions,
+                                         get_wishlist_isbn_candidates)
 from library_tracker.reado import       (ReadoWishlistError,
                                          read_reado_list)
 from library_tracker.openlibrary import (OpenLibraryClient,
@@ -134,6 +135,19 @@ def build_parser() -> argparse.ArgumentParser:
     library_search_parser.add_argument(
         "isbn",
         help="ISBN-10 or ISBN-13 to search.",
+    )
+
+    library_match_parser = subparsers.add_parser(
+        "library-match",
+        help=(
+            "Search prioritized ISBN editions for one "
+            "active READO wishlist book."
+        ),
+    )
+
+    library_match_parser.add_argument(
+        "isbn",
+        help="Original ISBN from the READO wishlist.",
     )
 
     return parser
@@ -278,6 +292,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "library-search":
         return run_library_search_command(
+            str(args.isbn)
+        )
+
+    if args.command == "library-match":
+        return run_library_match_command(
             str(args.isbn)
         )
 
@@ -647,4 +666,74 @@ def run_library_search_command(
     for hit in hits:
         print(hit)
 
+    return 0
+
+
+def run_library_match_command(
+    reado_isbn: str,
+) -> int:
+    connection = get_connection()
+    initialize_database(connection)
+
+    try:
+        candidates = get_wishlist_isbn_candidates(
+            connection,
+            reado_isbn,
+        )
+    finally:
+        connection.close()
+
+    if not candidates:
+        print(
+            "No active READO wishlist entry found "
+            f"for ISBN {reado_isbn}."
+        )
+        return 1
+
+    print(
+        f"ISBN candidates for {reado_isbn}: "
+        f"{len(candidates)}"
+    )
+
+    session, cs_id = login_with_csid()
+
+    for index, candidate in enumerate(
+        candidates,
+        start=1,
+    ):
+        isbn = candidate["isbn"]
+        source = candidate["source"]
+
+        try:
+            hits = search_catalog_by_isbn(
+                session,
+                cs_id,
+                isbn,
+            )
+        except LibraryCatalogError as exc:
+            print(
+                f"Catalog search failed for "
+                f"{isbn}: {exc}"
+            )
+            return 1
+
+        print(
+            f"[{index}/{len(candidates)}] "
+            f"{isbn} ({source}) "
+            f"-> {len(hits)} hit(s)"
+        )
+
+        if hits:
+            print()
+            print("Library match found.")
+            print(f"READO ISBN: {reado_isbn}")
+            print(f"Matched ISBN: {isbn}")
+            print(f"Source: {source}")
+            return 0
+
+        if index < len(candidates):
+            time.sleep(0.5)
+
+    print()
+    print("No library match found.")
     return 0

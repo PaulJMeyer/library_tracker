@@ -17,7 +17,8 @@ from library_tracker.repository import  (get_copy_history,
                                         get_unresolved_reado_isbns,
                                         save_openlibrary_resolutions,
                                         get_unsynced_wishlist_work_keys,
-                                        save_openlibrary_editions)
+                                        save_openlibrary_editions,
+                                        get_wishlist_isbn_candidates)
 
 
 def make_copy(
@@ -704,3 +705,135 @@ def test_synced_work_is_not_returned_again(
         )
         == []
     )
+
+
+def test_get_wishlist_isbn_candidates(
+    connection: sqlite3.Connection,
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO reado_books (
+            isbn13,
+            reado_url,
+            first_seen_at,
+            last_seen_at
+        )
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            "9781111111111",
+            "https://example.com/book",
+            "2026-11-10T12:00:00",
+            "2026-11-10T12:00:00",
+        ),
+    )
+
+    connection.execute(
+        """
+        INSERT INTO reado_list_memberships (
+            isbn13,
+            list_type,
+            first_seen_at,
+            last_seen_at,
+            is_active
+        )
+        VALUES (?, 'wishlist', ?, ?, 1)
+        """,
+        (
+            "9781111111111",
+            "2026-11-10T12:00:00",
+            "2026-11-10T12:00:00",
+        ),
+    )
+
+    connection.execute(
+        """
+        INSERT INTO openlibrary_works (
+            work_key,
+            title
+        )
+        VALUES (?, ?)
+        """,
+        ("OL123W", "Test Book"),
+    )
+
+    connection.execute(
+        """
+        INSERT INTO bibliographic_resolutions (
+            isbn13,
+            status,
+            work_key,
+            resolved_at,
+            source,
+            error_message
+        )
+        VALUES (?, 'resolved', ?, ?, 'openlibrary', NULL)
+        """,
+        (
+            "9781111111111",
+            "OL123W",
+            "2026-11-10T12:00:00",
+        ),
+    )
+
+    for edition_key, status, isbn in [
+        ("OL1M", "unknown", "9783333333333"),
+        ("OL2M", "confirmed", "9782222222222"),
+        ("OL3M", "confirmed", "9781111111111"),
+    ]:
+        connection.execute(
+            """
+            INSERT INTO openlibrary_editions (
+                edition_key,
+                work_key,
+                title,
+                physical_format,
+                print_status
+            )
+            VALUES (?, 'OL123W', 'Test Book', NULL, ?)
+            """,
+            (edition_key, status),
+        )
+
+        connection.execute(
+            """
+            INSERT INTO openlibrary_edition_languages (
+                edition_key,
+                language
+            )
+            VALUES (?, 'de')
+            """,
+            (edition_key,),
+        )
+
+        connection.execute(
+            """
+            INSERT INTO openlibrary_edition_isbns (
+                edition_key,
+                isbn_type,
+                isbn
+            )
+            VALUES (?, 'ISBN_13', ?)
+            """,
+            (edition_key, isbn),
+        )
+
+    result = get_wishlist_isbn_candidates(
+        connection,
+        "9781111111111",
+    )
+
+    assert result == [
+        {
+            "isbn": "9781111111111",
+            "source": "reado",
+        },
+        {
+            "isbn": "9782222222222",
+            "source": "openlibrary_confirmed",
+        },
+        {
+            "isbn": "9783333333333",
+            "source": "openlibrary_unknown",
+        },
+    ]
