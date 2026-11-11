@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-11-10 13:50 UTC
+Zuletzt aktualisiert: 2026-11-11 13:01 UTC
 
 ## Übersicht
 
@@ -50,7 +50,7 @@ Zuletzt aktualisiert: 2026-11-10 13:50 UTC
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
 
 ## [Ausleihbar] ¬Die Zeitmaschine
-- 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 10.11.2026
+- 10-Zentralbibliothek / 1.OG Romane nach Themen | entliehen bis 01.12.2026
 - 10-Zentralbibliothek / 1.OG Romane & Werke A-Z | ausleihbar
 
 ## [Ausleihbar] Aufstieg und Fall der Menschheit
