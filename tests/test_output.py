@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from library_tracker.models import Copy, Item, Loan
+from library_tracker.models import Copy, CopyStatus, Item, Loan
 from library_tracker.output import (
     format_copy_line,
     format_results_markdown,
@@ -17,7 +17,7 @@ def make_copy(
     status_text: str,
     due_date: str | None,
     *,
-    status: str = "entliehen",
+    status: CopyStatus = "entliehen",
     branch: str = "10-Zentralbibliothek",
 ) -> Copy:
     return {
@@ -33,7 +33,7 @@ def make_copy(
 
 def make_item(
     title: str,
-    status: str,
+    status: CopyStatus,
     copies: list[Copy] | None = None,
 ) -> Item:
     return {

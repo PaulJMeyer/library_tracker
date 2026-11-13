@@ -1,104 +1,77 @@
 # AI_CONTEXT
 
-## Project description
+## Purpose
 
-This repository contains a private Python project for reading the user account of the Stadtbibliothek Bremen (Bremen public library).
+`library-tracker` is a private Python integration project connecting READO reading lists with the Stadtbibliothek Bremen catalog.
 
-Its purpose is a convenient overview of your own wish list ("Merkliste") and library account.
+READO is intended to become the source of truth for reading state. The application caches bibliographic metadata, maps works to German print editions, matches those ISBNs against the Bremen catalog, tracks availability and will later send change notifications (initially likely e-mail).
 
-The project is meant to demonstrate web scraping and session handling, while also serving as a personal everyday tool.
+## Current architecture
 
----
+- `clients/` — external systems (Bremen library, READO, Open Library, Google Books)
+- `parsers/` — deterministic Bremen HTML parsing
+- `repositories/` — SQLite reads/writes grouped by responsibility
+- `services/` — multi-step workflows
+- `cli.py` — command routing and compact output only
+- `database.py` — schema and migrations
+- `models.py` — typed contracts
+- `isbn.py` — shared ISBN normalization
 
-## Key project goals
+## Current READO workflow
 
-The user wants to distinguish between the following end states:
+Configured list types:
 
-1. `ausleihbar` (available)
+- wishlist
+- tbr
+- reading
+- completed
 
-   * at least one copy available at the central library
+List membership is stored separately from bibliographic cache data. Moving a book between lists must not delete resolved work/edition metadata.
 
-2. `bestellbar` (orderable)
+## Current metadata workflow
 
-   * no copy available at the central library
-   * but can be ordered for free from another branch
+1. unresolved READO ISBNs → Open Library
+2. Open Library `not_found` → Google Books fallback
+3. active wishlist works → Open Library editions
+4. store German and English editions
+5. exclude explicit ebook/audio formats
+6. Bremen matching priority:
+   - original READO ISBN
+   - German confirmed print ISBN-13
+   - German unknown-format ISBN-13
 
-3. `entliehen` (checked out)
+A real alternative-edition Bremen match has been verified end to end.
 
-   * all relevant copies are checked out
+## Intended end state
 
-4. `bestellt` (ordered)
+```text
+READO sync
+→ cached metadata/work/editions
+→ Bremen catalog matching
+→ library-wishlist/availability reconciliation
+→ change detection
+→ user update (e.g. daily or changed-only e-mail)
+```
 
-   * the user has already triggered a free order
+Books in TBR, reading or completed should no longer be treated as active library-wishlist candidates, but their bibliographic metadata remains cached.
 
-Output must be sorted in exactly this order.
+## Hard safety constraint
 
----
+Never automatically create a paid reservation (`Vormerkung`). Paid reservations cost money.
 
-## Hard constraints
+If the interface contains terms such as `Vormerkung`, `Gebühren`, or `1,- Euro`, no automated paid action may be triggered.
 
-### Never place an automatic hold ("Vormerkung")
+Free branch orders may be implemented only in a later phase and only behind explicit user confirmation.
 
-Holds cost money (1 €).
+## Coding principles
 
-The project must never automatically trigger a hold.
-
-In particular, no actions may be taken if terms such as
-
-* Vormerkung
-* Gebühren (fees)
-* 1,- Euro
-
-are detected.
-
----
-
-## Orders
-
-Free orders from other branches are generally desired.
-
-However, automatic ordering should only be implemented in a later project phase, and only after explicit user confirmation.
-
----
-
-## Coding style
-
-* simple, readable functions
-* no unnecessarily complex class hierarchies
-* BeautifulSoup for HTML parsing
-* `requests.Session` for HTTP communication
-* clear separation between
-
-  * HTTP
-  * parsing
-  * business logic
-  * output
-* full type hints, checked with `mypy`
-* `pytest` for the pure parsing/business logic
-
----
-
-## Current state
-
-Implemented:
-
-* Login
-* Session handling
-* Wish list across multiple pages
-* Status detection
-* Multiple copies per title
-* Branch vs. central library detection
-* Sorting
-* Type hints across all modules (mypy-checked)
-* pytest test suite (`library_parser.py`, `wishlist.py`)
-* Installable package structure (`pyproject.toml`)
-* CI via GitHub Actions (mypy + pytest on every push/PR)
-* Scheduled daily scrape via GitHub Actions (cron), writing results to `results.md`
-* Account overview
-* Show due dates in the output
-
-Planned:
-
-* Renewals
-* Orders
-* Further features
+- simple readable functions
+- no unnecessary class hierarchy
+- one client class per stateful external session is acceptable
+- keep HTTP, parsing, persistence and orchestration separated
+- cache external metadata; do not repeatedly bulk-query resolved data
+- low request volume and deliberate delays
+- full type hints and `mypy`
+- behavioral `pytest` tests with mocked external requests
+- temporary SQLite databases in tests
+- never commit credentials, API keys or the local database

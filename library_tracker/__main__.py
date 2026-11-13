@@ -1,4 +1,4 @@
-from .cli import main
+from library_tracker.cli import main
 
 
 if __name__ == "__main__":

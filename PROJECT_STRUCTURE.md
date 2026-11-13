@@ -1,6 +1,6 @@
 # Project Structure – Library Tracker
 
-Overview of the current layout, module responsibilities, data flow, and testing strategy.
+This document describes the refactored architecture and the responsibility of each module.
 
 ## Directory tree
 
@@ -9,30 +9,47 @@ library_tracker/
 ├── library_tracker/
 │   ├── __init__.py
 │   ├── __main__.py
-│   ├── account.py
 │   ├── cli.py
-│   ├── client.py
+│   ├── config.py
 │   ├── database.py
-│   ├── library_parser.py
-│   ├── login.py
-│   ├── main.py
+│   ├── isbn.py
 │   ├── models.py
 │   ├── output.py
-│   ├── repository.py
-│   └── wishlist.py
+│   ├── clients/
+│   │   ├── __init__.py
+│   │   ├── library.py
+│   │   ├── reado.py
+│   │   ├── openlibrary.py
+│   │   └── googlebooks.py
+│   ├── parsers/
+│   │   ├── __init__.py
+│   │   └── library.py
+│   ├── repositories/
+│   │   ├── __init__.py
+│   │   ├── availability.py
+│   │   ├── reado.py
+│   │   ├── metadata.py
+│   │   └── matching.py
+│   └── services/
+│       ├── __init__.py
+│       ├── library_scrape.py
+│       ├── reado_sync.py
+│       ├── metadata.py
+│       └── library_matching.py
 ├── tests/
-│   ├── __init__.py
-│   ├── test_account.py
+│   ├── conftest.py
 │   ├── test_cli.py
-│   ├── test_client.py
 │   ├── test_database.py
 │   ├── test_entrypoint.py
-│   ├── test_library_parser.py
-│   ├── test_login.py
-│   ├── test_main.py
+│   ├── test_googlebooks.py
+│   ├── test_isbn.py
+│   ├── test_library_client.py
+│   ├── test_library_parsers.py
+│   ├── test_openlibrary.py
 │   ├── test_output.py
-│   ├── test_repository.py
-│   └── test_wishlist.py
+│   ├── test_reado.py
+│   ├── test_repositories.py
+│   └── test_services.py
 ├── .github/
 │   ├── AI_CONTEXT.md
 │   └── workflows/
@@ -44,359 +61,240 @@ library_tracker/
 ├── .gitignore
 ├── pyproject.toml
 ├── README.md
+├── PROJECT_STRUCTURE.md
 └── ROADMAP.md
 ```
 
-`data/` and SQLite database files are local runtime data and are ignored by Git.
+`data/`, `.env`, coverage artifacts and local IDE files are ignored by Git.
 
----
-
-## Architecture
-
-The project separates external communication, parsing, orchestration, persistence, and presentation.
+## Dependency direction
 
 ```text
-cli / main
-   ├── client / login
-   ├── wishlist / account
-   ├── library_parser
-   ├── output
-   └── database
-          ↓
-      repository
-          ↓
-        SQLite
+cli.py
+  ↓
+services/
+  ↓              ↓
+clients/     repositories/
+  ↓              ↓
+parsers/        SQLite
+
+shared: config.py, isbn.py, models.py, database.py, output.py
 ```
 
-More specifically:
+The important rule is that the CLI routes commands but does not contain the business workflows. External HTTP details live in clients; SQL lives in repositories; multi-step operations live in services.
 
-- `client.py` handles reusable HTTP operations.
-- `login.py` handles authentication.
-- `wishlist.py` and `account.py` load account-specific pages.
-- `library_parser.py` converts HTML into typed application data.
-- `models.py` defines shared `TypedDict` structures.
-- `database.py` owns SQLite connection and schema setup.
-- `repository.py` owns persistence and queries.
-- `main.py` orchestrates a scrape.
-- `cli.py` routes user commands.
-- `output.py` formats console and Markdown output.
+## Core modules
 
----
+### `cli.py`
 
-## `client.py`
+The public command-line router. It defines commands, delegates to services/repositories and prints compact summaries. The previous large command implementation was split so the CLI no longer owns metadata resolution, READO synchronization or library matching logic.
 
-Central HTTP helper functions.
+### `config.py`
 
-Responsibilities:
+Central configuration boundary:
 
-- URL construction
-- GET requests
-- POST requests
-- request timeout
-- request delay
-- HTTP error propagation
+- loads `.env`
+- defines READO list types and their environment variables
+- provides `require_env()` and `get_reado_list_url()`
+- stores external base URLs
 
-External requests are mocked in the test suite.
+### `isbn.py`
 
----
+One shared `normalize_isbn()` implementation used by the library catalog, Open Library and Google Books clients.
 
-## `login.py`
+### `models.py`
 
-Handles the login process.
+Typed contracts shared between layers. Important groups:
 
-Responsibilities:
+- library: `Copy`, `Item`, `Loan`, `AvailabilitySnapshot`
+- library wish list: `MemorizeEntry`, `MemorizePage`
+- READO: `ReadoListEntry`, `ReadoListSyncResult`, `ReadoListType`
+- metadata: Open Library and Google Books resolution/edition structures
+- matching: `LibraryIsbnCandidate`, `LibraryMatchAttempt`, `LibraryMatchResult`
 
-- create a requests session
-- fetch the login page
-- extract the CSId
-- build the login payload
-- submit credentials
-- validate the resulting session
+### `database.py`
 
-Credentials are read from environment variables.
+Owns SQLite infrastructure only:
 
----
+- connection creation
+- foreign-key activation
+- complete schema initialization
+- migration from the legacy `reado_books.on_wishlist` column to list memberships
 
-## `wishlist.py`
+The schema is created with one `executescript()` block rather than many repeated setup calls.
 
-Handles the personal wish list.
+## Clients
+
+### `clients/library.py`
+
+One authenticated boundary for Stadtbibliothek Bremen. A `LibraryClient` contains the active `requests.Session` and CSId.
 
 Responsibilities:
 
-- load wish-list pages
-- handle pagination
-- extract entry UUIDs
-- extract availability links
-- remove selected entries from the wish list
+- login
+- throttled GET/POST requests
+- library wish-list pagination
+- wish-list removal requests
+- availability-page loading
+- account-page loading
+- ISBN catalog search
 
----
+The client does not parse domain data itself; it delegates HTML interpretation to `parsers/library.py`.
 
-## `account.py`
+### `clients/reado.py`
 
-Handles the account overview.
+Playwright integration for public READO lists:
 
-Responsibilities:
+- validates READO list URLs
+- scrolls dynamically loaded lists
+- extracts ISBN-bearing book links
+- deduplicates entries
 
-- load the account page
-- parse currently borrowed items
-- extract borrowing and due dates
-- extract branch information
-- extract renewal notes
+### `clients/openlibrary.py`
 
----
+Open Library integration:
 
-## `library_parser.py`
+- batch work resolution by ISBN
+- exact ISBN fallback for missing/ambiguous batch results
+- edition pagination
+- language filtering (`de`, `en`)
+- print/e-book/audio classification
+- edition ISBN extraction
 
-Converts availability HTML into typed application data.
+### `clients/googlebooks.py`
 
-Responsibilities:
+Fallback metadata lookup:
 
-- clean text
-- extract title
-- detect multiple copies per title
-- extract media number, signature, and branch
-- distinguish central library from branch libraries
-- normalize per-copy status
-- derive overall item status
-- extract due dates
-- create `Item` and `Copy` structures
+- API-key header authentication
+- exact ISBN verification against returned identifiers
+- retry/backoff for transient HTTP status codes
+- normalized metadata result structures
 
----
+## Parser
 
-## `models.py`
+### `parsers/library.py`
 
-Defines the shared typed structures used throughout the application.
+All Bremen-specific HTML parsing lives in one place:
 
-Current models include:
+- CSId extraction
+- wish-list form/entry parsing
+- copy/status parsing
+- title parsing
+- account/loan parsing
+- catalog-hit URL detection
 
-- `Copy`
-- `Item`
-- `Loan`
-- `MemorizeEntry`
-- `MemorizePage`
-- `AvailabilitySnapshot`
+Parsing functions are deterministic and do not issue network requests.
 
-The project uses `TypedDict` instead of generic dictionaries so that `mypy` can validate data passed between modules.
+## Repositories
 
----
+### `repositories/availability.py`
 
-## `database.py`
-
-Owns SQLite infrastructure rather than application-specific persistence logic.
-
-Responsibilities:
-
-- define the default database path
-- create the database directory when needed
-- open SQLite connections
-- enable foreign-key enforcement
-- initialize tables and indexes
-
-Current schema:
-
-### `copies`
-
-Stores current metadata for each known physical copy.
-
-Important fields:
-
-- `media_number` — primary key
-- `title`
-- `signature`
-- `branch`
-- `is_central`
-- `last_seen_at`
-
-### `availability_snapshots`
-
-Stores historical availability states.
-
-Important fields:
-
-- `id` — primary key
-- `media_number` — foreign key to `copies`
-- `checked_at`
-- `status`
-- `status_text`
-- `due_date`
-
-An index on `(media_number, checked_at)` supports history queries.
-
----
-
-## `repository.py`
-
-Owns application-specific persistence and read queries.
-
-Responsibilities:
-
-- upsert current copy metadata
+- upsert copy metadata
 - store availability snapshots
-- retrieve the full history of one copy
-- retrieve the newest snapshot of one copy
+- query complete copy history
+- query latest snapshot
 
-Current public functions:
+### `repositories/reado.py`
 
-```text
-persist_items()
-get_copy_history()
-get_latest_snapshot()
-```
+- persist READO books
+- maintain independent active memberships for wishlist/TBR/reading/completed
+- return newly discovered books and removed memberships
 
-This separation keeps database setup independent from business-oriented data access.
+### `repositories/metadata.py`
 
----
+- query unresolved READO ISBNs
+- persist Open Library work resolutions
+- select Google Books fallbacks
+- persist Google Books metadata
+- select unsynced wishlist works
+- persist Open Library editions and sync markers
 
-## `output.py`
+### `repositories/matching.py`
 
-Contains output and formatting logic.
+Builds the prioritized ISBN list for one active READO wishlist book:
 
-Responsibilities:
+1. original READO ISBN
+2. German `confirmed` print ISBN-13
+3. German `unknown`-format ISBN-13
 
-- format individual copy lines
-- create status summaries
-- build the Markdown report
-- write `results.md`
-- print wish-list results to the console
-- print borrowed items to the console
+Duplicates are removed and English editions remain cached but are not used for Bremen matching yet.
 
----
+## Services
 
-## `main.py`
+### `services/library_scrape.py`
 
-Orchestrates one complete scrape.
+Orchestrates the legacy library-wishlist workflow:
 
-Current flow:
+1. log in
+2. read all library wish-list pages
+3. load and parse availability
+4. remove fully checked-out library-wishlist entries
+5. persist all scraped copies/snapshots
+6. sort visible items
+7. load current loans
 
-1. Log in.
-2. Load all wish-list pages.
-3. Fetch availability details for every entry.
-4. Parse title and copy information.
-5. Collect all scraped items for persistence.
-6. Remove fully checked-out titles from the wish list where applicable.
-7. Initialize SQLite.
-8. Persist copy metadata and availability snapshots.
-9. Sort remaining wish-list items by status.
-10. Print results and write `results.md`.
-11. Load and print currently borrowed items.
+### `services/reado_sync.py`
 
-`main.py` does not contain SQL directly.
+Reads all requested READO lists **before** modifying SQLite, preventing a transient list-loading failure from being mistaken for an empty list. Then it synchronizes memberships in one local database session.
 
----
+### `services/metadata.py`
 
-## `cli.py`
+Orchestrates cached external metadata work:
 
-Command-line interface built with the Python standard library.
+- Open Library resolution for unresolved READO ISBNs only
+- Google Books fallback for Open Library `not_found` results only
+- Open Library edition sync for active wishlist works only
 
-Commands:
+### `services/library_matching.py`
 
-```bash
-python -m library_tracker
-python -m library_tracker scrape
-python -m library_tracker history <media_number>
-```
+- direct catalog search for one ISBN
+- prioritized matching for one active READO wishlist book
+- stop after the first Bremen catalog hit
 
-Responsibilities:
+This is the current verified end-to-end bridge between READO and the library.
 
-- argument parsing
-- route the default/scrape command to `main.py`
-- query SQLite history by media number
-- format history output
-- return meaningful exit codes
+## SQLite data model
 
----
+Important tables:
 
-## `__main__.py`
+- `copies`
+- `availability_snapshots`
+- `reado_books`
+- `reado_list_memberships`
+- `openlibrary_works`
+- `bibliographic_resolutions`
+- `openlibrary_editions`
+- `openlibrary_edition_languages`
+- `openlibrary_edition_isbns`
+- `openlibrary_edition_syncs`
+- `google_books_volumes`
+- `google_books_identifiers`
+- `google_books_resolutions`
 
-Package entry point.
-
-Running:
-
-```bash
-python -m library_tracker
-```
-
-delegates to the CLI.
-
----
+Bibliographic cache and READO list membership are deliberately separate. A book may leave one READO list or move to another without losing resolved work/edition metadata.
 
 ## Tests
 
-The test suite covers parsing, application logic, HTTP wrappers, login behavior, output, SQLite infrastructure, repository operations, CLI routing, and orchestration.
+The refactored suite is smaller and more focused. It covers:
 
-Important groups:
+- ISBN normalization
+- library parsers
+- authenticated library client behavior
+- READO link/list logic
+- Open Library resolution and editions
+- Google Books resolution
+- schema creation/migration
+- all repository areas
+- service orchestration
+- CLI routing and entry point
+- console/Markdown output
 
-- `test_client.py` — HTTP helper behavior
-- `test_login.py` — login parsing and mocked login flow
-- `test_wishlist.py` — wish-list parsing, pagination, and removal
-- `test_library_parser.py` — availability parsing and status logic
-- `test_account.py` — account/loan parsing
-- `test_output.py` — console and Markdown formatting
-- `test_database.py` — SQLite connection and schema initialization
-- `test_repository.py` — persistence and history queries
-- `test_cli.py` — scrape/history command routing and output
-- `test_main.py` — end-to-end orchestration with mocked boundaries
-- `test_entrypoint.py` — package entry point
+SQLite tests use temporary databases. External requests are mocked; pytest does not make live API/catalog calls.
 
-SQLite tests use temporary databases created by pytest.
+## Automation
 
-The project currently reaches approximately 99% test coverage. Coverage is useful as a quality signal, but future development prioritizes meaningful behavioral tests rather than maintaining an arbitrary percentage.
+`ci.yml` runs type checking and tests on pushes/PRs to `master`.
 
----
+`scrape.yml` runs the existing authenticated library scrape on a schedule, restores the most recent SQLite artifact where possible, uploads the updated database and commits `results.md` when it changed.
 
-## GitHub Actions
-
-### `ci.yml`
-
-Runs automated quality checks on pushes and pull requests.
-
-Current checks:
-
-- `mypy`
-- `pytest`
-- coverage
-
-### `scrape.yml`
-
-Runs the tracker on a schedule and can also be triggered manually.
-
-Responsibilities:
-
-- install the package
-- read credentials from GitHub Secrets
-- run the scraper
-- update `results.md`
-
-A future step is to persist the SQLite database between independent workflow runs so that the scheduled job also builds long-term history.
-
----
-
-## Local configuration
-
-### `.env`
-
-Local credentials only:
-
-```text
-LIBRARY_USERNAME=...
-LIBRARY_PASSWORD=...
-```
-
-Never committed to Git.
-
-### `pyproject.toml`
-
-Defines:
-
-- package metadata
-- runtime dependencies
-- development dependencies
-- console script
-- pytest configuration
-- mypy configuration
-
-Install locally with:
-
-```bash
-python -m pip install -e ".[dev]"
-```
+The planned full automation pipeline is documented in `ROADMAP.md`.

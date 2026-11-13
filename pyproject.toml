@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "library-tracker"
-version = "0.3.0"
-description = "Persönliche Merklisten-Auswertung für die Stadtbibliothek Bremen"
+version = "0.6.0"
+description = "Private READO-to-library availability tracker for Stadtbibliothek Bremen"
 requires-python = ">=3.11"
 dependencies = [
     "beautifulsoup4==4.14.3",
