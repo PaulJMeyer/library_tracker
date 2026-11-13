@@ -3,10 +3,10 @@ from unittest.mock import Mock, patch
 import pytest
 import requests
 
-from library_tracker.googlebooks import (
+from library_tracker.clients.googlebooks import (
     GoogleBooksClient,
     GoogleBooksError,
-    normalize_isbn,
+
 )
 
 
@@ -19,11 +19,6 @@ def make_response(payload: dict[str, object]) -> Mock:
     response.raise_for_status.return_value = None
     return response
 
-
-def test_normalize_isbn() -> None:
-    assert normalize_isbn(
-        "978-3-423-44922-9"
-    ) == "9783423449229"
 
 
 def test_google_books_client_sets_api_key_header() -> None:
@@ -74,7 +69,7 @@ def test_resolve_isbn_returns_found() -> None:
             return_value=response,
         ),
         patch(
-            "library_tracker.googlebooks.time.sleep"
+            "library_tracker.clients.googlebooks.time.sleep"
         ),
     ):
         result = client.resolve_isbns(
@@ -124,7 +119,7 @@ def test_resolve_isbn_returns_not_found() -> None:
             return_value=response,
         ),
         patch(
-            "library_tracker.googlebooks.time.sleep"
+            "library_tracker.clients.googlebooks.time.sleep"
         ),
     ):
         result = client.resolve_isbns(
@@ -176,7 +171,7 @@ def test_resolve_isbn_ignores_wrong_isbn() -> None:
             return_value=response,
         ),
         patch(
-            "library_tracker.googlebooks.time.sleep"
+            "library_tracker.clients.googlebooks.time.sleep"
         ),
     ):
         result = client.resolve_isbns(
@@ -227,7 +222,7 @@ def test_resolve_isbn_returns_ambiguous() -> None:
             return_value=response,
         ),
         patch(
-            "library_tracker.googlebooks.time.sleep"
+            "library_tracker.clients.googlebooks.time.sleep"
         ),
     ):
         result = client.resolve_isbns(
@@ -263,7 +258,7 @@ def test_resolve_isbn_raises_on_request_error() -> None:
             side_effect=requests.Timeout,
         ),
         patch(
-            "library_tracker.googlebooks.time.sleep"
+            "library_tracker.clients.googlebooks.time.sleep"
         ),
         pytest.raises(
             GoogleBooksError,

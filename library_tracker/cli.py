@@ -1,739 +1,207 @@
 from __future__ import annotations
 
 import argparse
-import sqlite3
-import os
-import time
+from collections import Counter
 from collections.abc import Sequence
-from dotenv import load_dotenv
-from datetime import UTC, datetime
 
-from library_tracker.database import    (get_connection,
-                                         initialize_database)
-from library_tracker.main import main as run_scrape
-from library_tracker.models import      (AvailabilitySnapshot,
-                                         ReadoListType,
-                                         ReadoListEntry)
-from library_tracker.repository import  (get_copy_history,
-                                         sync_reado_list,
-                                         get_unresolved_reado_isbns,
-                                         save_openlibrary_resolutions,
-                                         get_googlebooks_fallback_isbns,
-                                         save_googlebooks_resolutions,
-                                         get_unsynced_wishlist_work_keys,
-                                         save_openlibrary_editions,
-                                         get_wishlist_isbn_candidates)
-from library_tracker.reado import       (ReadoWishlistError,
-                                         read_reado_list)
-from library_tracker.openlibrary import (OpenLibraryClient,
-                                         OpenLibraryError)
-from library_tracker.googlebooks import (GoogleBooksClient,
-                                         GoogleBooksError)
-from library_tracker.catalog import     (LibraryCatalogError,
-                                         search_catalog_by_isbn)
-from library_tracker.login import       login_with_csid
-
-
-load_dotenv()
-
-READO_LIST_TYPES: tuple[ReadoListType, ...] = (
-    "wishlist",
-    "tbr",
-    "reading",
-    "completed",
+from library_tracker.clients.googlebooks import GoogleBooksError
+from library_tracker.clients.library import LibraryClientError
+from library_tracker.clients.openlibrary import OpenLibraryError
+from library_tracker.clients.reado import ReadoError
+from library_tracker.config import ConfigurationError
+from library_tracker.database import get_connection, initialize_database
+from library_tracker.models import ReadoListType
+from library_tracker.output import format_history_line, print_scrape_result
+from library_tracker.repositories.availability import get_copy_history
+from library_tracker.services.library_matching import match_wishlist_book, search_catalog
+from library_tracker.services.library_scrape import scrape_library
+from library_tracker.services.metadata import (
+    resolve_googlebooks,
+    resolve_openlibrary,
+    sync_openlibrary_editions,
 )
-
-READO_LIST_ENV_VARS: dict[ReadoListType, str] = {
-    "wishlist": "READO_WISHLIST_URL",
-    "tbr": "READO_TBR_URL",
-    "reading": "READO_READING_URL",
-    "completed": "READO_COMPLETED_URL",
-}
+from library_tracker.services.reado_sync import sync_lists
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="library-tracker",
-        description=(
-            "Check library availability and inspect stored "
-            "SQLite availability history."
-        ),
+        description="Synchronize READO data and match books with Stadtbibliothek Bremen.",
     )
+    commands = parser.add_subparsers(dest="command")
+    commands.add_parser("scrape", help="Scrape the current library wish list.")
 
-    subparsers = parser.add_subparsers(dest="command")
+    history = commands.add_parser("history", help="Show stored history for one copy.")
+    history.add_argument("media_number")
 
-    subparsers.add_parser(
-        "scrape",
-        help="Run the normal library scrape.",
-    )
+    for name, help_text in (
+        ("reado-wishlist", "Synchronize the configured READO wishlist."),
+        ("reado-sync", "Synchronize all configured READO lists."),
+    ):
+        subparser = commands.add_parser(name, help=help_text)
+        subparser.add_argument("--headless", action="store_true")
 
-    subparsers.add_parser(
-        "openlibrary-resolve",
-        help=(
-            "Resolve uncached READO ISBNs "
-            "with Open Library."
-        ),
-    )
+    commands.add_parser("openlibrary-resolve", help="Resolve uncached READO ISBNs.")
+    commands.add_parser("googlebooks-resolve", help="Resolve Open Library fallback ISBNs.")
+    commands.add_parser("openlibrary-editions", help="Cache DE/EN editions for wishlist works.")
 
-    subparsers.add_parser(
-        "googlebooks-resolve",
-        help=(
-            "Resolve Open Library fallback ISBNs "
-            "with Google Books."
-        ),
-    )
+    library_search = commands.add_parser("library-search", help="Search Bremen catalog by ISBN.")
+    library_search.add_argument("isbn")
 
-    subparsers.add_parser(
-        "openlibrary-editions",
-        help=(
-            "Cache German and English print "
-            "editions for wishlist works."
-        ),
-    )
-
-    history_parser = subparsers.add_parser(
-        "history",
-        help="Show availability history for one library copy.",
-    )
-    history_parser.add_argument(
-        "media_number",
-        help="Media number of the library copy.",
-    )
-
-    reado_parser = subparsers.add_parser(
-        "reado-wishlist",
-        help="Read ISBNs from a public READO wishlist.",
-    )
-
-    reado_parser.add_argument(
-        "--headless",
-        action="store_true",
-        help="Run the READO browser without a visible window.",
-    )
-
-    reado_sync_parser = subparsers.add_parser(
-        "reado-sync",
-        help="Synchronize all configured READO lists.",
-    )
-
-    reado_sync_parser.add_argument(
-        "--headless",
-        action="store_true",
-        help="Run the READO browser without a visible window.",
-    )
-
-    library_search_parser = (
-        subparsers.add_parser(
-            "library-search",
-            help=(
-                "Search the Stadtbibliothek "
-                "Bremen catalog by ISBN."
-            ),
-        )
-    )
-
-    library_search_parser.add_argument(
-        "isbn",
-        help="ISBN-10 or ISBN-13 to search.",
-    )
-
-    library_match_parser = subparsers.add_parser(
+    library_match = commands.add_parser(
         "library-match",
-        help=(
-            "Search prioritized ISBN editions for one "
-            "active READO wishlist book."
-        ),
+        help="Match one READO wishlist book using prioritized German ISBNs.",
     )
-
-    library_match_parser.add_argument(
-        "isbn",
-        help="Original ISBN from the READO wishlist.",
-    )
-
+    library_match.add_argument("isbn")
     return parser
 
 
-def get_reado_list_url(
-    list_type: ReadoListType,
-) -> str:
-    variable_name = READO_LIST_ENV_VARS[list_type]
-    list_url = os.getenv(variable_name)
-
-    if not list_url:
-        raise ReadoWishlistError(
-            f"{variable_name} is not configured."
-        )
-
-    return list_url
-
-
-def format_history_line(snapshot: AvailabilitySnapshot) -> str:
-    due_date = snapshot["due_date"]
-    due_suffix = f" | due: {due_date}" if due_date else ""
-
-    return (
-        f'{snapshot["checked_at"]} | '
-        f'{snapshot["status"]} | '
-        f'{snapshot["status_text"]}'
-        f"{due_suffix}"
-    )
-
-
-def print_copy_history(
-    connection: sqlite3.Connection,
-    media_number: str,
-) -> bool:
-    history = get_copy_history(connection, media_number)
+def _run_history(media_number: str) -> int:
+    connection = get_connection()
+    try:
+        initialize_database(connection)
+        history = get_copy_history(connection, media_number)
+    finally:
+        connection.close()
 
     if not history:
         print(f"No history found for copy {media_number}.")
-        return False
+        return 1
 
     print(f"Availability history for copy {media_number}:")
     for snapshot in history:
         print(format_history_line(snapshot))
-
-    return True
-
-
-def run_history_command(media_number: str) -> int:
-    connection = get_connection()
-
-    try:
-        initialize_database(connection)
-        found = print_copy_history(connection, media_number)
-    finally:
-        connection.close()
-
-    return 0 if found else 1
+    return 0
 
 
-def run_reado_wishlist_command(
-    *,
-    headless: bool = False,
-) -> int:
-    try:
-        wishlist_url = get_reado_list_url("wishlist")
+def _run_reado(*, headless: bool, wishlist_only: bool) -> int:
+    list_types: tuple[ReadoListType, ...] = ("wishlist",) if wishlist_only else (
+        "wishlist",
+        "tbr",
+        "reading",
+        "completed",
+    )
+    entries, results = sync_lists(headless=headless, list_types=list_types)
+    total_new = {
+        entry["isbn13"]
+        for result in results.values()
+        for entry in result["new_entries"]
+    }
 
-        entries = read_reado_list(
-            wishlist_url,
-            headless=headless,
-        )
-    except ReadoWishlistError as exc:
-        print(f"READO error: {exc}")
+    for list_type in list_types:
+        result = results[list_type]
+        print(f"READO {list_type}: {len(entries[list_type])} books")
+        print(f"  New to cache: {len(result['new_entries'])}")
+        print(f"  Removed from list: {len(result['removed_isbns'])}")
+
+    if wishlist_only:
+        for entry in entries["wishlist"]:
+            print(f"{entry['isbn13']} | {entry['reado_url']}")
+    else:
+        print(f"Total new books: {len(total_new)}")
+    return 0
+
+
+def _print_resolution_summary(label: str, total: int, statuses: list[str]) -> None:
+    print(f"{label}: {total}")
+    for status, count in sorted(Counter(statuses).items()):
+        print(f"{status.replace('_', ' ').title()}: {count}")
+
+
+def _run_openlibrary_resolve() -> int:
+    total, resolutions = resolve_openlibrary()
+    _print_resolution_summary(
+        "Unresolved ISBNs",
+        total,
+        [resolution["status"] for resolution in resolutions],
+    )
+    return 0
+
+
+def _run_googlebooks_resolve() -> int:
+    total, resolutions = resolve_googlebooks()
+    _print_resolution_summary(
+        "Google Books fallback ISBNs",
+        total,
+        [resolution["status"] for resolution in resolutions],
+    )
+    return 0
+
+
+def _run_openlibrary_editions() -> int:
+    summary = sync_openlibrary_editions()
+    print(f"Wishlist works needing editions: {len(summary)}")
+    total = 0
+    for index, (work_key, count) in enumerate(summary, start=1):
+        total += count
+        print(f"[{index}/{len(summary)}] {work_key}: {count} relevant editions")
+    print(f"Relevant editions cached: {total}")
+    return 0
+
+
+def _run_library_search(isbn: str) -> int:
+    hits = search_catalog(isbn)
+    print(f"ISBN: {isbn}")
+    print(f"Catalog hits: {len(hits)}")
+    for hit in hits:
+        print(hit)
+    return 0
+
+
+def _run_library_match(isbn: str) -> int:
+    result = match_wishlist_book(isbn)
+    if not result["attempts"]:
+        print(f"No active READO wishlist entry found for ISBN {isbn}.")
         return 1
 
-    checked_at = datetime.now(UTC).isoformat(
-        timespec="seconds"
-    )
-
-    connection = get_connection()
-
-    try:
-        initialize_database(connection)
-
-        sync_result = sync_reado_list(
-            connection,
-            entries,
-            "wishlist",
-            checked_at,
-        )
-    finally:
-        connection.close()
-
-    print(f"READO wishlist: {len(entries)} books")
-    print(
-        "New books: "
-        f'{len(sync_result["new_entries"])}'
-    )
-    print(
-        "Removed books: "
-        f'{len(sync_result["removed_isbns"])}'
-    )
-
-    for entry in entries:
+    print(f"ISBN candidates for {isbn}: {len(result['attempts'])}")
+    for index, attempt in enumerate(result["attempts"], start=1):
         print(
-            f'{entry["isbn13"]} | '
-            f'{entry["reado_url"]}'
+            f"[{index}/{len(result['attempts'])}] {attempt['isbn']} "
+            f"({attempt['source']}) -> {attempt['hit_count']} hit(s)"
         )
 
+    if result["match"] is None:
+        print("\nNo library match found.")
+        return 0
+
+    print("\nLibrary match found.")
+    print(f"READO ISBN: {isbn}")
+    print(f"Matched ISBN: {result['match']['isbn']}")
+    print(f"Source: {result['match']['source']}")
     return 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+    args = build_parser().parse_args(argv)
+    try:
+        if args.command in (None, "scrape"):
+            print_scrape_result(scrape_library())
+            return 0
+        if args.command == "history":
+            return _run_history(str(args.media_number))
+        if args.command == "reado-wishlist":
+            return _run_reado(headless=bool(args.headless), wishlist_only=True)
+        if args.command == "reado-sync":
+            return _run_reado(headless=bool(args.headless), wishlist_only=False)
+        if args.command == "openlibrary-resolve":
+            return _run_openlibrary_resolve()
+        if args.command == "googlebooks-resolve":
+            return _run_googlebooks_resolve()
+        if args.command == "openlibrary-editions":
+            return _run_openlibrary_editions()
+        if args.command == "library-search":
+            return _run_library_search(str(args.isbn))
+        if args.command == "library-match":
+            return _run_library_match(str(args.isbn))
+    except (
+        ConfigurationError,
+        LibraryClientError,
+        ReadoError,
+        OpenLibraryError,
+        GoogleBooksError,
+    ) as exc:
+        print(f"Error: {exc}")
+        return 1
 
-    if args.command in (None, "scrape"):
-        run_scrape()
-        return 0
-
-    if args.command == "history":
-        return run_history_command(str(args.media_number))
-
-    if args.command == "reado-wishlist":
-        return run_reado_wishlist_command(
-            headless=bool(args.headless),
-        )
-
-    if args.command == "reado-sync":
-        return run_reado_sync_command(
-            headless=bool(args.headless),
-        )
-
-    if args.command == "openlibrary-resolve":
-        return run_openlibrary_resolve_command()
-
-    if args.command == "googlebooks-resolve":
-        return run_googlebooks_resolve_command()
-
-    if args.command == "openlibrary-editions":
-        return run_openlibrary_editions_command()
-
-    if args.command == "library-search":
-        return run_library_search_command(
-            str(args.isbn)
-        )
-
-    if args.command == "library-match":
-        return run_library_match_command(
-            str(args.isbn)
-        )
-
-    parser.error(f"Unknown command: {args.command}")
     return 2
-
-
-def run_reado_sync_command(
-    *,
-    headless: bool = False,
-) -> int:
-    entries_by_list: dict[
-        ReadoListType,
-        list[ReadoListEntry],
-    ] = {}
-
-    try:
-        for list_type in READO_LIST_TYPES:
-            list_url = get_reado_list_url(list_type)
-
-            entries_by_list[list_type] = read_reado_list(
-                list_url,
-                headless=headless,
-            )
-
-    except ReadoWishlistError as exc:
-        print(f"READO error: {exc}")
-        return 1
-
-    checked_at = datetime.now(UTC).isoformat(
-        timespec="seconds"
-    )
-
-    connection = get_connection()
-
-    try:
-        initialize_database(connection)
-
-        total_new_isbns: set[str] = set()
-
-        for list_type in READO_LIST_TYPES:
-            entries = entries_by_list[list_type]
-
-            result = sync_reado_list(
-                connection,
-                entries,
-                list_type,
-                checked_at,
-            )
-
-            total_new_isbns.update(
-                entry["isbn13"]
-                for entry in result["new_entries"]
-            )
-
-            print(
-                f"READO {list_type}: "
-                f"{len(entries)} books"
-            )
-
-            print(
-                "  New to cache: "
-                f'{len(result["new_entries"])}'
-            )
-
-            print(
-                "  Removed from list: "
-                f'{len(result["removed_isbns"])}'
-            )
-
-        print(
-            "Total new books: "
-            f"{len(total_new_isbns)}"
-        )
-
-    finally:
-        connection.close()
-
-    return 0
-
-
-def get_openlibrary_contact_email() -> str:
-    contact_email = os.getenv(
-        "OPENLIBRARY_CONTACT_EMAIL"
-    )
-
-    if not contact_email:
-        raise OpenLibraryError(
-            "OPENLIBRARY_CONTACT_EMAIL "
-            "is not configured."
-        )
-
-    return contact_email
-
-
-def run_openlibrary_resolve_command() -> int:
-    try:
-        contact_email = (
-            get_openlibrary_contact_email()
-        )
-    except OpenLibraryError as exc:
-        print(f"Open Library error: {exc}")
-        return 1
-
-    connection = get_connection()
-
-    try:
-        initialize_database(connection)
-
-        unresolved_isbns = (
-            get_unresolved_reado_isbns(
-                connection
-            )
-        )
-
-        print(
-            "Unresolved ISBNs: "
-            f"{len(unresolved_isbns)}"
-        )
-
-        if not unresolved_isbns:
-            return 0
-
-        client = OpenLibraryClient(
-            contact_email
-        )
-
-        try:
-            resolutions = client.resolve_isbns(
-                unresolved_isbns
-            )
-        except OpenLibraryError as exc:
-            print(
-                f"Open Library error: {exc}"
-            )
-            return 1
-
-        resolved_at = datetime.now(
-            UTC
-        ).isoformat(
-            timespec="seconds"
-        )
-
-        save_openlibrary_resolutions(
-            connection,
-            resolutions,
-            resolved_at,
-        )
-
-    finally:
-        connection.close()
-
-    resolved = sum(
-        result["status"] == "resolved"
-        for result in resolutions
-    )
-
-    not_found = sum(
-        result["status"] == "not_found"
-        for result in resolutions
-    )
-
-    ambiguous = sum(
-        result["status"] == "ambiguous"
-        for result in resolutions
-    )
-
-    print(f"Resolved: {resolved}")
-    print(f"Not found: {not_found}")
-    print(f"Ambiguous: {ambiguous}")
-
-    return 0
-
-
-def get_google_books_api_key() -> str:
-    api_key = os.getenv("GOOGLE_BOOKS_API_KEY")
-
-    if not api_key:
-        raise GoogleBooksError(
-            "GOOGLE_BOOKS_API_KEY is not configured."
-        )
-
-    return api_key
-
-
-def run_googlebooks_resolve_command() -> int:
-    try:
-        api_key = get_google_books_api_key()
-    except GoogleBooksError as exc:
-        print(f"Google Books error: {exc}")
-        return 1
-
-    connection = get_connection()
-
-    try:
-        initialize_database(connection)
-
-        fallback_isbns = (
-            get_googlebooks_fallback_isbns(
-                connection
-            )
-        )
-
-        print(
-            "Google Books fallback ISBNs: "
-            f"{len(fallback_isbns)}"
-        )
-
-        if not fallback_isbns:
-            return 0
-
-        client = GoogleBooksClient(api_key)
-
-        try:
-            resolutions = client.resolve_isbns(
-                fallback_isbns
-            )
-        except GoogleBooksError as exc:
-            print(f"Google Books error: {exc}")
-            return 1
-
-        resolved_at = datetime.now(
-            UTC
-        ).isoformat(
-            timespec="seconds"
-        )
-
-        save_googlebooks_resolutions(
-            connection,
-            resolutions,
-            resolved_at,
-        )
-
-    finally:
-        connection.close()
-
-    found = sum(
-        result["status"] == "found"
-        for result in resolutions
-    )
-
-    not_found = sum(
-        result["status"] == "not_found"
-        for result in resolutions
-    )
-
-    ambiguous = sum(
-        result["status"] == "ambiguous"
-        for result in resolutions
-    )
-
-    failed = sum(
-        result["status"] == "failed"
-        for result in resolutions
-    )
-
-    print(f"Found: {found}")
-    print(f"Not found: {not_found}")
-    print(f"Ambiguous: {ambiguous}")
-    print(f"Failed: {failed}")
-
-    return 0
-
-
-def run_openlibrary_editions_command() -> int:
-    try:
-        contact_email = (
-            get_openlibrary_contact_email()
-        )
-    except OpenLibraryError as exc:
-        print(f"Open Library error: {exc}")
-        return 1
-
-    connection = get_connection()
-
-    try:
-        initialize_database(connection)
-
-        work_keys = (
-            get_unsynced_wishlist_work_keys(
-                connection
-            )
-        )
-
-        print(
-            "Wishlist works needing editions: "
-            f"{len(work_keys)}"
-        )
-
-        if not work_keys:
-            return 0
-
-        client = OpenLibraryClient(
-            contact_email
-        )
-
-        total_editions = 0
-
-        for index, work_key in enumerate(
-            work_keys,
-            start=1,
-        ):
-            try:
-                editions = (
-                    client.get_work_editions(
-                        work_key
-                    )
-                )
-            except OpenLibraryError as exc:
-                print(
-                    f"Open Library error: {exc}"
-                )
-                return 1
-
-            synced_at = datetime.now(
-                UTC
-            ).isoformat(
-                timespec="seconds"
-            )
-
-            save_openlibrary_editions(
-                connection,
-                work_key,
-                editions,
-                synced_at,
-            )
-
-            total_editions += len(editions)
-
-            print(
-                f"[{index}/{len(work_keys)}] "
-                f"{work_key}: "
-                f"{len(editions)} relevant editions"
-            )
-
-            time.sleep(0.5)
-
-    finally:
-        connection.close()
-
-    print(
-        "Relevant editions cached: "
-        f"{total_editions}"
-    )
-
-    return 0
-
-
-def run_library_search_command(
-    isbn: str,
-) -> int:
-    session, cs_id = login_with_csid()
-
-    try:
-        hits = search_catalog_by_isbn(
-            session,
-            cs_id,
-            isbn,
-        )
-    except LibraryCatalogError as exc:
-        print(f"Library catalog error: {exc}")
-        return 1
-
-    print(f"ISBN: {isbn}")
-    print(f"Catalog hits: {len(hits)}")
-
-    for hit in hits:
-        print(hit)
-
-    return 0
-
-
-def run_library_match_command(
-    reado_isbn: str,
-) -> int:
-    connection = get_connection()
-    initialize_database(connection)
-
-    try:
-        candidates = get_wishlist_isbn_candidates(
-            connection,
-            reado_isbn,
-        )
-    finally:
-        connection.close()
-
-    if not candidates:
-        print(
-            "No active READO wishlist entry found "
-            f"for ISBN {reado_isbn}."
-        )
-        return 1
-
-    print(
-        f"ISBN candidates for {reado_isbn}: "
-        f"{len(candidates)}"
-    )
-
-    session, cs_id = login_with_csid()
-
-    for index, candidate in enumerate(
-        candidates,
-        start=1,
-    ):
-        isbn = candidate["isbn"]
-        source = candidate["source"]
-
-        try:
-            hits = search_catalog_by_isbn(
-                session,
-                cs_id,
-                isbn,
-            )
-        except LibraryCatalogError as exc:
-            print(
-                f"Catalog search failed for "
-                f"{isbn}: {exc}"
-            )
-            return 1
-
-        print(
-            f"[{index}/{len(candidates)}] "
-            f"{isbn} ({source}) "
-            f"-> {len(hits)} hit(s)"
-        )
-
-        if hits:
-            print()
-            print("Library match found.")
-            print(f"READO ISBN: {reado_isbn}")
-            print(f"Matched ISBN: {isbn}")
-            print(f"Source: {source}")
-            return 0
-
-        if index < len(candidates):
-            time.sleep(0.5)
-
-    print()
-    print("No library match found.")
-    return 0

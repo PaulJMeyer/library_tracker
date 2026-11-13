@@ -1,262 +1,44 @@
-import os
-import sqlite3
-from typing import cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
-
-from library_tracker.cli import     (format_history_line,
-                                     main,
-                                     print_copy_history,
-                                     run_history_command,
-                                     get_reado_list_url)
-
-from library_tracker.models import  (AvailabilitySnapshot,
-                                     ReadoListType)
-
-from library_tracker.reado import ReadoWishlistError
+from library_tracker.cli import main
 
 
-def make_connection_mock() -> tuple[sqlite3.Connection, MagicMock]:
-    connection_mock = MagicMock(spec=sqlite3.Connection)
-    return cast(sqlite3.Connection, connection_mock), connection_mock
-
-
-def make_snapshot(
-    *,
-    checked_at: str = "2026-09-24T06:00:00+00:00",
-    status: str = "ausleihbar",
-    status_text: str = "Ausleihbar",
-    due_date: str | None = None,
-) -> AvailabilitySnapshot:
-    return {
-        "media_number": "123456789",
-        "checked_at": checked_at,
-        "status": status,
-        "status_text": status_text,
-        "due_date": due_date,
+def test_default_command_runs_scrape() -> None:
+    result = {
+        "total_entries": 0,
+        "removed_count": 0,
+        "removal_success": True,
+        "items": [],
+        "loans": [],
     }
-
-
-def test_format_history_line_without_due_date() -> None:
-    snapshot = make_snapshot()
-
-    assert format_history_line(snapshot) == (
-        "2026-09-24T06:00:00+00:00 | "
-        "ausleihbar | Ausleihbar"
-    )
-
-
-def test_format_history_line_with_due_date() -> None:
-    snapshot = make_snapshot(
-        status="entliehen",
-        status_text="entliehen bis 30.09.2026",
-        due_date="30.09.2026",
-    )
-
-    assert format_history_line(snapshot) == (
-        "2026-09-24T06:00:00+00:00 | "
-        "entliehen | entliehen bis 30.09.2026 "
-        "| due: 30.09.2026"
-    )
-
-
-def test_print_copy_history_outputs_snapshots(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    connection, _ = make_connection_mock()
-    history = [
-        make_snapshot(
-            checked_at="2026-09-23T06:00:00+00:00",
-            status="entliehen",
-            status_text="entliehen bis 24.09.2026",
-            due_date="24.09.2026",
-        ),
-        make_snapshot(),
-    ]
-
-    with patch(
-        "library_tracker.cli.get_copy_history",
-        return_value=history,
-    ):
-        found = print_copy_history(
-            connection,
-            "123456789",
-        )
-
-    output = capsys.readouterr().out
-
-    assert found is True
-    assert "Availability history for copy 123456789:" in output
-    assert "2026-09-23T06:00:00+00:00" in output
-    assert "entliehen" in output
-    assert "2026-09-24T06:00:00+00:00" in output
-    assert "ausleihbar" in output
-
-
-def test_print_copy_history_unknown_copy(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    connection, _ = make_connection_mock()
-
-    with patch(
-        "library_tracker.cli.get_copy_history",
-        return_value=[],
-    ):
-        found = print_copy_history(
-            connection,
-            "999999999",
-        )
-
-    output = capsys.readouterr().out
-
-    assert found is False
-    assert "No history found for copy 999999999." in output
-
-
-def test_run_history_command_closes_connection() -> None:
-    connection, connection_mock = make_connection_mock()
-
     with (
-        patch(
-            "library_tracker.cli.get_connection",
-            return_value=connection,
-        ),
-        patch(
-            "library_tracker.cli.initialize_database"
-        ) as mock_initialize_database,
-        patch(
-            "library_tracker.cli.print_copy_history",
-            return_value=True,
-        ) as mock_print_copy_history,
+        patch("library_tracker.cli.scrape_library", return_value=result) as scrape,
+        patch("library_tracker.cli.print_scrape_result") as output,
     ):
-        exit_code = run_history_command("123456789")
-
-    assert exit_code == 0
-    mock_initialize_database.assert_called_once_with(connection)
-    mock_print_copy_history.assert_called_once_with(
-        connection,
-        "123456789",
-    )
-    connection_mock.close.assert_called_once_with()
+        assert main([]) == 0
+    scrape.assert_called_once_with()
+    output.assert_called_once_with(result)
 
 
-def test_main_without_command_runs_scrape() -> None:
-    with patch("library_tracker.cli.run_scrape") as mock_run_scrape:
-        exit_code = main([])
-
-    assert exit_code == 0
-    mock_run_scrape.assert_called_once_with()
+def test_reado_sync_routes_headless() -> None:
+    with patch("library_tracker.cli._run_reado", return_value=0) as command:
+        assert main(["reado-sync", "--headless"]) == 0
+    command.assert_called_once_with(headless=True, wishlist_only=False)
 
 
-def test_main_scrape_command_runs_scrape() -> None:
-    with patch("library_tracker.cli.run_scrape") as mock_run_scrape:
-        exit_code = main(["scrape"])
+def test_library_commands_route_arguments() -> None:
+    with patch("library_tracker.cli._run_library_search", return_value=0) as command:
+        assert main(["library-search", "9783406727788"]) == 0
+    command.assert_called_once_with("9783406727788")
 
-    assert exit_code == 0
-    mock_run_scrape.assert_called_once_with()
-
-
-def test_main_history_command() -> None:
-    with patch(
-        "library_tracker.cli.run_history_command",
-        return_value=0,
-    ) as mock_run_history_command:
-        exit_code = main(
-            ["history", "123456789"]
-        )
-
-    assert exit_code == 0
-    mock_run_history_command.assert_called_once_with(
-        "123456789"
-    )
+    with patch("library_tracker.cli._run_library_match", return_value=0) as command:
+        assert main(["library-match", "9783257261370"]) == 0
+    command.assert_called_once_with("9783257261370")
 
 
-def test_get_reado_list_url_from_environment() -> None:
-    with patch.dict(
-        os.environ,
-        {
-            "READO_WISHLIST_URL": (
-                "https://reado.app/de/lists/_wishlist"
-                "?source=profile&userId=test"
-            )
-        },
-    ):
-        result = get_reado_list_url("wishlist")
+def test_expected_errors_return_one(capsys) -> None:  # type: ignore[no-untyped-def]
+    from library_tracker.config import ConfigurationError
 
-    assert result == (
-        "https://reado.app/de/lists/_wishlist"
-        "?source=profile&userId=test"
-    )
-
-
-def test_get_reado_list_url_missing() -> None:
-    with (
-        patch.dict(
-            os.environ,
-            {},
-            clear=True,
-        ),
-        pytest.raises(
-            ReadoWishlistError,
-            match="READO_WISHLIST_URL is not configured",
-        ),
-    ):
-        get_reado_list_url("wishlist")
-
-
-def test_main_reado_sync_command() -> None:
-    with patch(
-        "library_tracker.cli.run_reado_sync_command",
-        return_value=0,
-    ) as mock_command:
-        exit_code = main(["reado-sync"])
-
-    assert exit_code == 0
-
-    mock_command.assert_called_once_with(
-        headless=False,
-    )
-
-
-def test_main_reado_sync_command_headless() -> None:
-    with patch(
-        "library_tracker.cli.run_reado_sync_command",
-        return_value=0,
-    ) as mock_command:
-        exit_code = main([
-            "reado-sync",
-            "--headless",
-        ])
-
-    assert exit_code == 0
-
-    mock_command.assert_called_once_with(
-        headless=True,
-    )
-
-
-@pytest.mark.parametrize(
-    ("list_type", "environment_variable"),
-    [
-        ("wishlist", "READO_WISHLIST_URL"),
-        ("tbr", "READO_TBR_URL"),
-        ("reading", "READO_READING_URL"),
-        ("completed", "READO_COMPLETED_URL"),
-    ],
-)
-def test_get_reado_list_url(
-    list_type: ReadoListType,
-    environment_variable: str,
-) -> None:
-    with patch.dict(
-        os.environ,
-        {
-            environment_variable:
-                "https://reado.app/de/lists/test"
-        },
-        clear=True,
-    ):
-        assert get_reado_list_url(list_type) == (
-            "https://reado.app/de/lists/test"
-        )
+    with patch("library_tracker.cli.scrape_library", side_effect=ConfigurationError("missing")):
+        assert main(["scrape"]) == 1
+    assert "missing" in capsys.readouterr().out

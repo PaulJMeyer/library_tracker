@@ -3,11 +3,7 @@ from unittest.mock import Mock, patch
 import pytest
 import requests
 
-from library_tracker.openlibrary import (OpenLibraryClient,
-                                         OpenLibraryError,
-                                         OpenLibraryClient,
-                                         OpenLibraryError,
-                                         _parse_edition)
+from library_tracker.clients.openlibrary import (OpenLibraryClient, OpenLibraryError, _parse_edition)
 
 
 TEST_ISBN = "9783423449229"
@@ -58,7 +54,7 @@ def test_resolve_isbn_returns_work() -> None:
             return_value=response,
         ),
         patch(
-            "library_tracker.openlibrary.time.sleep"
+            "library_tracker.clients.openlibrary.time.sleep"
         ),
     ):
         result = client.resolve_isbns(
@@ -100,7 +96,7 @@ def test_resolve_isbn_returns_not_found() -> None:
             ],
         ),
         patch(
-            "library_tracker.openlibrary.time.sleep"
+            "library_tracker.clients.openlibrary.time.sleep"
         ),
     ):
         result = client.resolve_isbns(
@@ -165,7 +161,7 @@ def test_resolve_isbn_returns_ambiguous() -> None:
             ],
         ),
         patch(
-            "library_tracker.openlibrary.time.sleep"
+            "library_tracker.clients.openlibrary.time.sleep"
         ),
     ):
         result = client.resolve_isbns(
@@ -198,7 +194,7 @@ def test_resolve_isbn_raises_on_request_error() -> None:
             side_effect=requests.Timeout,
         ),
         patch(
-            "library_tracker.openlibrary.time.sleep"
+            "library_tracker.clients.openlibrary.time.sleep"
         ),
         pytest.raises(
             OpenLibraryError,
@@ -243,7 +239,7 @@ def test_exact_isbn_fallback_resolves_work() -> None:
             ],
         ),
         patch(
-            "library_tracker.openlibrary.time.sleep"
+            "library_tracker.clients.openlibrary.time.sleep"
         ),
     ):
         result = client.resolve_isbns(
@@ -285,7 +281,7 @@ def test_exact_isbn_fallback_returns_not_found_on_404() -> None:
             ],
         ),
         patch(
-            "library_tracker.openlibrary.time.sleep"
+            "library_tracker.clients.openlibrary.time.sleep"
         ),
     ):
         result = client.resolve_isbns(
@@ -463,11 +459,11 @@ def test_get_work_editions_handles_pagination() -> None:
             ],
         ),
         patch(
-            "library_tracker.openlibrary.EDITION_PAGE_SIZE",
+            "library_tracker.clients.openlibrary.EDITION_PAGE_SIZE",
             2,
         ),
         patch(
-            "library_tracker.openlibrary.time.sleep"
+            "library_tracker.clients.openlibrary.time.sleep"
         ),
     ):
         result = client.get_work_editions(
