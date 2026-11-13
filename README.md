@@ -1,207 +1,175 @@
 # Library Tracker
 
-A Python application that analyzes a personal wish list from the Stadtbibliothek Bremen online catalog, tracks the availability of individual library copies, and stores availability history in SQLite.
+`library-tracker` is a private Python application that connects reading data from **READO** with the online catalog of **Stadtbibliothek Bremen**.
 
-The project combines authenticated web requests, HTML parsing, typed domain models, automated tests, scheduled GitHub Actions workflows, and relational persistence.
+The project started as an authenticated scraper for the library's personal wish list and has grown into a small integration pipeline: READO lists are synchronized to SQLite, ISBNs are resolved to works and editions, German print ISBNs can be matched against the Bremen catalog, and library availability history is stored locally.
 
----
+## Current capabilities
 
-## Features
+### Stadtbibliothek Bremen
 
-### Library account and wish list
+- authenticated login with `requests.Session`, cookies and CSId
+- read the personal library wish list across multiple pages
+- parse titles, physical copies, branches, status and due dates
+- distinguish Zentralbibliothek from branch libraries
+- classify titles as `ausleihbar`, `bestellbar`, `entliehen`, `bestellt` or `unbekannt`
+- read current loans from the account page
+- store copy metadata and availability snapshots in SQLite
+- search the catalog by ISBN
 
-- Login to the online catalog with session handling, cookies, and CSId
-- Read the personal wish list across multiple pages
-- Fetch detail pages for every saved title
-- Detect multiple copies per title
-- Distinguish the central library from branch libraries
-- Parse the current status of each copy
-- Extract due dates from status text
-- Read currently borrowed items from the account overview
-- Remove fully checked-out titles from the wish list after processing
+### READO
 
-Supported status categories:
+Public READO lists can be synchronized independently:
 
-- `ausleihbar` — available at the central library
-- `bestellbar` — available for free transfer from a branch
-- `entliehen` — checked out
-- `bestellt` — already ordered
-- `unbekannt` — no known status classification
+- `wishlist`
+- `tbr`
+- `reading`
+- `completed`
 
-### SQLite availability history
+List membership is stored separately from the bibliographic book cache, so moving a book between READO lists does not discard metadata that has already been resolved.
 
-Each detected copy is identified by its `media_number` and stored in SQLite.
+### Bibliographic resolution
 
-The database currently contains two core tables:
+- Open Library resolves READO ISBNs to works
+- unresolved Open Library ISBNs can fall back to Google Books
+- Open Library editions are cached for active wishlist works
+- German and English editions are retained
+- explicit ebook/audio formats are excluded from print candidates
+- German ISBN-13 candidates are prioritized as:
+  1. original READO ISBN
+  2. confirmed German print edition
+  3. German edition with unknown physical format
 
-- `copies` — current metadata for each known library copy
-- `availability_snapshots` — timestamped historical availability records
+A real end-to-end match is already verified where the original READO ISBN was not found in Bremen but an alternative German edition of the same work was.
 
-Every scrape can therefore add a new historical state for a copy while keeping the current copy metadata up to date.
-
-The default local database path is:
-
-```text
-data/library_tracker.db
-```
-
-The database is intentionally excluded from Git.
-
-### Command-line interface
-
-Run the normal scrape:
+## CLI
 
 ```bash
+# Existing library wish-list scrape + availability history
 python -m library_tracker
-```
-
-or explicitly:
-
-```bash
 python -m library_tracker scrape
-```
 
-Show the stored history for one library copy:
-
-```bash
+# Availability history for one physical copy
 python -m library_tracker history <media_number>
+
+# READO
+python -m library_tracker reado-wishlist
+python -m library_tracker reado-sync
+python -m library_tracker reado-sync --headless
+
+# Bibliographic metadata
+python -m library_tracker openlibrary-resolve
+python -m library_tracker googlebooks-resolve
+python -m library_tracker openlibrary-editions
+
+# Bremen catalog
+python -m library_tracker library-search <isbn>
+python -m library_tracker library-match <reado_isbn>
 ```
 
-Example:
-
-```bash
-python -m library_tracker history 123456789
-```
-
-The installed package also exposes the `library-tracker` console command.
-
----
+`library-match` checks one active READO wishlist entry and stops at the first catalog hit among its prioritized ISBN candidates.
 
 ## Architecture
 
+The refactor separates external systems, parsing, persistence and orchestration:
+
 ```text
-Library catalog
-      ↓
-HTTP client / login
-      ↓
-Wishlist and account handling
-      ↓
-HTML parser
-      ↓
-Typed Python models
-      ↓
-Repository layer
-      ↓
-SQLite
-      ↓
-CLI / results.md
+CLI
+ ↓
+services/
+ ├── library_scrape
+ ├── reado_sync
+ ├── metadata
+ └── library_matching
+ ↓
+clients/                    repositories/
+ ├── library               ├── availability
+ ├── reado                 ├── reado
+ ├── openlibrary           ├── metadata
+ └── googlebooks           └── matching
+        ↓                         ↓
+external services               SQLite
+
+parsers/library.py handles Bremen-specific HTML parsing.
 ```
 
-Main responsibilities are separated into dedicated modules:
+Shared ISBN normalization lives in `isbn.py`; SQLite schema/migrations remain in `database.py`; `models.py` contains the typed structures passed between layers.
 
-- HTTP communication
-- authentication
-- wish-list handling
-- HTML parsing
-- domain models
-- output formatting
-- database setup
-- repository queries and persistence
-- CLI routing
-- application orchestration
-
----
-
-## Engineering and quality
-
-- Installable Python package via `pyproject.toml`
-- Full type hints checked with `mypy`
-- Tests written with `pytest`
-- Test coverage currently around **99%**
-- HTTP and login behavior tested with mocked external requests
-- SQLite tests use temporary databases instead of the real local database
-- Continuous Integration with GitHub Actions
-- CI runs `mypy` and `pytest` with coverage
-- Feature/fix development via branches and pull requests
-- Scheduled scrape workflow using GitHub Actions
-- Credentials stored in GitHub Secrets rather than source control
-
----
+See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for the detailed module map.
 
 ## Installation
-
-Create and activate a virtual environment, then install the package including development dependencies:
 
 ```bash
 python -m pip install -e ".[dev]"
 ```
 
-Create a local `.env` file:
+For READO browser automation install the Playwright Chromium runtime once:
+
+```bash
+playwright install chromium
+```
+
+Local configuration belongs in `.env` and is ignored by Git:
 
 ```text
 LIBRARY_USERNAME=...
 LIBRARY_PASSWORD=...
+
+READO_WISHLIST_URL=...
+READO_TBR_URL=...
+READO_READING_URL=...
+READO_COMPLETED_URL=...
+
+OPENLIBRARY_CONTACT_EMAIL=...
+GOOGLE_BOOKS_API_KEY=...
 ```
-
-The `.env` file is ignored by Git.
-
----
 
 ## Development checks
 
-Run static type checking:
-
 ```bash
 mypy
-```
-
-Run the test suite with coverage:
-
-```bash
 python -m pytest --cov=library_tracker --cov-report=term-missing -v
 ```
 
----
+The refactored test suite favors focused behavioral tests over maintaining a specific coverage percentage.
 
-## GitHub Actions
+## Automation
 
-### CI
+GitHub Actions currently provides:
 
-The CI workflow checks the codebase on pushes and pull requests with:
+- CI with `mypy` and `pytest`
+- a scheduled authenticated library scrape
+- restoration/upload of the SQLite database as a workflow artifact
+- automated `results.md` updates
 
-- `mypy`
-- `pytest`
-- coverage reporting
+The next automation milestone is a single scheduled pipeline that synchronizes READO, resolves only new metadata, matches wishlist books against the library, compares the result with the previous state and sends a concise update when something relevant changes.
 
-### Scheduled scrape
+## Project goal
 
-The scheduled workflow runs the tracker automatically and updates `results.md`.
+The intended end state is:
 
-Persistent SQLite history across independent GitHub Actions runners is the next infrastructure step. The local SQLite database already supports historical snapshots, but a fresh Actions runner does not retain local files automatically.
+```text
+READO
+  ↓
+wishlist / tbr / reading / completed
+  ↓
+work + edition cache
+  ↓
+German print ISBN candidates
+  ↓
+Stadtbibliothek Bremen catalog
+  ↓
+library wishlist / availability state
+  ↓
+change detection
+  ↓
+mobile-friendly update (for example e-mail)
+```
 
----
+Books that move from the READO wishlist into TBR, reading or completed should no longer be treated as library-wishlist candidates. Bibliographic data should remain cached so it does not need to be fetched again.
 
-## Current development focus
+## Safety and scope
 
-- Persist SQLite history across scheduled GitHub Actions runs
-- Store a new snapshot only when relevant availability data changes
-- Add database summary/statistics queries
-- Continue improving CLI access to stored history
+This is a private tool for a personal library account.
 
-Later possibilities include:
-
-- filtering by authors or genres
-- support for multiple accounts
-- a Streamlit dashboard for historical availability data
-
----
-
-## Scope
-
-This project is intended for private use with a personal library account.
-
-Not planned:
-
-- automatic paid reservations
-- bulk or mass requests
-- public deployment as a hosted scraping service
+Paid reservations (`Vormerkung`) must **never** be triggered automatically. Free branch orders may be considered later, but only behind explicit user confirmation. Public deployment and high-volume scraping are not goals of the project.

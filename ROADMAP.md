@@ -1,258 +1,173 @@
-# Data Science & Bioinformatics – Learning Roadmap
+# Library Tracker Roadmap
 
-**Last updated:** September 2026  
-**Goal:** Every important skill should be demonstrated through a visible project artifact rather than only listed as theoretical knowledge.
+**Current milestone:** refactored READO ↔ Stadtbibliothek integration foundation
+**Primary goal:** turn READO into the source of reading state and automatically surface library availability changes without repeatedly querying metadata that is already known.
 
----
+## Current state
 
-## Active Projects
+### Done — library foundation
 
-| Project | Description | Current State |
-|---|---|---|
-| `data-science` | Binary classification portfolio and future datasets | Active — multi-model workflow and ensemble complete |
-| `lab-software` | CLI sample management and DNA analysis | Active — layered architecture, FASTA import, tests and CI |
-| `bioinformatic-python-tools` | DNA/sequence analysis tools | Active |
-| `library-tracker` | Authenticated library scraper with SQLite history | Active — SQLite persistence, history queries and CLI implemented |
+- [x] authenticated Stadtbibliothek Bremen session + CSId
+- [x] multi-page library wish-list scraping
+- [x] copy-level availability and due-date parsing
+- [x] central-library vs. branch classification
+- [x] SQLite copy and availability history
+- [x] persistent SQLite artifact in scheduled GitHub Actions scrape
+- [x] ISBN search against the Bremen catalog
 
----
+### Done — READO and metadata foundation
 
-## Priority Levels
+- [x] synchronize READO wishlist
+- [x] synchronize TBR / reading / completed lists
+- [x] model list membership separately from cached books
+- [x] resolve ISBNs to Open Library works
+- [x] exact Open Library ISBN fallback
+- [x] Google Books fallback for unresolved Open Library ISBNs
+- [x] cache German and English Open Library editions
+- [x] filter explicit digital/audio editions
+- [x] prioritize German print ISBN-13 candidates
+- [x] verify READO → alternative German edition → Bremen catalog end-to-end matching
 
-- **P1** — immediate / current development
-- **P2** — next major portfolio expansion
-- **P3** — long-term specialization
+### Done — architecture refactor
 
----
+- [x] split external clients from parsing
+- [x] split repository responsibilities
+- [x] move multi-step workflows into services
+- [x] reduce CLI to routing/output
+- [x] centralize ISBN normalization and configuration
+- [x] consolidate SQLite schema creation
+- [x] simplify and focus tests
 
-## Skill → Project Mapping
+## P1 — Full READO → library synchronization
 
-### `data-science`
+The next milestone is to replace one-book manual matching with a complete, cached synchronization run.
 
-| Skill | Priority | Milestone |
-|---|---|---|
-| XGBoost | Done | `v1.1` |
-| MLP | Done | `v1.1` |
-| SVM | Done | `v1.1` |
-| Voting Classifier | Done | `v1.1` |
-| Threshold tuning | Done | `v1.1` |
-| ROC AUC / PR AUC / MCC | Done | `v1.1` |
-| MLflow | P2 | experiment tracking |
-| SHAP / LIME | P2 | model interpretability |
-| Optuna / Bayesian Optimization | P2 | hyperparameter tuning |
-| Statistical testing / bootstrapping / power analysis | P2 | statistical analysis project |
-| Survival Analysis | P2 | clinical dataset |
-| DVC | P3 | data versioning |
-| FastAPI | P3 | model serving |
-| Docker | P3 | reproducible deployment |
-| Streamlit | P3 | interactive demo |
-| Cloud deployment | P3 | hosted application |
+- [ ] add a service that processes every active READO wishlist book
+- [ ] resolve only ISBNs that are not already cached
+- [ ] fetch editions only for works without an edition-sync marker
+- [ ] match all active wishlist books against Bremen using prioritized German ISBNs
+- [ ] persist catalog-match results instead of re-searching unchanged ISBNs every run
+- [ ] record the matched ISBN and match source (`reado`, confirmed edition, unknown-format edition)
+- [ ] distinguish "not in catalog" from transient request failure
+- [ ] add retry/backoff around catalog searches without creating high request volume
 
-### `lab-software`
-
-| Skill | Priority | Milestone |
-|---|---|---|
-| pytest | Done | broad automated test suite |
-| type hints | Done | typed application code |
-| Pydantic | Done | domain validation |
-| GitHub Actions | Done | automated tests/coverage |
-| layered architecture | Done | domain / analysis / services / I/O / CLI |
-| FASTA import | Done | single- and multi-FASTA |
-| Git branches + pull requests | P1 | use consistently for future changes |
-| SQLite | P2 | replace JSON persistence if still useful |
-| CSV / Excel export | P2 | data export |
-| FastAPI | P3 | REST API |
-| Docker | P3 | packaging/deployment |
-
-### `bioinformatic-python-tools`
-
-| Skill | Priority | Milestone |
-|---|---|---|
-| pytest | P2 | automated tests |
-| type hints / mypy | P2 | static typing |
-| ruff | P2 | linting |
-| GitHub Actions | P2 | CI |
-| Quarto | P2 | reproducible analysis report |
-| Biopython | P2 | FASTA/GenBank extension |
-| NetworkX | P3 | biological network analysis |
-
-### `library-tracker`
-
-| Skill / Feature | Status | Milestone |
-|---|---|---|
-| Multiple-copy detection | Done | `v0.3` |
-| Central vs. branch detection | Done | `v0.3` |
-| Type hints + mypy | Done | `v0.4` |
-| pytest + coverage | Done | `v0.4` |
-| HTTP/login mocking | Done | `v0.4` |
-| GitHub Actions CI | Done | `v0.4` |
-| Scheduled scrape | Done | `v0.4` |
-| Branch + PR workflow | Done / ongoing | development workflow |
-| SQLite schema | Done | `v0.5` |
-| Copy upsert persistence | Done | `v0.5` |
-| Availability snapshots | Done | `v0.5` |
-| History query | Done | `v0.5` |
-| History CLI | Done | `v0.5` |
-| Database / repository separation | Done / current refactor | `v0.5` |
-| Persist SQLite history across GitHub Actions runs | P1 | `v0.5` |
-| Store snapshots only on relevant changes | P1 | `v0.5` |
-| Database statistics / status command | P1 | `v0.5` |
-| Improve history display | P2 | `v0.6` |
-| Streamlit history dashboard | P3 | `v1.0` |
-
----
-
-## Current Sprint
-
-### Library Tracker — finish SQLite milestone
-
-- [x] Expand tests across application layers
-- [x] Type-check production and test code with `mypy`
-- [x] Introduce branch + pull-request workflow
-- [x] Add SQLite schema
-- [x] Store physical copies by `media_number`
-- [x] Store timestamped availability snapshots
-- [x] Add history queries
-- [x] Add CLI access to copy history
-- [x] Separate SQLite infrastructure from repository operations
-- [ ] Persist SQLite database between scheduled GitHub Actions runs
-- [ ] Avoid duplicate snapshots when availability has not changed
-- [ ] Add database statistics / status query
-- [ ] Update README and technical documentation after final `v0.5` state
-
-Target outcome:
+Target flow:
 
 ```text
-Web scraping
-→ HTML parsing
-→ typed models
-→ tested business logic
-→ SQLite persistence
-→ historical data
-→ SQL queries
-→ CLI access
-→ scheduled automation
+READO sync
+  ↓
+new/unresolved ISBNs only
+  ↓
+Open Library → Google Books fallback
+  ↓
+unsynced wishlist works → editions
+  ↓
+German ISBN candidates
+  ↓
+Bremen catalog matching
+  ↓
+persisted match state
 ```
 
-At that point the Library Tracker should be considered a complete portfolio project rather than continuously expanded with small features.
+## P1 — READO as the source of reading state
 
----
+READO should determine whether a title still belongs in the library workflow.
 
-## Next Portfolio Priority
+- [ ] wishlist → eligible for Bremen matching/library wish-list handling
+- [ ] TBR → no longer treated as a library-wishlist candidate
+- [ ] reading → no longer treated as a library-wishlist candidate
+- [ ] completed → no longer treated as a library-wishlist candidate
+- [ ] detect transitions between READO lists
+- [ ] keep all bibliographic metadata cached after transitions
+- [ ] reconcile READO state with the Stadtbibliothek personal wish list
 
-After the Library Tracker SQLite milestone, development should shift toward a second substantial data project instead of continuously adding libraries or minor scraper features.
+The intended rule is: moving a book out of the READO wishlist should stop availability monitoring for that wishlist item without deleting its cached work/edition metadata.
 
-Preferred direction:
+## P1 — Update / notification system
 
-### Second Data Science Project
+After full matching is persisted, add a user-facing update layer.
 
-Goals:
+Preferred first implementation: **e-mail** because it is simple, mobile-friendly and works without hosting a frontend.
 
-- larger or more realistic dataset
-- clear domain question
-- reproducible pipeline
-- stronger statistical reasoning
-- fewer models, with better justification
-- clean train/test strategy
-- reusable preprocessing
-- meaningful visualizations
-- tests for reusable data-processing code where appropriate
+- [ ] persist the previous relevant library state for each matched READO book
+- [ ] calculate changes between runs
+- [ ] report newly found catalog matches
+- [ ] report newly `ausleihbar` books
+- [ ] report newly `bestellbar` books
+- [ ] optionally report titles that became unavailable
+- [ ] send a concise daily/changed-only e-mail
+- [ ] keep notification credentials in GitHub Secrets
+- [ ] avoid sending an empty "nothing changed" message unless explicitly desired
 
-Preferred domain:
+Possible later channels:
 
-- life sciences
-- healthcare
-- biotechnology
-- bioinformatics
+- e-mail via SMTP or mail API
+- Telegram/Signal-style notification integration if it provides a clear benefit
+- small web/dashboard view only if notification output becomes insufficient
 
-This would complement the existing diabetes-classification project and better demonstrate independent end-to-end problem solving.
+## P2 — Library wish-list synchronization
 
----
+Once read-only matching and notification are stable:
 
-## P2 — Medium Term
+- [ ] detect whether a matched title is already on the Stadtbibliothek wish list
+- [ ] add matched READO wishlist books to the library wish list where technically safe
+- [ ] remove entries when their READO state moves to TBR/reading/completed
+- [ ] make synchronization idempotent
+- [ ] store reconciliation results and errors
 
-### Data Science
+### Safety constraint
 
-- [ ] Second end-to-end Data Science project
-- [ ] Statistical analysis project
-- [ ] SHAP / model interpretability
-- [ ] MLflow experiment tracking
-- [ ] Survival analysis
-- [ ] Optuna or another modern tuning workflow
+Paid reservations (`Vormerkung`, currently 1 €) must **never** be triggered automatically.
 
-### Bioinformatics
+Free branch orders may be supported later only with explicit user confirmation and a clear distinction from paid reservations.
 
-- [ ] Improve `bioinformatic-python-tools` engineering quality
-- [ ] Biopython integration
-- [ ] Reproducible report with Quarto
-- [ ] Differential-expression project using a public GEO dataset
-- [ ] R / Bioconductor / DESeq2 / edgeR
+## P2 — Availability workflow cleanup
 
-### Software Engineering
+The old library-wishlist scraper predates the READO integration. After the READO-driven pipeline is complete:
 
-- [ ] Add `ruff` consistently across active Python projects
-- [ ] Continue feature-branch + pull-request workflow
-- [ ] Dockerize one mature project
-- [ ] Add FastAPI to a project where an API solves a real problem
+- [ ] decide which parts of `scrape` remain useful
+- [ ] stop deleting library-wishlist entries merely because all copies are currently checked out if that conflicts with the new monitoring model
+- [ ] consolidate availability tracking around READO-linked catalog matches
+- [ ] store snapshots only when relevant availability changes if history volume becomes noisy
+- [ ] add database status/statistics command
 
----
+## P2 — Automation
 
-## P3 — Long Term
+- [ ] create one scheduled orchestration command, e.g. `library-tracker sync`
+- [ ] install Playwright Chromium in the relevant GitHub Actions job
+- [ ] restore SQLite state before the run
+- [ ] sync READO
+- [ ] resolve/cache new metadata
+- [ ] update library matches and availability
+- [ ] generate/send update
+- [ ] upload SQLite artifact after the run
+- [ ] expose useful workflow summaries on failure
 
-- [ ] Streamlit dashboard for Library Tracker availability history
-- [ ] Cloud deployment
-- [ ] RNA-seq pipeline with Snakemake or Nextflow
-- [ ] Single-cell analysis with ScanPy / AnnData
-- [ ] Multi-omics demo
-- [ ] Biomedical NLP / embeddings / RAG
-- [ ] Time-series forecasting
-- [ ] Causal inference
+## P3 — Portfolio polish
 
----
+- [ ] structured logging instead of ad-hoc prints for automated runs
+- [ ] optional `ruff` formatting/linting
+- [ ] versioned schema migrations if SQLite changes become more frequent
+- [ ] command for database/cache statistics
+- [ ] documented demo flow using mocked/sample data
+- [ ] optional Streamlit dashboard only if historical visualization adds real value
 
-## Development Workflow
-
-For substantial changes:
+## Definition of the intended end state
 
 ```text
-master
-  ↓
-feature / fix / refactor branch
-  ↓
-small logical commits
-  ↓
-mypy + pytest locally
-  ↓
-push branch
-  ↓
-pull request
-  ↓
-GitHub Actions
-  ↓
-merge into master
+READO is the source of truth
+        ↓
+list changes are synchronized
+        ↓
+metadata is resolved once and cached
+        ↓
+German print editions are matched to Bremen
+        ↓
+relevant catalog/availability state is persisted
+        ↓
+changes are detected
+        ↓
+user receives a concise update (initially e-mail)
 ```
 
-Example:
-
-```bash
-git switch master
-git pull
-git switch -c feature/example
-```
-
-After implementation:
-
-```bash
-mypy
-python -m pytest --cov=library_tracker --cov-report=term-missing -v
-git push -u origin feature/example
-```
-
-After the pull request is merged:
-
-```bash
-git switch master
-git pull
-git branch -d feature/example
-```
-
-The goal is not to create branches for every tiny edit, but to keep meaningful features, fixes, and refactors reviewable and keep `master` in a working state.
+The project should remain a private, low-volume automation tool rather than a public scraping service.
