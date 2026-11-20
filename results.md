@@ -1,6 +1,6 @@
 # Merkliste – Verfügbarkeit
 
-Zuletzt aktualisiert: 2026-11-19 14:45 UTC
+Zuletzt aktualisiert: 2026-11-20 14:27 UTC
 
 ## Übersicht
 
@@ -36,7 +36,7 @@ Zuletzt aktualisiert: 2026-11-19 14:45 UTC
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | entliehen bis 10.12.2026
 - 10-Zentralbibliothek / 2.OG Dom-Flügel | ausleihbar
 - 21-Vahr / Geschichte & Gesellschaft | andere Zweigstelle (entliehen)
-- 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (entliehen)
+- 60-Vegesack / EG Gesch & Gesellschaft | andere Zweigstelle (ausleihbar)
 
 ## [Ausleihbar] ¬The Witcher - Der Rand der Welt
 - 10-Zentralbibliothek / 2.OG Wall-Flügel | ausleihbar
