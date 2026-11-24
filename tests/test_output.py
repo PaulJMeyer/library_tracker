@@ -198,3 +198,71 @@ def test_print_loans_console(
     assert "Beispielroman (Erika Muster)" in output
     assert "Ausgeliehen seit: 11.08.2026 | Fällig: 01.09.2026" in output
     assert "Ausgeliehen seit: ? | Fällig: ?" in output
+
+
+def test_format_telegram_message_lists_only_available_and_orderable() -> None:
+    import datetime
+
+    from library_tracker.output import format_telegram_message
+
+    items = [
+        make_item(
+            "¬Die Zeitmaschine",
+            "ausleihbar",
+            [
+                make_copy(
+                    "ausleihbar",
+                    None,
+                    status="ausleihbar",
+                    branch="10-Zentralbibliothek / 1.OG Romane A-Z",
+                ),
+                make_copy(
+                    "entliehen bis 01.12.2026",
+                    "01.12.2026",
+                    branch="10-Zentralbibliothek / 1.OG Romane nach Themen",
+                ),
+            ],
+        ),
+        make_item(
+            "Krieg & Frieden",
+            "bestellbar",
+            [
+                make_copy("entliehen", None, branch="10-Zentralbibliothek / 1.OG"),
+                make_copy(
+                    "andere Zweigstelle (ausleihbar)",
+                    None,
+                    status="ausleihbar",
+                    branch="21-Vahr / Romane",
+                ),
+                make_copy(
+                    "andere Zweigstelle (entliehen)",
+                    None,
+                    branch="60-Vegesack / Romane",
+                ),
+            ],
+        ),
+    ]
+
+    message = format_telegram_message(items, today=datetime.date(2026, 11, 24))
+
+    assert message == "\n".join(
+        [
+            "<b>📚 Merkliste – 24.11.2026</b>",
+            "",
+            "<b>Ausleihbar in der Zentralbibliothek (1)</b>",
+            "• Die Zeitmaschine <i>(1.OG Romane A-Z)</i>",
+            "",
+            "<b>Bestellbar aus anderen Zweigstellen (1)</b>",
+            "• Krieg &amp; Frieden <i>(Vahr)</i>",
+        ]
+    )
+
+
+def test_format_telegram_message_marks_empty_sections() -> None:
+    import datetime
+
+    from library_tracker.output import format_telegram_message
+
+    message = format_telegram_message([], today=datetime.date(2026, 11, 24))
+
+    assert message.count("– keine –") == 2

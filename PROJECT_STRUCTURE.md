@@ -20,7 +20,8 @@ library_tracker/
 │   │   ├── library.py
 │   │   ├── reado.py
 │   │   ├── openlibrary.py
-│   │   └── googlebooks.py
+│   │   ├── googlebooks.py
+│   │   └── telegram.py
 │   ├── parsers/
 │   │   ├── __init__.py
 │   │   └── library.py
@@ -42,6 +43,7 @@ library_tracker/
 │   ├── test_database.py
 │   ├── test_entrypoint.py
 │   ├── test_googlebooks.py
+│   ├── test_telegram.py
 │   ├── test_isbn.py
 │   ├── test_library_client.py
 │   ├── test_library_parsers.py
@@ -172,6 +174,14 @@ Fallback metadata lookup:
 - exact ISBN verification against returned identifiers
 - retry/backoff for transient HTTP status codes
 - normalized metadata result structures
+
+### `clients/telegram.py`
+
+Sends the daily overview to a Telegram chat:
+
+- HTML-formatted `sendMessage` calls
+- splits long overviews at line breaks to respect Telegram's 4096-character limit
+- error messages never include the bot token
 
 ## Parser
 

@@ -8,10 +8,15 @@ from library_tracker.clients.googlebooks import GoogleBooksError
 from library_tracker.clients.library import LibraryClientError
 from library_tracker.clients.openlibrary import OpenLibraryError
 from library_tracker.clients.reado import ReadoError
-from library_tracker.config import ConfigurationError
+from library_tracker.clients.telegram import TelegramClient, TelegramError
+from library_tracker.config import ConfigurationError, get_telegram_settings
 from library_tracker.database import get_connection, initialize_database
 from library_tracker.models import ReadoListType
-from library_tracker.output import format_history_line, print_scrape_result
+from library_tracker.output import (
+    format_history_line,
+    format_telegram_message,
+    print_scrape_result,
+)
 from library_tracker.repositories.availability import get_copy_history
 from library_tracker.services.library_matching import match_wishlist_book, search_catalog
 from library_tracker.services.library_scrape import scrape_library
@@ -29,7 +34,13 @@ def build_parser() -> argparse.ArgumentParser:
         description="Synchronize READO data and match books with Stadtbibliothek Bremen.",
     )
     commands = parser.add_subparsers(dest="command")
-    commands.add_parser("scrape", help="Scrape the current library wish list.")
+    scrape = commands.add_parser("scrape", help="Scrape the current library wish list.")
+    scrape.add_argument(
+        "--telegram",
+        action="store_true",
+        help="Send the available/orderable overview via Telegram.",
+    )
+    commands.add_parser("telegram-test", help="Send a Telegram test message.")
 
     history = commands.add_parser("history", help="Show stored history for one copy.")
     history.add_argument("media_number")
@@ -172,12 +183,34 @@ def _run_library_match(isbn: str) -> int:
     return 0
 
 
+def _telegram_client() -> TelegramClient:
+    token, chat_id = get_telegram_settings()
+    return TelegramClient(token, chat_id)
+
+
+def _run_scrape(*, telegram: bool) -> int:
+    client = _telegram_client() if telegram else None
+    result = scrape_library()
+    print_scrape_result(result)
+    if client is not None:
+        client.send_message(format_telegram_message(result["items"]))
+        print("Telegram overview sent.")
+    return 0
+
+
+def _run_telegram_test() -> int:
+    _telegram_client().send_message("✅ library-tracker kann dir Nachrichten schicken.")
+    print("Telegram test message sent.")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         if args.command in (None, "scrape"):
-            print_scrape_result(scrape_library())
-            return 0
+            return _run_scrape(telegram=bool(getattr(args, "telegram", False)))
+        if args.command == "telegram-test":
+            return _run_telegram_test()
         if args.command == "history":
             return _run_history(str(args.media_number))
         if args.command == "reado-wishlist":
@@ -200,6 +233,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         ReadoError,
         OpenLibraryError,
         GoogleBooksError,
+        TelegramError,
     ) as exc:
         print(f"Error: {exc}")
         return 1

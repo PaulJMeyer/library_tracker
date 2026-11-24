@@ -40,3 +40,11 @@ def require_env(name: str) -> str:
 
 def get_reado_list_url(list_type: ReadoListType) -> str:
     return require_env(READO_LIST_ENV_VARS[list_type])
+
+
+TELEGRAM_TOKEN_ENV_VAR = "TELEGRAM_BOT_TOKEN"
+TELEGRAM_CHAT_ID_ENV_VAR = "TELEGRAM_CHAT_ID"
+
+
+def get_telegram_settings() -> tuple[str, str]:
+    return require_env(TELEGRAM_TOKEN_ENV_VAR), require_env(TELEGRAM_CHAT_ID_ENV_VAR)

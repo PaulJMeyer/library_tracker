@@ -48,6 +48,8 @@ A real end-to-end match is already verified where the original READO ISBN was no
 # Existing library wish-list scrape + availability history
 python -m library_tracker
 python -m library_tracker scrape
+python -m library_tracker scrape --telegram   # also send the overview via Telegram
+python -m library_tracker telegram-test
 
 # Availability history for one physical copy
 python -m library_tracker history <media_number>
@@ -122,6 +124,9 @@ READO_COMPLETED_URL=...
 
 OPENLIBRARY_CONTACT_EMAIL=...
 GOOGLE_BOOKS_API_KEY=...
+
+TELEGRAM_BOT_TOKEN=...
+TELEGRAM_CHAT_ID=...
 ```
 
 ## Development checks

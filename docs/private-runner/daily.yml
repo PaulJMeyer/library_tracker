@@ -49,11 +49,13 @@ jobs:
             echo "No previous successful workflow run found."
           fi
 
-      - name: Run library scrape
+      - name: Run library scrape and send Telegram overview
         env:
           LIBRARY_USERNAME: ${{ secrets.LIBRARY_USERNAME }}
           LIBRARY_PASSWORD: ${{ secrets.LIBRARY_PASSWORD }}
-        run: library-tracker scrape
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: library-tracker scrape --telegram
 
       - name: Upload SQLite database
         uses: actions/upload-artifact@v4
