@@ -35,10 +35,14 @@ List membership is stored separately from the bibliographic book cache, so movin
 - Open Library editions are cached for active wishlist works
 - German and English editions are retained
 - explicit ebook/audio formats are excluded from print candidates
-- German ISBN-13 candidates are prioritized as:
+- editions without a language tag count as German when their ISBN starts with 978-3
+- ISBN-10-only editions get a derived ISBN-13
+- Google-Books-only ISBNs are linked to an Open Library work by title/author search
+- catalog ISBN candidates are prioritized as:
   1. original READO ISBN
   2. confirmed German print edition
   3. German edition with unknown physical format
+  4. English edition
 
 A real end-to-end match is already verified where the original READO ISBN was not found in Bremen but an alternative German edition of the same work was.
 
@@ -62,11 +66,17 @@ python -m library_tracker reado-sync --headless
 # Bibliographic metadata
 python -m library_tracker openlibrary-resolve
 python -m library_tracker googlebooks-resolve
+python -m library_tracker openlibrary-link-titles     # title/author search for Google-Books-only ISBNs
 python -m library_tracker openlibrary-editions
+python -m library_tracker openlibrary-editions --refresh   # reload editions after parser improvements
 
 # Bremen catalog
 python -m library_tracker library-search <isbn>
 python -m library_tracker library-match <reado_isbn>
+
+# Diagnose: why do wishlist books (not) match?
+python -m library_tracker match-report
+python -m library_tracker match-report --no-catalog
 ```
 
 `library-match` checks one active READO wishlist entry and stops at the first catalog hit among its prioritized ISBN candidates.

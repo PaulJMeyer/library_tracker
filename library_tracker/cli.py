@@ -14,13 +14,19 @@ from library_tracker.database import get_connection, initialize_database
 from library_tracker.models import ReadoListType
 from library_tracker.output import (
     format_history_line,
+    format_match_report,
     format_telegram_message,
     print_scrape_result,
 )
 from library_tracker.repositories.availability import get_copy_history
-from library_tracker.services.library_matching import match_wishlist_book, search_catalog
+from library_tracker.services.library_matching import (
+    build_match_report,
+    match_wishlist_book,
+    search_catalog,
+)
 from library_tracker.services.library_scrape import scrape_library
 from library_tracker.services.metadata import (
+    link_googlebooks_titles,
     resolve_googlebooks,
     resolve_openlibrary,
     sync_openlibrary_editions,
@@ -54,7 +60,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     commands.add_parser("openlibrary-resolve", help="Resolve uncached READO ISBNs.")
     commands.add_parser("googlebooks-resolve", help="Resolve Open Library fallback ISBNs.")
-    commands.add_parser("openlibrary-editions", help="Cache DE/EN editions for wishlist works.")
+    commands.add_parser(
+        "openlibrary-link-titles",
+        help="Find Open Library works by title/author for Google-Books-only ISBNs.",
+    )
+    editions = commands.add_parser(
+        "openlibrary-editions", help="Cache DE/EN editions for wishlist works."
+    )
+    editions.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Reload editions for already synced works too.",
+    )
 
     library_search = commands.add_parser("library-search", help="Search Bremen catalog by ISBN.")
     library_search.add_argument("isbn")
@@ -64,6 +81,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Match one READO wishlist book using prioritized German ISBNs.",
     )
     library_match.add_argument("isbn")
+
+    report = commands.add_parser(
+        "match-report",
+        help="Show for every READO wishlist book whether and how it matches the catalog.",
+    )
+    report.add_argument(
+        "--no-catalog",
+        action="store_true",
+        help="Only show metadata state, without searching the library catalog.",
+    )
     return parser
 
 
@@ -139,8 +166,23 @@ def _run_googlebooks_resolve() -> int:
     return 0
 
 
-def _run_openlibrary_editions() -> int:
-    summary = sync_openlibrary_editions()
+def _run_openlibrary_link_titles() -> int:
+    results = link_googlebooks_titles()
+    linked = sum(work_key is not None for _, work_key in results)
+    print(f"Google-Books-only ISBNs searched by title: {len(results)}")
+    print(f"Linked to Open Library works: {linked}")
+    for isbn, work_key in results:
+        print(f"{isbn} -> {work_key or 'no match'}")
+    return 0
+
+
+def _run_match_report(*, search: bool) -> int:
+    print(format_match_report(build_match_report(search=search)))
+    return 0
+
+
+def _run_openlibrary_editions(*, refresh: bool = False) -> int:
+    summary = sync_openlibrary_editions(refresh=refresh)
     print(f"Wishlist works needing editions: {len(summary)}")
     total = 0
     for index, (work_key, count) in enumerate(summary, start=1):
@@ -221,8 +263,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run_openlibrary_resolve()
         if args.command == "googlebooks-resolve":
             return _run_googlebooks_resolve()
+        if args.command == "openlibrary-link-titles":
+            return _run_openlibrary_link_titles()
         if args.command == "openlibrary-editions":
-            return _run_openlibrary_editions()
+            return _run_openlibrary_editions(refresh=bool(args.refresh))
+        if args.command == "match-report":
+            return _run_match_report(search=not bool(args.no_catalog))
         if args.command == "library-search":
             return _run_library_search(str(args.isbn))
         if args.command == "library-match":

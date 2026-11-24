@@ -151,3 +151,120 @@ def test_editions_and_matching_candidates(connection: sqlite3.Connection) -> Non
         {"isbn": "9782222222222", "source": "openlibrary_confirmed"},
         {"isbn": "9783333333333", "source": "openlibrary_unknown"},
     ]
+
+
+def _resolve(connection: sqlite3.Connection, isbn: str, status: str, work_key: str | None) -> None:
+    save_openlibrary_resolutions(
+        connection,
+        [{
+            "isbn13": isbn,
+            "status": status,  # type: ignore[typeddict-item]
+            "work_key": work_key,
+            "title": "Test Book" if work_key else None,
+            "error_message": None,
+        }],
+        "now",
+    )
+
+
+def test_matching_candidates_put_english_editions_last(connection: sqlite3.Connection) -> None:
+    insert_reado_book(connection)
+    connection.execute(
+        "INSERT INTO reado_list_memberships VALUES (?, 'wishlist', 'first', 'last', 1)",
+        ("9781111111111",),
+    )
+    _resolve(connection, "9781111111111", "resolved", "OL123W")
+    save_openlibrary_editions(
+        connection,
+        "OL123W",
+        [
+            {
+                "edition_key": "OL1M",
+                "work_key": "OL123W",
+                "title": "Test Book",
+                "languages": ["en"],
+                "physical_format": "Paperback",
+                "print_status": "confirmed",
+                "identifiers": [{"type": "ISBN_13", "identifier": "9780000000001"}],
+            },
+            {
+                "edition_key": "OL2M",
+                "work_key": "OL123W",
+                "title": "Test Buch",
+                "languages": ["de"],
+                "physical_format": None,
+                "print_status": "unknown",
+                "identifiers": [{"type": "ISBN_13", "identifier": "9783333333333"}],
+            },
+        ],
+        "now",
+    )
+
+    assert get_wishlist_isbn_candidates(connection, "9781111111111") == [
+        {"isbn": "9781111111111", "source": "reado"},
+        {"isbn": "9783333333333", "source": "openlibrary_unknown"},
+        {"isbn": "9780000000001", "source": "openlibrary_english"},
+    ]
+    assert get_unsynced_wishlist_work_keys(connection) == []
+    assert get_unsynced_wishlist_work_keys(connection, include_synced=True) == ["OL123W"]
+
+
+def test_title_links_resolve_google_books_only_isbns(connection: sqlite3.Connection) -> None:
+    from library_tracker.repositories.metadata import get_title_link_candidates, save_title_link
+
+    insert_reado_book(connection)
+    connection.execute(
+        "INSERT INTO reado_list_memberships VALUES (?, 'wishlist', 'first', 'last', 1)",
+        ("9781111111111",),
+    )
+    _resolve(connection, "9781111111111", "not_found", None)
+    save_googlebooks_resolutions(
+        connection,
+        [{
+            "isbn13": "9781111111111",
+            "status": "found",
+            "volume_id": "vol1",
+            "title": "Example Book",
+            "authors": ["Jane Doe"],
+            "language": "en",
+            "publisher": None,
+            "published_date": None,
+            "identifiers": [],
+            "error_message": None,
+        }],
+        "now",
+    )
+    assert get_title_link_candidates(connection) == [
+        ("9781111111111", "Example Book", ["Jane Doe"])
+    ]
+
+    save_title_link(connection, "9781111111111", ("OL9W", "Example Book"), "later")
+
+    assert get_title_link_candidates(connection) == []
+    assert get_unsynced_wishlist_work_keys(connection) == ["OL9W"]
+    assert get_googlebooks_fallback_isbns(connection) == []
+
+
+def test_failed_title_link_is_not_retried(connection: sqlite3.Connection) -> None:
+    from library_tracker.repositories.metadata import get_title_link_candidates, save_title_link
+
+    insert_reado_book(connection)
+    _resolve(connection, "9781111111111", "not_found", None)
+    save_googlebooks_resolutions(
+        connection,
+        [{
+            "isbn13": "9781111111111",
+            "status": "found",
+            "volume_id": "vol1",
+            "title": "Example Book",
+            "authors": [],
+            "language": None,
+            "publisher": None,
+            "published_date": None,
+            "identifiers": [],
+            "error_message": None,
+        }],
+        "now",
+    )
+    save_title_link(connection, "9781111111111", None, "later")
+    assert get_title_link_candidates(connection) == []

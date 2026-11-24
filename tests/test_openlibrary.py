@@ -479,3 +479,59 @@ def test_get_work_editions_handles_pagination() -> None:
         "OL2M",
         "OL3M",
     }
+
+def test_parse_edition_infers_german_from_isbn_group() -> None:
+    result = _parse_edition(
+        "OL123W",
+        {
+            "key": "/books/OL9M",
+            "title": "Ohne Sprachangabe",
+            "isbn_10": ["3-499-62602-0"],
+        },
+    )
+
+    assert result is not None
+    assert result["languages"] == ["de"]
+    assert {"type": "ISBN_13", "identifier": "9783499626029"} in result["identifiers"]
+    assert {"type": "ISBN_10", "identifier": "3499626020"} in result["identifiers"]
+
+
+def test_parse_edition_without_language_and_foreign_isbn_is_ignored() -> None:
+    assert _parse_edition(
+        "OL123W",
+        {"key": "/books/OL9M", "title": "Unknown", "isbn_13": ["9780306406157"]},
+    ) is None
+
+
+def test_search_work_returns_first_matching_title_and_author() -> None:
+    client = OpenLibraryClient("test@example.com")
+    payload: dict[str, object] = {
+        "docs": [
+            {"key": "/works/OL1W", "title": "Something Else", "author_name": ["Jane Doe"]},
+            {"key": "/works/OL2W", "title": "Example Book", "author_name": ["Other Person"]},
+            {"key": "/works/OL3W", "title": "Example Book: A Novel", "author_name": ["Jane Doe"]},
+        ]
+    }
+    with patch.object(client.session, "get", return_value=make_response(payload)) as get:
+        assert client.search_work("Example Book", ["Jane Doe"]) == ("OL3W", "Example Book: A Novel")
+
+    params = get.call_args.kwargs["params"]
+    assert params["title"] == "example book"
+    assert params["author"] == "Jane Doe"
+
+
+def test_search_work_returns_none_without_match() -> None:
+    client = OpenLibraryClient("test@example.com")
+    payload: dict[str, object] = {"docs": [{"key": "/works/OL1W", "title": "Unrelated", "author_name": ["X"]}]}
+    with patch.object(client.session, "get", return_value=make_response(payload)):
+        assert client.search_work("Example Book", ["Jane Doe"]) is None
+
+
+def test_titles_and_authors_match_loosely() -> None:
+    from library_tracker.clients.openlibrary import authors_match, titles_match
+
+    assert titles_match("Sapiens", "Sapiens: Eine kurze Geschichte der Menschheit")
+    assert not titles_match("Wir", "Wir sind Helden")
+    assert authors_match(["Doe, Jane"], ["Jane Doe"])
+    assert not authors_match(["Jane Doe"], ["John Smith"])
+    assert authors_match([], None)

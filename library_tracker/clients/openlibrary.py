@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import re
 import time
 from collections import defaultdict
 from collections.abc import Iterable
 
 import requests
 
-from library_tracker.isbn import normalize_isbn
+from library_tracker.isbn import is_german_language_isbn, isbn10_to_isbn13, normalize_isbn
 from library_tracker.models import (
     EditionLanguage,
     OpenLibraryEdition,
@@ -47,6 +48,36 @@ PRINT_FORMAT_MARKERS = (
     "library binding",
     "board book",
 )
+
+
+def normalize_title(title: str) -> str:
+    """Casefold, drop subtitles and punctuation for loose title comparison."""
+    main = re.split(r"\s[:\-–]\s|:", title, maxsplit=1)[0]
+    words = re.findall(r"\w+", main.casefold())
+    return " ".join(words)
+
+
+def titles_match(left: str, right: str) -> bool:
+    a, b = normalize_title(left), normalize_title(right)
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    shorter, longer = sorted((a, b), key=len)
+    return len(shorter) >= 4 and longer.startswith(shorter)
+
+
+def authors_match(wanted: list[str], found: object) -> bool:
+    if not wanted:
+        return True
+    if not isinstance(found, list):
+        return False
+    found_text = " ".join(str(name) for name in found).casefold()
+    return any(
+        (last := name.replace(",", " ").split()[-1].casefold()) and last in found_text
+        for name in wanted
+        if name.strip()
+    )
 
 
 class OpenLibraryError(RuntimeError):
@@ -202,6 +233,37 @@ class OpenLibraryClient:
                 )
         return resolutions
 
+    def search_work(self, title: str, authors: list[str]) -> tuple[str, str] | None:
+        """Find an Open Library work by title and author; return (work_key, title)."""
+        params: dict[str, str | int] = {
+            "title": normalize_title(title) or title,
+            "fields": "key,title,author_name",
+            "limit": 10,
+        }
+        if authors:
+            params["author"] = authors[0]
+        try:
+            response = self.session.get(OPENLIBRARY_SEARCH_URL, params=params, timeout=30)
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            raise OpenLibraryError("Open Library title search failed.") from exc
+
+        docs = response.json().get("docs", [])
+        if not isinstance(docs, list):
+            return None
+        for doc in docs:
+            if not isinstance(doc, dict):
+                continue
+            key, doc_title = doc.get("key"), doc.get("title")
+            if (
+                isinstance(key, str)
+                and isinstance(doc_title, str)
+                and titles_match(title, doc_title)
+                and authors_match(authors, doc.get("author_name"))
+            ):
+                return _normalize_work_key(key), doc_title
+        return None
+
     def get_work_editions(self, work_key: str) -> list[OpenLibraryEdition]:
         editions: list[OpenLibraryEdition] = []
         offset = 0
@@ -259,14 +321,35 @@ def _get_target_languages(raw_languages: object) -> list[EditionLanguage]:
 
 def _get_identifiers(entry: dict[str, object]) -> list[OpenLibraryEditionIdentifier]:
     identifiers: list[OpenLibraryEditionIdentifier] = []
+    seen: set[tuple[str, str]] = set()
+
+    def add(identifier_type: str, identifier: str) -> None:
+        if (identifier_type, identifier) not in seen:
+            seen.add((identifier_type, identifier))
+            identifiers.append({"type": identifier_type, "identifier": identifier})
+
     for field_name, identifier_type in (("isbn_13", "ISBN_13"), ("isbn_10", "ISBN_10")):
         values = entry.get(field_name, [])
         if not isinstance(values, list):
             continue
         for value in values:
             if isinstance(value, str) and (identifier := normalize_isbn(value)):
-                identifiers.append({"type": identifier_type, "identifier": identifier})
+                add(identifier_type, identifier)
+                # Older editions often only carry an ISBN-10; the catalog is
+                # searched by ISBN-13, so derive it.
+                if identifier_type == "ISBN_10" and (converted := isbn10_to_isbn13(identifier)):
+                    add("ISBN_13", converted)
     return identifiers
+
+
+def _infer_languages(identifiers: list[OpenLibraryEditionIdentifier]) -> list[EditionLanguage]:
+    """Many Open Library editions lack a language; 978-3 ISBNs are German-language."""
+    if any(
+        identifier["type"] == "ISBN_13" and is_german_language_isbn(identifier["identifier"])
+        for identifier in identifiers
+    ):
+        return ["de"]
+    return []
 
 
 def _classify_print_format(physical_format: str | None) -> PrintStatus | None:
@@ -290,9 +373,11 @@ def _parse_edition(work_key: str, entry: object) -> OpenLibraryEdition | None:
     if not isinstance(raw_key, str) or not isinstance(title, str):
         return None
 
-    languages = _get_target_languages(entry.get("languages"))
     identifiers = _get_identifiers(entry)
-    if not languages or not identifiers:
+    if not identifiers:
+        return None
+    languages = _get_target_languages(entry.get("languages")) or _infer_languages(identifiers)
+    if not languages:
         return None
 
     raw_format = entry.get("physical_format")
