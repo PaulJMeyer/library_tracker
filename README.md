@@ -135,12 +135,9 @@ The refactored test suite favors focused behavioral tests over maintaining a spe
 
 ## Automation
 
-GitHub Actions currently provides:
+The public repository only runs CI (`mypy` and `pytest`) on pushes and pull requests.
 
-- CI with `mypy` and `pytest`
-- a scheduled authenticated library scrape
-- restoration/upload of the SQLite database as a workflow artifact
-- automated `results.md` updates
+Scheduled runs that use personal credentials or produce personal data (library scrape, SQLite database, results overview) run in a separate private repository, so logs and artifacts are never public. See [docs/private-runner](docs/private-runner/README.md) for the workflow template and setup.
 
 The next automation milestone is a single scheduled pipeline that synchronizes READO, resolves only new metadata, matches wishlist books against the library, compares the result with the previous state and sends a concise update when something relevant changes.
 

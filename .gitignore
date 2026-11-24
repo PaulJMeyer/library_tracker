@@ -25,3 +25,6 @@ debug_*.html
 
 # egg.info
 *.egg-info/
+
+# Personal scrape output (never commit)
+results.md

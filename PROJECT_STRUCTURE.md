@@ -53,8 +53,11 @@ library_tracker/
 ├── .github/
 │   ├── AI_CONTEXT.md
 │   └── workflows/
-│       ├── ci.yml
-│       └── scrape.yml
+│       └── ci.yml
+├── docs/
+│   └── private-runner/
+│       ├── README.md
+│       └── daily.yml
 ├── data/
 │   └── library_tracker.db
 ├── .env
@@ -65,7 +68,7 @@ library_tracker/
 └── ROADMAP.md
 ```
 
-`data/`, `.env`, coverage artifacts and local IDE files are ignored by Git.
+`data/`, `.env`, `results.md`, coverage artifacts and local IDE files are ignored by Git.
 
 ## Dependency direction
 
@@ -295,6 +298,6 @@ SQLite tests use temporary databases. External requests are mocked; pytest does 
 
 `ci.yml` runs type checking and tests on pushes/PRs to `master`.
 
-`scrape.yml` runs the existing authenticated library scrape on a schedule, restores the most recent SQLite artifact where possible, uploads the updated database and commits `results.md` when it changed.
+Scheduled, authenticated runs live in a separate private repository. `docs/private-runner/daily.yml` is the workflow template: it installs the package from this repository, restores and uploads the SQLite artifact privately and keeps `results.md` out of Git.
 
 The planned full automation pipeline is documented in `ROADMAP.md`.
