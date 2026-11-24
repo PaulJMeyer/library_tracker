@@ -145,7 +145,11 @@ def save_googlebooks_resolutions(
             )
 
 
-def get_unsynced_wishlist_work_keys(connection: sqlite3.Connection) -> list[str]:
+def get_unsynced_wishlist_work_keys(
+    connection: sqlite3.Connection,
+    *,
+    include_synced: bool = False,
+) -> list[str]:
     return [
         str(row[0])
         for row in connection.execute(
@@ -156,12 +160,13 @@ def get_unsynced_wishlist_work_keys(connection: sqlite3.Connection) -> list[str]
             LEFT JOIN openlibrary_edition_syncs AS oes ON oes.work_key = br.work_key
             WHERE rlm.list_type = 'wishlist'
               AND rlm.is_active = 1
-              AND br.source = 'openlibrary'
+              AND br.source IN ('openlibrary', 'openlibrary_title')
               AND br.status = 'resolved'
               AND br.work_key IS NOT NULL
-              AND oes.work_key IS NULL
+              AND (oes.work_key IS NULL OR ?)
             ORDER BY br.work_key
-            """
+            """,
+            (int(include_synced),),
         )
     ]
 
@@ -211,4 +216,67 @@ def save_openlibrary_editions(
             ON CONFLICT(work_key) DO UPDATE SET synced_at = excluded.synced_at
             """,
             (work_key, synced_at),
+        )
+
+
+def get_title_link_candidates(
+    connection: sqlite3.Connection,
+) -> list[tuple[str, str, list[str]]]:
+    """ISBNs unknown to Open Library but found by Google Books, not yet title-searched."""
+    rows = connection.execute(
+        """
+        SELECT br.isbn13, gbv.title, gbv.authors_json
+        FROM bibliographic_resolutions AS br
+        JOIN google_books_resolutions AS gbr ON gbr.isbn13 = br.isbn13
+        JOIN google_books_volumes AS gbv ON gbv.volume_id = gbr.volume_id
+        LEFT JOIN openlibrary_title_links AS otl ON otl.isbn13 = br.isbn13
+        WHERE br.source = 'openlibrary'
+          AND br.status = 'not_found'
+          AND gbr.status = 'found'
+          AND otl.isbn13 IS NULL
+        ORDER BY br.isbn13
+        """
+    ).fetchall()
+    result: list[tuple[str, str, list[str]]] = []
+    for isbn, title, authors_json in rows:
+        authors = json.loads(authors_json) if authors_json else []
+        result.append((str(isbn), str(title), [str(a) for a in authors]))
+    return result
+
+
+def save_title_link(
+    connection: sqlite3.Connection,
+    isbn: str,
+    match: tuple[str, str] | None,
+    searched_at: str,
+) -> None:
+    with connection:
+        connection.execute(
+            """
+            INSERT INTO openlibrary_title_links (isbn13, work_key, searched_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(isbn13) DO UPDATE SET
+                work_key = excluded.work_key,
+                searched_at = excluded.searched_at
+            """,
+            (isbn, match[0] if match else None, searched_at),
+        )
+        if match is None:
+            return
+        work_key, title = match
+        connection.execute(
+            """
+            INSERT INTO openlibrary_works (work_key, title) VALUES (?, ?)
+            ON CONFLICT(work_key) DO NOTHING
+            """,
+            (work_key, title),
+        )
+        connection.execute(
+            """
+            UPDATE bibliographic_resolutions
+            SET status = 'resolved', work_key = ?, source = 'openlibrary_title',
+                resolved_at = ?, error_message = NULL
+            WHERE isbn13 = ?
+            """,
+            (work_key, searched_at, isbn),
         )

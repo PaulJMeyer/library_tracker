@@ -266,3 +266,35 @@ def test_format_telegram_message_marks_empty_sections() -> None:
     message = format_telegram_message([], today=datetime.date(2026, 11, 24))
 
     assert message.count("– keine –") == 2
+
+
+def test_format_match_report_summarizes_reasons() -> None:
+    from library_tracker.output import format_match_report
+
+    report = format_match_report(
+        [
+            {
+                "isbn13": "9781111111111",
+                "title": "Found Book",
+                "metadata": "Open Library",
+                "reason": None,
+                "candidate_count": 3,
+                "catalog_checked": True,
+                "match": {"isbn": "9783333333333", "source": "openlibrary_confirmed"},
+            },
+            {
+                "isbn13": "9782222222222",
+                "title": "Missing Book",
+                "metadata": "nicht gefunden",
+                "reason": "Weder Open Library noch Google Books kennen die ISBN",
+                "candidate_count": 1,
+                "catalog_checked": True,
+                "match": None,
+            },
+        ]
+    )
+
+    assert "Katalog: gefunden mit 9783333333333 (deutsche Druckausgabe)" in report
+    assert "Katalog: nicht gefunden" in report
+    assert "Im Katalog gefunden: 1/2" in report
+    assert "1x Weder Open Library noch Google Books kennen die ISBN" in report

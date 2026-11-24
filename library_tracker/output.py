@@ -5,7 +5,14 @@ import html
 import re
 from pathlib import Path
 
-from library_tracker.models import AvailabilitySnapshot, Copy, Item, Loan, ScrapeResult
+from library_tracker.models import (
+    AvailabilitySnapshot,
+    Copy,
+    Item,
+    Loan,
+    MatchReportRow,
+    ScrapeResult,
+)
 
 STATUS_LABELS = {
     "ausleihbar": "Ausleihbar",
@@ -159,4 +166,39 @@ def format_telegram_message(
         lines.extend(format_telegram_item(item) for item in matching)
         if not matching:
             lines.append("– keine –")
+    return "\n".join(lines)
+
+
+CANDIDATE_SOURCE_LABELS = {
+    "reado": "READO-ISBN",
+    "openlibrary_confirmed": "deutsche Druckausgabe",
+    "openlibrary_unknown": "deutsche Ausgabe, Format unbekannt",
+    "openlibrary_english": "englische Ausgabe",
+}
+
+
+def format_match_report(rows: list[MatchReportRow]) -> str:
+    lines = [f"Abgleich READO-Wunschliste: {len(rows)} Bücher", ""]
+    for row in rows:
+        lines.append(f"{row['isbn13']} | {row['title']}")
+        lines.append(f"  Metadaten: {row['metadata']} | ISBN-Kandidaten: {row['candidate_count']}")
+        if row["match"] is not None:
+            source = CANDIDATE_SOURCE_LABELS.get(row["match"]["source"], row["match"]["source"])
+            lines.append(f"  Katalog: gefunden mit {row['match']['isbn']} ({source})")
+        elif row["catalog_checked"]:
+            lines.append("  Katalog: nicht gefunden")
+        if row["reason"] and row["match"] is None:
+            lines.append(f"  Hinweis: {row['reason']}")
+        lines.append("")
+
+    found = sum(row["match"] is not None for row in rows)
+    lines.append("Zusammenfassung:")
+    if rows and rows[0]["catalog_checked"]:
+        lines.append(f"  Im Katalog gefunden: {found}/{len(rows)}")
+    reasons: dict[str, int] = {}
+    for row in rows:
+        if row["match"] is None and row["reason"]:
+            reasons[row["reason"]] = reasons.get(row["reason"], 0) + 1
+    for reason, count in sorted(reasons.items(), key=lambda item: -item[1]):
+        lines.append(f"  {count}x {reason}")
     return "\n".join(lines)

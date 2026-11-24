@@ -77,3 +77,68 @@ def test_search_catalog_uses_supplied_client() -> None:
     client = Mock(spec=LibraryClient)
     client.search_catalog_by_isbn.return_value = ["hit"]
     assert search_catalog("123", client) == ["hit"]
+
+
+def _state(**overrides: str | None) -> dict[str, str | None]:
+    state: dict[str, str | None] = {
+        "isbn13": "9781111111111",
+        "reado_url": "https://reado.app/de/book/example-book/9781111111111",
+        "ol_status": None,
+        "ol_source": None,
+        "ol_title": None,
+        "editions": None,
+        "gb_status": None,
+        "gb_title": None,
+        "title_link": None,
+    }
+    state.update(overrides)
+    return state
+
+
+def test_describe_metadata_explains_missing_steps() -> None:
+    from library_tracker.services.library_matching import describe_metadata
+
+    assert describe_metadata(_state())[0] == "nicht abgefragt"
+    assert describe_metadata(_state(ol_status="resolved", ol_source="openlibrary", editions="synced")) == (
+        "Open Library",
+        None,
+    )
+    assert "openlibrary-editions" in str(
+        describe_metadata(_state(ol_status="resolved", ol_source="openlibrary"))[1]
+    )
+    assert describe_metadata(_state(ol_status="not_found", gb_status="not_found"))[1] == (
+        "Weder Open Library noch Google Books kennen die ISBN"
+    )
+    assert "openlibrary-link-titles" in str(
+        describe_metadata(_state(ol_status="not_found", gb_status="found"))[1]
+    )
+
+
+def test_build_match_report_without_catalog_search() -> None:
+    from library_tracker.services.library_matching import build_match_report
+
+    connection = Mock(spec=sqlite3.Connection)
+    states = [
+        _state(ol_status="resolved", ol_source="openlibrary", ol_title="Example Book", editions="synced"),
+        _state(isbn13="9782222222222", reado_url="https://reado.app/de/book/other-book/9782222222222"),
+    ]
+    with (
+        patch("library_tracker.services.library_matching.get_connection", return_value=connection),
+        patch("library_tracker.services.library_matching.initialize_database"),
+        patch(
+            "library_tracker.services.library_matching.get_wishlist_metadata_states",
+            return_value=states,
+        ),
+        patch(
+            "library_tracker.services.library_matching.get_wishlist_isbn_candidates",
+            return_value=[{"isbn": "x", "source": "reado"}],
+        ),
+        patch("library_tracker.services.library_matching.LibraryClient") as client_class,
+    ):
+        rows = build_match_report(search=False)
+
+    client_class.login.assert_not_called()
+    assert [row["title"] for row in rows] == ["Example Book", "other book"]
+    assert rows[0]["reason"] == "Keine weiteren deutschen oder englischen Ausgaben bekannt"
+    assert rows[1]["metadata"] == "nicht abgefragt"
+    assert not rows[0]["catalog_checked"]

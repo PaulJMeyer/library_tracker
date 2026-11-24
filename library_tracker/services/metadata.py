@@ -10,11 +10,13 @@ from library_tracker.database import get_connection, initialize_database
 from library_tracker.models import GoogleBooksResolution, OpenLibraryResolution
 from library_tracker.repositories.metadata import (
     get_googlebooks_fallback_isbns,
+    get_title_link_candidates,
     get_unresolved_reado_isbns,
     get_unsynced_wishlist_work_keys,
     save_googlebooks_resolutions,
     save_openlibrary_editions,
     save_openlibrary_resolutions,
+    save_title_link,
 )
 
 
@@ -54,11 +56,31 @@ def resolve_googlebooks() -> tuple[int, list[GoogleBooksResolution]]:
         connection.close()
 
 
-def sync_openlibrary_editions() -> list[tuple[str, int]]:
+def link_googlebooks_titles() -> list[tuple[str, str | None]]:
+    """Search Open Library by title/author for books only Google Books knows."""
     connection = get_connection()
     try:
         initialize_database(connection)
-        work_keys = get_unsynced_wishlist_work_keys(connection)
+        candidates = get_title_link_candidates(connection)
+        if not candidates:
+            return []
+        client = OpenLibraryClient(require_env("OPENLIBRARY_CONTACT_EMAIL"))
+        results: list[tuple[str, str | None]] = []
+        for isbn, title, authors in candidates:
+            match = client.search_work(title, authors)
+            save_title_link(connection, isbn, match, _now())
+            results.append((isbn, match[0] if match else None))
+            time.sleep(0.5)
+        return results
+    finally:
+        connection.close()
+
+
+def sync_openlibrary_editions(*, refresh: bool = False) -> list[tuple[str, int]]:
+    connection = get_connection()
+    try:
+        initialize_database(connection)
+        work_keys = get_unsynced_wishlist_work_keys(connection, include_synced=refresh)
         if not work_keys:
             return []
 

@@ -13,6 +13,7 @@ LibraryIsbnCandidateSource = Literal[
     "reado",
     "openlibrary_confirmed",
     "openlibrary_unknown",
+    "openlibrary_english",
 ]
 
 
@@ -127,6 +128,16 @@ class LibraryMatchAttempt(LibraryIsbnCandidate):
 class LibraryMatchResult(TypedDict):
     reado_isbn: str
     attempts: list[LibraryMatchAttempt]
+    match: LibraryIsbnCandidate | None
+
+
+class MatchReportRow(TypedDict):
+    isbn13: str
+    title: str
+    metadata: str
+    reason: str | None
+    candidate_count: int
+    catalog_checked: bool
     match: LibraryIsbnCandidate | None
 
 

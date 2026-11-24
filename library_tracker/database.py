@@ -114,6 +114,13 @@ CREATE TABLE IF NOT EXISTS openlibrary_edition_isbns (
     FOREIGN KEY (edition_key) REFERENCES openlibrary_editions(edition_key) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS openlibrary_title_links (
+    isbn13 TEXT PRIMARY KEY,
+    work_key TEXT,
+    searched_at TEXT NOT NULL,
+    FOREIGN KEY (isbn13) REFERENCES reado_books(isbn13) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS openlibrary_edition_syncs (
     work_key TEXT PRIMARY KEY,
     synced_at TEXT NOT NULL,
