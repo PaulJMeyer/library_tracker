@@ -13,6 +13,8 @@ public.
    *Settings → Secrets and variables → Actions*:
    - `LIBRARY_USERNAME`
    - `LIBRARY_PASSWORD`
+   - `TELEGRAM_BOT_TOKEN` (from @BotFather)
+   - `TELEGRAM_CHAT_ID` (your chat ID, see below)
 4. Optionally move the existing database: download the latest
    `library-tracker-db` artifact from the public repository's last
    scheduled run and upload it once via a manual run, or simply let the
@@ -21,6 +23,22 @@ public.
 
 The workflow installs `library-tracker` from the public repository's
 `master` branch, so merged changes are picked up on the next run.
+
+## Telegram
+
+The daily run sends one message with two sections:
+
+- **Ausleihbar in der Zentralbibliothek**: a copy is available in the central library (with its shelf location)
+- **Bestellbar aus anderen Zweigstellen**: no copy is free in the central library, but one is in another branch (with branch names)
+
+Setup:
+
+1. In Telegram, send `/newbot` to @BotFather and follow the prompts. Store the token as `TELEGRAM_BOT_TOKEN`.
+2. Open the new bot and press **Start**, otherwise it cannot message you.
+3. Open `https://api.telegram.org/bot<TOKEN>/getUpdates` in a browser. The number in `"chat":{"id":...}` is your `TELEGRAM_CHAT_ID`. If the result is empty, send the bot any message and reload.
+4. Locally, `library-tracker telegram-test` sends a test message using the same variables from `.env`.
+
+If sending fails, the workflow run fails, so GitHub notifies you by e-mail.
 
 ## Rules for the public repository
 

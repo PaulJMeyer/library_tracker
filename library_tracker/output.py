@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import datetime
+import html
+import re
 from pathlib import Path
 
 from library_tracker.models import AvailabilitySnapshot, Copy, Item, Loan, ScrapeResult
@@ -107,3 +109,54 @@ def format_history_line(snapshot: AvailabilitySnapshot) -> str:
         f"{snapshot['checked_at']} | {snapshot['status']} | "
         f"{snapshot['status_text']}{due_suffix}"
     )
+
+
+TELEGRAM_HEADINGS = {
+    "ausleihbar": "Ausleihbar in der Zentralbibliothek",
+    "bestellbar": "Bestellbar aus anderen Zweigstellen",
+}
+BRANCH_PREFIX_PATTERN = re.compile(r"^\d+-")
+
+
+def _branch_name(branch: str) -> str:
+    """'21-Vahr / Geschichte' -> 'Vahr'."""
+    return BRANCH_PREFIX_PATTERN.sub("", branch.split("/", 1)[0].strip())
+
+
+def _shelf(branch: str) -> str:
+    """'10-Zentralbibliothek / 2.OG Dom-Flügel' -> '2.OG Dom-Flügel'."""
+    parts = branch.split("/", 1)
+    return parts[1].strip() if len(parts) == 2 else ""
+
+
+def _unique(values: list[str]) -> list[str]:
+    return list(dict.fromkeys(value for value in values if value))
+
+
+def format_telegram_item(item: Item) -> str:
+    title = html.escape(item["title"].replace("¬", ""))
+    available = [copy for copy in item["copies"] if copy["status"] == "ausleihbar"]
+    if item["overall_status"] == "ausleihbar":
+        places = _unique([_shelf(c["branch"]) for c in available if c["is_central"]])
+    else:
+        places = _unique(
+            [_branch_name(c["branch"]) for c in item["copies"]
+             if not c["is_central"] and c["status"] in {"ausleihbar", "bestellbar"}]
+        )
+    suffix = f" <i>({html.escape(', '.join(places))})</i>" if places else ""
+    return f"• {title}{suffix}"
+
+
+def format_telegram_message(
+    items: list[Item],
+    today: datetime.date | None = None,
+) -> str:
+    today = today or datetime.date.today()
+    lines = [f"<b>📚 Merkliste – {today.strftime('%d.%m.%Y')}</b>"]
+    for status in SUMMARY_STATUSES:
+        matching = [item for item in items if item["overall_status"] == status]
+        lines.extend(["", f"<b>{TELEGRAM_HEADINGS[status]} ({len(matching)})</b>"])
+        lines.extend(format_telegram_item(item) for item in matching)
+        if not matching:
+            lines.append("– keine –")
+    return "\n".join(lines)
