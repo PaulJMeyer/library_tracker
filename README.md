@@ -18,7 +18,7 @@ The project started as an authenticated scraper for the library's personal wish 
 
 - authenticated login with `requests.Session`, cookies and CSId
 - read the personal library wish list across multiple pages
-- parse titles, physical copies, branches, status and due dates
+- parse titles, page counts (from the catalog's extent field), physical copies, branches, status and due dates
 - distinguish Zentralbibliothek from branch libraries
 - classify titles as `ausleihbar` (free copy in the Zentralbibliothek), `bestellbar` (free copy in another branch that can be ordered; prison library and reference-only copies excluded), `entliehen`, `bestellt` or `unbekannt`
 - read current loans from the account page

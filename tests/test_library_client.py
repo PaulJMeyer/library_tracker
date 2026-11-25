@@ -126,9 +126,12 @@ def test_account_availability_and_catalog_requests() -> None:
     client = LibraryClient(Mock(spec=requests.Session), "csid")
     with patch(
         "library_tracker.clients.library._get",
-        side_effect=[response(), response("availability"), response("account")],
+        side_effect=[response("details"), response("availability"), response("account")],
     ):
-        assert client.get_availability_page("https://example.com/availability") == "availability"
+        assert client.get_availability_pages("https://example.com/availability") == (
+            "details",
+            "availability",
+        )
         assert client.get_account_page() == "account"
 
     hit_url = "https://opac.stabi-hb.de/webOPACClient/singleHit.do?identifier=123"

@@ -134,3 +134,18 @@ def test_prison_library_copies_are_not_orderable() -> None:
     reference = copy("Krimibibliothek Präsenzbestand")
     assert classify_item([reference]) == "entliehen"  # type: ignore[list-item]
     assert classify_item([copy("10-Zentralbibliothek Präsenzbestand")]) == "entliehen"  # type: ignore[list-item]
+
+
+@pytest.mark.parametrize(
+    ("html", "pages"),
+    [
+        ("<dt>Umfang</dt><dd>347 S. : Ill.</dd>", 347),
+        ("<td>Umfang:</td><td>XII, 512 Seiten</td><td>ISBN 978-3-16-148410-0</td>", 512),
+        ("<p>Jahr 2021</p><p>1. Auflage, 288 Seiten</p>", 288),
+        ("<p>Signatur 2.OG Dom-Flügel, Jahr 2021</p>", None),
+    ],
+)
+def test_parse_page_count(html: str, pages: int | None) -> None:
+    from library_tracker.parsers.library import parse_page_count
+
+    assert parse_page_count(html) == pages

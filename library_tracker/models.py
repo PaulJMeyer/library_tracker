@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 
 ReadoListType = Literal["wishlist", "tbr", "reading", "completed", "abandoned"]
@@ -32,6 +32,7 @@ class Item(TypedDict):
     title: str
     overall_status: CopyStatus
     copies: list[Copy]
+    pages: NotRequired[int | None]
 
 
 class Loan(TypedDict):

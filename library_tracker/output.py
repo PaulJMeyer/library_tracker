@@ -144,8 +144,9 @@ def format_telegram_item(item: Item) -> str:
         places = _unique([_shelf(c["branch"]) for c in available if c["is_central"] and is_lendable_location(c)])
     else:
         places = _unique([_branch_name(c["branch"]) for c in item["copies"] if is_orderable(c)])
+    pages = f", {item['pages']} S." if item.get("pages") else ""
     suffix = f" <i>({html.escape(', '.join(places))})</i>" if places else ""
-    return f"• {title}{suffix}"
+    return f"• {title}{pages}{suffix}"
 
 
 def format_telegram_message(

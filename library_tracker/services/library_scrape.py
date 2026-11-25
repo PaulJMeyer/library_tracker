@@ -5,7 +5,11 @@ import sys
 from library_tracker.clients.library import LibraryClient
 from library_tracker.database import get_connection, initialize_database
 from library_tracker.models import Item, MerklisteEntry, ScrapeResult
-from library_tracker.parsers.library import parse_availability_page, parse_loans
+from library_tracker.parsers.library import (
+    parse_availability_page,
+    parse_loans,
+    parse_page_count,
+)
 from library_tracker.repositories.availability import persist_items
 
 STATUS_ORDER = {
@@ -31,9 +35,9 @@ def scrape_library(client: LibraryClient | None = None) -> ScrapeResult:
     # wishlist decides what is monitored, and the overview only shows available ones.
     for page in pages:
         for entry in page["entries"]:
-            item = parse_availability_page(
-                client.get_availability_page(entry["availability_link"])
-            )
+            details_html, copies_html = client.get_availability_pages(entry["availability_link"])
+            item = parse_availability_page(copies_html)
+            item["pages"] = parse_page_count(details_html) or parse_page_count(copies_html)
             scraped_items.append(item)
             if len(scraped_items) % 10 == 0:
                 print(

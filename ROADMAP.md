@@ -29,7 +29,7 @@ The daily run in the private runner reads READO, matches wishlist books against 
 - [x] add found wishlist books to the Merkliste (only the free "in die Merkliste" link)
 - [x] single volumes of multi-volume alternative editions go to "Bitte prüfen" instead
 - [x] remove books from the Merkliste once they are on a finished READO list
-- [x] Telegram overview with available, orderable, added and removed titles plus warnings
+- [x] Telegram overview with available, orderable (with page counts), added and removed titles plus warnings
 - [x] failing steps become warnings, the rest of the run continues
 - [x] private runner repository; the public repository holds no personal data
 
