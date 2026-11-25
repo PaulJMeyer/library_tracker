@@ -156,6 +156,7 @@ def format_telegram_message(
     *,
     added_titles: list[str] | None = None,
     warnings: list[str] | None = None,
+    review_titles: list[str] | None = None,
 ) -> str:
     today = today or datetime.date.today()
     lines = [f"<b>📚 Merkliste – {today.strftime('%d.%m.%Y')}</b>"]
@@ -168,6 +169,9 @@ def format_telegram_message(
     if added_titles:
         lines.extend(["", f"<b>Neu auf der Merkliste ({len(added_titles)})</b>"])
         lines.extend(f"• {html.escape(strip_sort_markers(title))}" for title in added_titles)
+    if review_titles:
+        lines.extend(["", f"<b>Bitte prüfen, nicht hinzugefügt ({len(review_titles)})</b>"])
+        lines.extend(f"• {html.escape(strip_sort_markers(title))}" for title in review_titles)
     if warnings:
         lines.extend(["", "⚠️ <i>" + html.escape("; ".join(warnings)) + "</i>"])
     return "\n".join(lines)
@@ -186,6 +190,7 @@ MEMORIZE_STATUS_LABELS = {
     "added": "von library-tracker hinzugefügt",
     "already_listed": "stand schon drauf",
     "failed": "Hinzufügen fehlgeschlagen, wird erneut versucht",
+    "needs_review": "nicht hinzugefügt: Einzelband einer mehrbändigen Ausgabe, bitte prüfen",
 }
 
 

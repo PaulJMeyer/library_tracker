@@ -235,6 +235,8 @@ def _run_sync(*, telegram: bool) -> int:
         print_scrape_result(report.scrape)
     if report.added_titles:
         print(f"\nNeu auf der Merkliste: {', '.join(report.added_titles)}")
+    if report.review_titles:
+        print(f"\nBitte prüfen (nicht hinzugefügt): {', '.join(report.review_titles)}")
     if report.warnings:
         print(f"\nWarnungen: {'; '.join(report.warnings)}")
     if client is not None:
@@ -250,6 +252,7 @@ def _run_sync(*, telegram: bool) -> int:
                     report.scrape["items"],
                     added_titles=report.added_titles,
                     warnings=report.warnings,
+                    review_titles=report.review_titles,
                 )
             )
         print("Telegram overview sent.")

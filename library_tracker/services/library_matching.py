@@ -33,6 +33,14 @@ from library_tracker.repositories.matching import (
 )
 
 PER_BOOK_SEARCH_LIMIT = 15
+# A single volume of a multi-volume edition ("Faust ..., Band 3") is usually not the
+# wanted book, so such hits are reported for manual review instead of being added.
+VOLUME_PATTERN = re.compile(r"\b(?:band|bd|vol|volume|teilband)\.?\s*\d+\b", re.IGNORECASE)
+
+
+def is_single_volume(title: str) -> bool:
+    return VOLUME_PATTERN.search(title) is not None
+
 RECHECK_MISSES_AFTER_DAYS = 30
 
 
@@ -184,7 +192,8 @@ def add_matches_to_merkliste(
 
     Uses only the catalog's 'in die Merkliste' link (never orders or paid reservations)
     and skips titles that are already on the Merkliste.
-    Returns [(reado_isbn, catalog_title, status)] with status added/already_listed/failed.
+    Returns [(reado_isbn, catalog_title, status)] with status added/already_listed/failed/
+    needs_review (a single volume of a multi-volume edition, not added).
     """
     known = {normalize_title(title) for title in existing_titles}
     results: list[tuple[str, str, str]] = []
@@ -206,6 +215,8 @@ def add_matches_to_merkliste(
                         status = "already_listed"
                     elif memorize_url is None:
                         status = "failed"
+                    elif is_single_volume(title):
+                        status = "needs_review"
                     else:
                         client.add_to_memorize_list(memorize_url)
                         known.add(normalize_title(title))

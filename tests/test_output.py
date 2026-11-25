@@ -326,7 +326,9 @@ def test_format_telegram_message_lists_added_titles_and_warnings() -> None:
         today=datetime.date(2026, 11, 25),
         added_titles=["¬Der Adept"],
         warnings=["DNB fehlgeschlagen"],
+        review_titles=["Faust, Band 3"],
     )
 
     assert "<b>Neu auf der Merkliste (1)</b>\n• Der Adept" in message
+    assert "<b>Bitte prüfen, nicht hinzugefügt (1)</b>\n• Faust, Band 3" in message
     assert message.endswith("⚠️ <i>DNB fehlgeschlagen</i>")

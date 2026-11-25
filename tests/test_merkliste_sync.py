@@ -168,3 +168,72 @@ def test_match_report_uses_stored_results(db: Path) -> None:
     assert rows["9781111111111"]["searched_count"] == 1
     assert rows["9781111111111"]["match"] is None
     assert rows["9782222222222"]["match"] == {"isbn": "9782222222222", "source": "reado"}
+
+
+def test_single_volume_of_multi_volume_edition_is_not_added(db: Path) -> None:
+    from library_tracker.repositories.library_matches import save_library_match
+    from library_tracker.services.library_matching import add_matches_to_merkliste
+
+    connection = get_connection(db)
+    save_library_match(connection, "9781111111111", "9783000000001", "dnb", "now")
+    connection.close()
+
+    client = Mock(spec=LibraryClient)
+    client.search_catalog_by_isbn.return_value = ["https://opac/hit/1"]
+    client.get_page.return_value = (
+        SINGLE_HIT.replace("Der Adept des Assassinen", "Faust - Der Tragödie erster Teil, Band 3"),
+        BASE,
+    )
+
+    results = add_matches_to_merkliste([], client, progress=lambda _: None)
+
+    assert results == [
+        ("9781111111111", "Faust - Der Tragödie erster Teil, Band 3", "needs_review")
+    ]
+    client.add_to_memorize_list.assert_not_called()
+    # Reported once, not retried on every run.
+    assert add_matches_to_merkliste([], client, progress=lambda _: None) == []
+
+
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [
+        ("Faust - Der Tragödie erster Teil, Band 3", True),
+        ("Werke Bd. 2", True),
+        ("Collected Works, Vol. 1", True),
+        ("Red Rising - Asche zu Asche", False),
+        ("Faust - Der Tragödie erster Teil", False),
+        ("Die Bandbreite der Dinge", False),
+    ],
+)
+def test_is_single_volume(title: str, expected: bool) -> None:
+    from library_tracker.services.library_matching import is_single_volume
+
+    assert is_single_volume(title) is expected
+
+
+def test_old_library_matches_table_is_migrated(tmp_path: Path) -> None:
+    connection = get_connection(tmp_path / "old.sqlite")
+    initialize_database(connection)
+    connection.executescript(
+        """
+        INSERT INTO reado_books VALUES ('978', 'url', 'f', 'l');
+        DROP TABLE library_matches;
+        CREATE TABLE library_matches (
+            reado_isbn TEXT PRIMARY KEY,
+            matched_isbn TEXT NOT NULL,
+            source TEXT NOT NULL,
+            matched_at TEXT NOT NULL,
+            catalog_title TEXT,
+            memorize_status TEXT CHECK (memorize_status IN ('added', 'already_listed', 'failed')),
+            memorize_checked_at TEXT
+        );
+        INSERT INTO library_matches VALUES ('978', '979', 'dnb', 'now', 'T', 'added', 'now');
+        """
+    )
+    initialize_database(connection)
+    connection.execute("UPDATE library_matches SET memorize_status = 'needs_review'")
+    assert connection.execute(
+        "SELECT reado_isbn, catalog_title, memorize_status FROM library_matches"
+    ).fetchall() == [("978", "T", "needs_review")]
+    connection.close()

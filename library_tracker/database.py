@@ -150,7 +150,9 @@ CREATE TABLE IF NOT EXISTS library_matches (
     source TEXT NOT NULL,
     matched_at TEXT NOT NULL,
     catalog_title TEXT,
-    memorize_status TEXT CHECK (memorize_status IN ('added', 'already_listed', 'failed')),
+    memorize_status TEXT CHECK (
+        memorize_status IN ('added', 'already_listed', 'failed', 'needs_review')
+    ),
     memorize_checked_at TEXT,
     FOREIGN KEY (reado_isbn) REFERENCES reado_books(isbn13) ON DELETE CASCADE
 );
@@ -174,6 +176,7 @@ def initialize_database(connection: sqlite3.Connection) -> None:
     with connection:
         connection.executescript(SCHEMA_SQL)
         _migrate_reado_list_memberships(connection)
+        _migrate_library_matches_statuses(connection)
 
 
 def _get_table_columns(connection: sqlite3.Connection, table_name: str) -> set[str]:
@@ -181,6 +184,26 @@ def _get_table_columns(connection: sqlite3.Connection, table_name: str) -> set[s
         str(row[1])
         for row in connection.execute(f"PRAGMA table_info({table_name})")
     }
+
+
+def _migrate_library_matches_statuses(connection: sqlite3.Connection) -> None:
+    """Recreate library_matches if its CHECK constraint predates 'needs_review'."""
+    row = connection.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'library_matches'"
+    ).fetchone()
+    if row is None or "needs_review" in str(row[0]):
+        return
+    connection.execute("ALTER TABLE library_matches RENAME TO library_matches_old")
+    connection.executescript(SCHEMA_SQL)
+    connection.execute(
+        """
+        INSERT INTO library_matches
+        SELECT reado_isbn, matched_isbn, source, matched_at, catalog_title,
+               memorize_status, memorize_checked_at
+        FROM library_matches_old
+        """
+    )
+    connection.execute("DROP TABLE library_matches_old")
 
 
 def _migrate_reado_list_memberships(connection: sqlite3.Connection) -> None:

@@ -50,7 +50,7 @@ The daily run sends one message with two sections:
 - **Ausleihbar in der Zentralbibliothek**: a copy is available in the central library (with its shelf location)
 - **Bestellbar aus anderen Zweigstellen**: no copy is free in the central library, but one is in another branch (with branch names)
 
-Titles added to the Merkliste in this run are listed under **Neu auf der Merkliste**. Fully loaned titles stay on the Merkliste and are simply not shown.
+Titles added to the Merkliste in this run are listed under **Neu auf der Merkliste**. Catalog hits that are a single volume of a multi-volume edition are not added; they appear once under **Bitte prüfen**. Fully loaned titles stay on the Merkliste and are simply not shown.
 
 Setup:
 

@@ -45,6 +45,7 @@ class SyncReport:
     def __init__(self) -> None:
         self.warnings: list[str] = []
         self.added_titles: list[str] = []
+        self.review_titles: list[str] = []
         self.scrape: ScrapeResult | None = None
 
     def step(self, name: str, action: Callable[[], T]) -> T | None:
@@ -88,6 +89,7 @@ def run_sync(*, client: LibraryClient | None = None, log: Callable[[str], None] 
     results = report.step("Merkliste ergänzen", lambda: add_matches_to_merkliste(existing, library))
     if results:
         report.added_titles = [title for _, title, status in results if status == "added"]
+        report.review_titles = [title for _, title, status in results if status == "needs_review"]
         failed = sum(status == "failed" for _, _, status in results)
         if failed:
             report.warnings.append(f"{failed} Titel nicht auf die Merkliste gesetzt")
