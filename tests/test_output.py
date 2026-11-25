@@ -275,40 +275,60 @@ def test_format_match_report_summarizes_reasons() -> None:
         [
             {
                 "isbn13": "9781111111111",
-                "title": "Found Book",
+                "title": "¬Der gefundene Roman",
                 "metadata": "Open Library",
                 "reason": None,
                 "candidate_count": 3,
-                "catalog_checked": True,
-                "catalog_error": None,
+                "searched_count": 2,
                 "match": {"isbn": "9783333333333", "source": "openlibrary_confirmed"},
+                "memorize_status": "added",
             },
             {
                 "isbn13": "9782222222222",
                 "title": "Missing Book",
                 "metadata": "nicht gefunden",
-                "reason": "Weder Open Library noch Google Books kennen die ISBN",
+                "reason": "Weder Open Library, Google Books noch DNB kennen die ISBN",
                 "candidate_count": 1,
-                "catalog_checked": True,
-                "catalog_error": None,
+                "searched_count": 1,
                 "match": None,
+                "memorize_status": None,
             },
             {
                 "isbn13": "9783333333333",
-                "title": "Broken Book",
-                "metadata": "Open Library",
+                "title": "Faust",
+                "metadata": "Open Library + DNB",
                 "reason": None,
-                "candidate_count": 2,
-                "catalog_checked": False,
-                "catalog_error": "Library request failed (Timeout): https://example.com",
+                "candidate_count": 40,
+                "searched_count": 15,
                 "match": None,
+                "memorize_status": None,
             },
         ]
     )
 
+    assert "9781111111111 | Der gefundene Roman" in report
     assert "Katalog: gefunden mit 9783333333333 (deutsche Druckausgabe)" in report
+    assert "Merkliste: von library-tracker hinzugefügt" in report
     assert "Katalog: nicht gefunden" in report
+    assert "Katalog: noch nicht gefunden, 25 ISBN(s) offen (match-books)" in report
     assert "Im Katalog gefunden: 1/3" in report
-    assert "Katalog: Suche fehlgeschlagen (Library request failed (Timeout)" in report
-    assert "Katalogsuche fehlgeschlagen: 1" in report
-    assert "1x Weder Open Library noch Google Books kennen die ISBN" in report
+    assert "Noch ISBNs offen: 1 Bücher" in report
+    assert "1x Weder Open Library, Google Books noch DNB kennen die ISBN" in report
+
+
+def test_format_telegram_message_lists_added_titles_and_warnings() -> None:
+    import datetime
+
+    from library_tracker.output import format_telegram_message
+
+    message = format_telegram_message(
+        [],
+        today=datetime.date(2026, 11, 25),
+        added_titles=["¬Der Adept"],
+        warnings=["DNB fehlgeschlagen"],
+        review_titles=["Faust, Band 3"],
+    )
+
+    assert "<b>Neu auf der Merkliste (1)</b>\n• Der Adept" in message
+    assert "<b>Bitte prüfen, nicht hinzugefügt (1)</b>\n• Faust, Band 3" in message
+    assert message.endswith("⚠️ <i>DNB fehlgeschlagen</i>")

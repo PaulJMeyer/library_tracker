@@ -5,6 +5,7 @@ import html
 import re
 from pathlib import Path
 
+from library_tracker.clients.openlibrary import strip_sort_markers
 from library_tracker.models import (
     AvailabilitySnapshot,
     Copy,
@@ -100,11 +101,6 @@ def print_loans_console(loans: list[Loan]) -> None:
 
 def print_scrape_result(result: ScrapeResult) -> None:
     print(f"Gefundene Medien: {result['total_entries']}")
-    if result["removed_count"]:
-        print(
-            f"Entfernt: {result['removed_count']} Titel "
-            f"(Erfolg: {result['removal_success']})"
-        )
     print_results_console(result["items"])
     write_results_markdown(result["items"])
     print_loans_console(result["loans"])
@@ -141,7 +137,7 @@ def _unique(values: list[str]) -> list[str]:
 
 
 def format_telegram_item(item: Item) -> str:
-    title = html.escape(item["title"].replace("¬", ""))
+    title = html.escape(strip_sort_markers(item["title"]))
     available = [copy for copy in item["copies"] if copy["status"] == "ausleihbar"]
     if item["overall_status"] == "ausleihbar":
         places = _unique([_shelf(c["branch"]) for c in available if c["is_central"]])
@@ -157,6 +153,10 @@ def format_telegram_item(item: Item) -> str:
 def format_telegram_message(
     items: list[Item],
     today: datetime.date | None = None,
+    *,
+    added_titles: list[str] | None = None,
+    warnings: list[str] | None = None,
+    review_titles: list[str] | None = None,
 ) -> str:
     today = today or datetime.date.today()
     lines = [f"<b>📚 Merkliste – {today.strftime('%d.%m.%Y')}</b>"]
@@ -166,6 +166,14 @@ def format_telegram_message(
         lines.extend(format_telegram_item(item) for item in matching)
         if not matching:
             lines.append("– keine –")
+    if added_titles:
+        lines.extend(["", f"<b>Neu auf der Merkliste ({len(added_titles)})</b>"])
+        lines.extend(f"• {html.escape(strip_sort_markers(title))}" for title in added_titles)
+    if review_titles:
+        lines.extend(["", f"<b>Bitte prüfen, nicht hinzugefügt ({len(review_titles)})</b>"])
+        lines.extend(f"• {html.escape(strip_sort_markers(title))}" for title in review_titles)
+    if warnings:
+        lines.extend(["", "⚠️ <i>" + html.escape("; ".join(warnings)) + "</i>"])
     return "\n".join(lines)
 
 
@@ -178,30 +186,48 @@ CANDIDATE_SOURCE_LABELS = {
 }
 
 
+MEMORIZE_STATUS_LABELS = {
+    "added": "von library-tracker hinzugefügt",
+    "already_listed": "stand schon drauf",
+    "failed": "Hinzufügen fehlgeschlagen, wird erneut versucht",
+    "needs_review": "nicht hinzugefügt: Einzelband einer mehrbändigen Ausgabe, bitte prüfen",
+}
+
+
 def format_match_report(rows: list[MatchReportRow]) -> str:
     lines = [f"Abgleich READO-Wunschliste: {len(rows)} Bücher", ""]
     for row in rows:
-        lines.append(f"{row['isbn13']} | {row['title']}")
-        lines.append(f"  Metadaten: {row['metadata']} | ISBN-Kandidaten: {row['candidate_count']}")
+        lines.append(f"{row['isbn13']} | {strip_sort_markers(row['title'])}")
+        lines.append(
+            f"  Metadaten: {row['metadata']} | ISBN-Kandidaten: {row['candidate_count']}"
+            f" | im Katalog geprüft: {row['searched_count']}"
+        )
         if row["match"] is not None:
             source = CANDIDATE_SOURCE_LABELS.get(row["match"]["source"], row["match"]["source"])
             lines.append(f"  Katalog: gefunden mit {row['match']['isbn']} ({source})")
-        elif row["catalog_error"]:
-            lines.append(f"  Katalog: Suche fehlgeschlagen ({row['catalog_error']})")
-        elif row["catalog_checked"]:
+            if row["memorize_status"]:
+                lines.append(f"  Merkliste: {MEMORIZE_STATUS_LABELS.get(row['memorize_status'], row['memorize_status'])}")
+            else:
+                lines.append("  Merkliste: noch nicht eingetragen (merkliste-add)")
+        elif row["searched_count"] < row["candidate_count"]:
+            lines.append(
+                f"  Katalog: noch nicht gefunden, {row['candidate_count'] - row['searched_count']}"
+                " ISBN(s) offen (match-books)"
+            )
+        else:
             lines.append("  Katalog: nicht gefunden")
         if row["reason"] and row["match"] is None:
             lines.append(f"  Hinweis: {row['reason']}")
         lines.append("")
 
     found = sum(row["match"] is not None for row in rows)
+    pending = sum(
+        row["match"] is None and row["searched_count"] < row["candidate_count"] for row in rows
+    )
     lines.append("Zusammenfassung:")
-    checked = [row for row in rows if row["catalog_checked"]]
-    failed = sum(bool(row["catalog_error"]) for row in rows)
-    if checked or failed:
-        lines.append(f"  Im Katalog gefunden: {found}/{len(rows)}")
-    if failed:
-        lines.append(f"  Katalogsuche fehlgeschlagen: {failed}")
+    lines.append(f"  Im Katalog gefunden: {found}/{len(rows)}")
+    if pending:
+        lines.append(f"  Noch ISBNs offen: {pending} Bücher")
     reasons: dict[str, int] = {}
     for row in rows:
         if row["match"] is None and row["reason"]:

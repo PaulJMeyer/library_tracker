@@ -22,24 +22,17 @@ def scrape_library(client: LibraryClient | None = None) -> ScrapeResult:
 
     visible_items: list[Item] = []
     scraped_items: list[Item] = []
-    removed_count = 0
-    removal_success = True
 
+    # Titles stay on the Merkliste even when every copy is checked out: the READO
+    # wishlist decides what is monitored, and the overview only shows available ones.
     for page in pages:
-        loaned_uuids: list[str] = []
         for entry in page["entries"]:
             item = parse_availability_page(
                 client.get_availability_page(entry["availability_link"])
             )
             scraped_items.append(item)
-            if item["overall_status"] == "entliehen":
-                loaned_uuids.append(entry["uuid"])
-            else:
+            if item["overall_status"] != "entliehen":
                 visible_items.append(item)
-
-        if loaned_uuids:
-            removed_count += len(loaned_uuids)
-            removal_success = client.remove_entries(page, loaned_uuids) and removal_success
 
     connection = get_connection()
     try:
@@ -52,8 +45,7 @@ def scrape_library(client: LibraryClient | None = None) -> ScrapeResult:
     loans = parse_loans(client.get_account_page())
     return {
         "total_entries": total_entries,
-        "removed_count": removed_count,
-        "removal_success": removal_success,
+        "all_titles": [item["title"] for item in scraped_items],
         "items": visible_items,
         "loans": loans,
     }

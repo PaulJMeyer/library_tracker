@@ -38,6 +38,17 @@ def require_env(name: str) -> str:
     return value
 
 
+def configured_reado_list_types() -> tuple[ReadoListType, ...]:
+    """The wishlist plus every other READO list that has a URL configured."""
+    configured: list[ReadoListType] = ["wishlist"]
+    configured.extend(
+        list_type
+        for list_type in READO_LIST_TYPES
+        if list_type != "wishlist" and os.getenv(READO_LIST_ENV_VARS[list_type])
+    )
+    return tuple(configured)
+
+
 def get_reado_list_url(list_type: ReadoListType) -> str:
     return require_env(READO_LIST_ENV_VARS[list_type])
 

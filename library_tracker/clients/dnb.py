@@ -8,7 +8,13 @@ from dataclasses import dataclass, field
 
 import requests
 
-from library_tracker.clients.openlibrary import authors_match, normalize_title, surname, titles_match
+from library_tracker.clients.openlibrary import (
+    authors_match,
+    normalize_title,
+    strip_sort_markers,
+    surname,
+    titles_match,
+)
 from library_tracker.isbn import isbn10_to_isbn13, normalize_isbn
 
 DNB_SRU_URL = "https://services.dnb.de/sru/dnb"
@@ -77,7 +83,7 @@ def parse_marc_record(record: ET.Element) -> DnbRecord | None:
     title_fields = _datafields(record, "245")
     if not title_fields:
         return None
-    title = " ".join(_subfields(title_fields[0], "a")).strip(" /:;")
+    title = strip_sort_markers(" ".join(_subfields(title_fields[0], "a"))).strip(" /:;")
     if not title:
         return None
 

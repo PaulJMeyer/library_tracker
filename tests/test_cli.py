@@ -6,8 +6,7 @@ from library_tracker.cli import main
 def test_default_command_runs_scrape() -> None:
     result = {
         "total_entries": 0,
-        "removed_count": 0,
-        "removal_success": True,
+        "all_titles": [],
         "items": [],
         "loans": [],
     }
@@ -25,8 +24,7 @@ def test_scrape_with_telegram_sends_overview(monkeypatch) -> None:  # type: igno
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "42")
     result = {
         "total_entries": 0,
-        "removed_count": 0,
-        "removal_success": True,
+        "all_titles": [],
         "items": [],
         "loans": [],
     }
@@ -90,8 +88,17 @@ def test_metadata_and_report_commands_route_flags() -> None:
     command.assert_called_once_with(refresh=True)
 
     with patch("library_tracker.cli._run_match_report", return_value=0) as command:
-        assert main(["match-report", "--no-catalog"]) == 0
-    command.assert_called_once_with(search=False)
+        assert main(["match-report"]) == 0
+    command.assert_called_once_with()
+
+    with patch("library_tracker.cli._run_sync", return_value=0) as command:
+        assert main(["sync", "--telegram"]) == 0
+    command.assert_called_once_with(telegram=True)
+
+    for name, func in (("match-books", "_run_match_books"), ("merkliste-add", "_run_merkliste_add")):
+        with patch(f"library_tracker.cli.{func}", return_value=0) as command:
+            assert main([name]) == 0
+        command.assert_called_once_with()
 
     with patch("library_tracker.cli._run_openlibrary_link_titles", return_value=0) as command:
         assert main(["openlibrary-link-titles"]) == 0

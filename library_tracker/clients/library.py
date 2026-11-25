@@ -138,6 +138,17 @@ class LibraryClient:
             response = _get(self.session, CATALOG_SEARCH_URL, params=params)
         return parse_catalog_hit_urls(response.text, response.url)
 
+    def get_page(self, url: str) -> tuple[str, str]:
+        """Fetch a catalog page in this session; returns (html, final url)."""
+        response = _get(self.session, url)
+        return response.text, response.url
+
+    def add_to_memorize_list(self, memorize_url: str) -> None:
+        """Follow a catalog 'in die Merkliste' link. Never used for orders/reservations."""
+        if "methodToCall=addToMemorizeList" not in memorize_url or "Vormerkung" in memorize_url:
+            raise LibraryClientError("Refusing to call a non-Merkliste catalog action.")
+        _get(self.session, memorize_url)
+
     def _relogin(self) -> None:
         fresh = LibraryClient.login()
         self.session = fresh.session

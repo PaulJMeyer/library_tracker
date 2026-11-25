@@ -21,10 +21,13 @@ from library_tracker.output import (
 )
 from library_tracker.repositories.availability import get_copy_history
 from library_tracker.services.library_matching import (
+    add_matches_to_merkliste,
     build_match_report,
     match_wishlist_book,
+    match_wishlist_books,
     search_catalog,
 )
+from library_tracker.services.sync import run_sync
 from library_tracker.services.library_scrape import scrape_library
 from library_tracker.services.metadata import (
     link_googlebooks_titles,
@@ -88,15 +91,23 @@ def build_parser() -> argparse.ArgumentParser:
     )
     library_match.add_argument("isbn")
 
-    report = commands.add_parser(
+    commands.add_parser(
         "match-report",
         help="Show for every READO wishlist book whether and how it matches the catalog.",
     )
-    report.add_argument(
-        "--no-catalog",
-        action="store_true",
-        help="Only show metadata state, without searching the library catalog.",
+    commands.add_parser(
+        "match-books",
+        help="Search the catalog for unmatched wishlist books (continues where the last run stopped).",
     )
+    commands.add_parser(
+        "merkliste-add",
+        help="Put matched wishlist books on the library Merkliste (never orders or reservations).",
+    )
+    sync = commands.add_parser(
+        "sync",
+        help="Daily pipeline: READO, metadata, catalog matches, Merkliste, overview.",
+    )
+    sync.add_argument("--telegram", action="store_true", help="Send the overview via Telegram.")
     return parser
 
 
@@ -194,9 +205,58 @@ def _run_dnb_editions() -> int:
     return 0
 
 
-def _run_match_report(*, search: bool) -> int:
-    print(format_match_report(build_match_report(search=search)))
+def _run_match_report() -> int:
+    print(format_match_report(build_match_report()))
     return 0
+
+
+def _run_match_books() -> int:
+    summary = match_wishlist_books()
+    print(
+        f"Wishlist books without catalog hit (checked): {summary['books']} | ISBNs searched: {summary['searched']}"
+        f" | new matches: {summary['new_matches']} | errors: {summary['errors']}"
+    )
+    return 0
+
+
+def _run_merkliste_add() -> int:
+    existing = scrape_library()["all_titles"]
+    results = add_matches_to_merkliste(existing)
+    for reado_isbn, title, status in results:
+        print(f"{reado_isbn} | {title} | {status}")
+    print(f"Added to Merkliste: {sum(status == 'added' for _, _, status in results)}")
+    return 0
+
+
+def _run_sync(*, telegram: bool) -> int:
+    client = _telegram_client() if telegram else None
+    report = run_sync()
+    if report.scrape is not None:
+        print_scrape_result(report.scrape)
+    if report.added_titles:
+        print(f"\nNeu auf der Merkliste: {', '.join(report.added_titles)}")
+    if report.review_titles:
+        print(f"\nBitte prüfen (nicht hinzugefügt): {', '.join(report.review_titles)}")
+    if report.warnings:
+        print(f"\nWarnungen: {'; '.join(report.warnings)}")
+    if client is not None:
+        if report.scrape is None:
+            client.send_message(
+                "⚠️ library-tracker: Die Merkliste konnte heute nicht gelesen werden ("
+                + "; ".join(report.warnings)
+                + ")."
+            )
+        else:
+            client.send_message(
+                format_telegram_message(
+                    report.scrape["items"],
+                    added_titles=report.added_titles,
+                    warnings=report.warnings,
+                    review_titles=report.review_titles,
+                )
+            )
+        print("Telegram overview sent.")
+    return 1 if report.warnings else 0
 
 
 def _run_openlibrary_editions(*, refresh: bool = False) -> int:
@@ -288,7 +348,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "openlibrary-editions":
             return _run_openlibrary_editions(refresh=bool(args.refresh))
         if args.command == "match-report":
-            return _run_match_report(search=not bool(args.no_catalog))
+            return _run_match_report()
+        if args.command == "match-books":
+            return _run_match_books()
+        if args.command == "merkliste-add":
+            return _run_merkliste_add()
+        if args.command == "sync":
+            return _run_sync(telegram=bool(args.telegram))
         if args.command == "library-search":
             return _run_library_search(str(args.isbn))
         if args.command == "library-match":

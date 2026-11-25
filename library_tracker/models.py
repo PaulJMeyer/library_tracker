@@ -138,14 +138,13 @@ class MatchReportRow(TypedDict):
     metadata: str
     reason: str | None
     candidate_count: int
-    catalog_checked: bool
-    catalog_error: str | None
+    searched_count: int
     match: LibraryIsbnCandidate | None
+    memorize_status: str | None
 
 
 class ScrapeResult(TypedDict):
     total_entries: int
-    removed_count: int
-    removal_success: bool
+    all_titles: list[str]
     items: list[Item]
     loans: list[Loan]
