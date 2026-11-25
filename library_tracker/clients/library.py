@@ -17,6 +17,7 @@ from collections.abc import Mapping
 
 REQUEST_TIMEOUT = 20
 REQUEST_DELAY = 1.0
+MAX_MEMORIZE_PAGES = 50
 RETRY_DELAYS = (2.0, 5.0)
 RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
@@ -59,16 +60,26 @@ class LibraryClient:
 
     def get_all_memorize_pages(self) -> list[MemorizePage]:
         pages: list[MemorizePage] = []
+        seen: set[str] = set()
         cur_pos = 1
-        while True:
+        for _ in range(MAX_MEMORIZE_PAGES):
             response = _get(self.session, self._wishlist_page_url(cur_pos))
             page = parse_memorize_page(response.text, cur_pos)
-            if not page["entries"]:
+            new_entries = [entry for entry in page["entries"] if entry["uuid"] not in seen]
+            # Past the last page the OPAC shows the last page again (for example
+            # when the Merkliste holds exactly 10, 20, ... titles), so stop on repeats.
+            if not new_entries:
                 break
+            page["entries"] = new_entries
+            seen.update(entry["uuid"] for entry in new_entries)
             pages.append(page)
             if len(page["entries"]) < 10:
                 break
             cur_pos += 10
+        else:
+            raise LibraryClientError(
+                f"Merkliste hat mehr als {MAX_MEMORIZE_PAGES} Seiten, Lesen abgebrochen."
+            )
         return pages
 
     def remove_entries(self, page: MemorizePage, uuids: list[str]) -> bool:

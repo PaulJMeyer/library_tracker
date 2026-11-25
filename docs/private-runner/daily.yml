@@ -17,6 +17,8 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
+    # The first run with a new database takes longer; normal runs need a few minutes.
+    timeout-minutes: 120
 
     steps:
       - name: Set up Python
