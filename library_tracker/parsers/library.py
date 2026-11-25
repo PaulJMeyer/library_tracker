@@ -16,6 +16,8 @@ from library_tracker.models import (
 )
 
 CENTRAL_BRANCH_KEYWORD = "10-Zentralbibliothek"
+# Branches whose copies cannot be ordered to the central library (e.g. the prison library).
+NOT_ORDERABLE_BRANCH_KEYWORDS = ("JVA", "nicht online")
 DATE_PATTERN = re.compile(r"\b\d{2}\.\d{2}\.\d{4}\b")
 
 
@@ -82,6 +84,15 @@ def parse_copies(soup: BeautifulSoup) -> list[Copy]:
     return copies
 
 
+def is_orderable(copy: Copy) -> bool:
+    """A free copy in another branch that can be ordered to the central library."""
+    return (
+        not copy["is_central"]
+        and copy["status"] in {"bestellbar", "ausleihbar"}
+        and not any(keyword in copy["branch"] for keyword in NOT_ORDERABLE_BRANCH_KEYWORDS)
+    )
+
+
 def classify_item(copies: list[Copy]) -> CopyStatus:
     if not copies:
         return "unbekannt"
@@ -89,10 +100,7 @@ def classify_item(copies: list[Copy]) -> CopyStatus:
         return "bestellt"
     if any(copy["is_central"] and copy["status"] == "ausleihbar" for copy in copies):
         return "ausleihbar"
-    if any(
-        not copy["is_central"] and copy["status"] in {"bestellbar", "ausleihbar"}
-        for copy in copies
-    ):
+    if any(is_orderable(copy) for copy in copies):
         return "bestellbar"
     return "entliehen"
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Callable
+from functools import partial
 from typing import TypeVar
 
 from library_tracker.clients.dnb import DnbError
@@ -10,8 +11,12 @@ from library_tracker.clients.googlebooks import GoogleBooksError
 from library_tracker.clients.library import LibraryClient, LibraryClientError
 from library_tracker.clients.openlibrary import OpenLibraryError, normalize_title
 from library_tracker.clients.reado import ReadoError
-from library_tracker.config import ConfigurationError, configured_reado_list_types
-from library_tracker.models import ScrapeResult
+from library_tracker.config import (
+    READO_LIST_LABELS,
+    ConfigurationError,
+    configured_reado_list_types,
+)
+from library_tracker.models import ReadoListType, ScrapeResult
 from library_tracker.services.library_matching import (
     add_matches_to_merkliste,
     match_wishlist_books,
@@ -60,13 +65,17 @@ class SyncReport:
             return None
 
 
+def _sync_list(list_type: ReadoListType) -> None:
+    sync_lists(headless=True, list_types=(list_type,))
+
+
 def run_sync(*, client: LibraryClient | None = None, log: Callable[[str], None] = _log) -> SyncReport:
     report = SyncReport()
 
-    report.step(
-        "READO-Listen",
-        lambda: sync_lists(headless=True, list_types=configured_reado_list_types()),
-    )
+    # Each list on its own: one failing list (for example an empty one) must not
+    # keep the others from being updated.
+    for list_type in configured_reado_list_types():
+        report.step(f"READO-Liste {READO_LIST_LABELS[list_type]}", partial(_sync_list, list_type))
     report.step("Open Library", resolve_openlibrary)
     report.step("Google Books", resolve_googlebooks)
     report.step("Titelsuche Open Library", link_googlebooks_titles)

@@ -177,7 +177,12 @@ def test_lookup_dnb_editions_combines_isbn_and_title_search(tmp_path) -> None:  
 
 def test_run_sync_continues_after_failed_steps() -> None:
     from library_tracker.clients.dnb import DnbError
+    from library_tracker.clients.reado import ReadoError
     from library_tracker.services import sync
+
+    def fake_sync_lists(*, headless: bool, list_types: tuple[str, ...]) -> None:
+        if list_types == ("abandoned",):
+            raise ReadoError("No book links appeared on the READO list.")
 
     scrape_result = {
         "total_entries": 2,
@@ -188,7 +193,8 @@ def test_run_sync_continues_after_failed_steps() -> None:
     }
     client = Mock(spec=LibraryClient)
     with (
-        patch.object(sync, "sync_lists"),
+        patch.object(sync, "configured_reado_list_types", return_value=("wishlist", "abandoned")),
+        patch.object(sync, "sync_lists", side_effect=fake_sync_lists) as reado,
         patch.object(sync, "resolve_openlibrary"),
         patch.object(sync, "resolve_googlebooks"),
         patch.object(sync, "link_googlebooks_titles"),
@@ -212,7 +218,9 @@ def test_run_sync_continues_after_failed_steps() -> None:
     ):
         report = sync.run_sync(client=client, log=lambda _: None)
 
-    assert report.warnings == ["DNB fehlgeschlagen"]
+    # The failing READO list does not stop the wishlist from being synced.
+    assert [call.kwargs["list_types"] for call in reado.call_args_list] == [("wishlist",), ("abandoned",)]
+    assert report.warnings == ["READO-Liste Abgebrochen fehlgeschlagen", "DNB fehlgeschlagen"]
     assert report.added_titles == ["New"]
     assert report.removed_titles == ["Finished"]
     remove.assert_called_once_with([], client)
