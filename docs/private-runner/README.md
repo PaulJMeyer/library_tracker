@@ -62,7 +62,7 @@ Setup:
 3. Open `https://api.telegram.org/bot<TOKEN>/getUpdates` in a browser. The number in `"chat":{"id":...}` is your `TELEGRAM_CHAT_ID`. If the result is empty, send the bot any message and reload.
 4. Locally, `library-tracker telegram-test` sends a test message using the same variables from `.env`.
 
-If sending fails, the workflow run fails, so GitHub notifies you by e-mail.
+If sending fails or a step reports a warning, the workflow run is marked as failed, so GitHub notifies you by e-mail.
 
 ## Rules for the public repository
 

@@ -231,7 +231,7 @@ Parsing functions are deterministic and do not issue network requests.
 
 ### `repositories/metadata.py`
 
-- query unresolved READO ISBNs
+- query unresolved ISBNs of active wishlist books (other lists need no metadata)
 - persist Open Library work resolutions
 - select Google Books fallbacks
 - persist Google Books metadata
@@ -276,7 +276,7 @@ Reads all requested READO lists **before** modifying SQLite, preventing a transi
 
 Orchestrates cached external metadata work:
 
-- Open Library resolution for unresolved READO ISBNs only
+- Open Library resolution for unresolved wishlist ISBNs only
 - Google Books fallback for Open Library `not_found` results only
 - Open Library edition sync for active wishlist works only
 

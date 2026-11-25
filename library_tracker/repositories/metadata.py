@@ -6,6 +6,16 @@ import sqlite3
 from library_tracker.models import GoogleBooksResolution, OpenLibraryEdition, OpenLibraryResolution
 
 
+# Metadata is only needed to find library editions of wishlist books, so books
+# that are only on TBR/reading/completed/abandoned lists are not looked up.
+ON_ACTIVE_WISHLIST = """
+    EXISTS (
+        SELECT 1 FROM reado_list_memberships AS wl
+        WHERE wl.isbn13 = {column} AND wl.list_type = 'wishlist' AND wl.is_active = 1
+    )
+"""
+
+
 def get_unresolved_reado_isbns(connection: sqlite3.Connection) -> list[str]:
     return [
         str(row[0])
@@ -14,7 +24,9 @@ def get_unresolved_reado_isbns(connection: sqlite3.Connection) -> list[str]:
             SELECT rb.isbn13
             FROM reado_books AS rb
             LEFT JOIN bibliographic_resolutions AS br ON br.isbn13 = rb.isbn13
-            WHERE br.isbn13 IS NULL
+            WHERE br.isbn13 IS NULL AND """
+            + ON_ACTIVE_WISHLIST.format(column="rb.isbn13")
+            + """
             ORDER BY rb.isbn13
             """
         )
@@ -72,6 +84,9 @@ def get_googlebooks_fallback_isbns(connection: sqlite3.Connection) -> list[str]:
             WHERE br.source = 'openlibrary'
               AND br.status = 'not_found'
               AND gbr.isbn13 IS NULL
+              AND """
+            + ON_ACTIVE_WISHLIST.format(column="br.isbn13")
+            + """
             ORDER BY br.isbn13
             """
         )
@@ -234,6 +249,9 @@ def get_title_link_candidates(
           AND br.status = 'not_found'
           AND gbr.status = 'found'
           AND otl.isbn13 IS NULL
+          AND """
+        + ON_ACTIVE_WISHLIST.format(column="br.isbn13")
+        + """
         ORDER BY br.isbn13
         """
     ).fetchall()

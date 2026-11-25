@@ -16,8 +16,13 @@ from library_tracker.models import (
 )
 
 CENTRAL_BRANCH_KEYWORD = "10-Zentralbibliothek"
-# Branches whose copies cannot be ordered to the central library (e.g. the prison library).
-NOT_ORDERABLE_BRANCH_KEYWORDS = ("JVA", "nicht online")
+# Locations whose copies cannot be borrowed or ordered: the prison library and
+# reference-only collections ("Präsenzbestand").
+NOT_LENDABLE_BRANCH_KEYWORDS = ("JVA", "nicht online", "Präsenzbestand")
+
+
+def is_lendable_location(copy: Copy) -> bool:
+    return not any(keyword in copy["branch"] for keyword in NOT_LENDABLE_BRANCH_KEYWORDS)
 DATE_PATTERN = re.compile(r"\b\d{2}\.\d{2}\.\d{4}\b")
 
 
@@ -89,7 +94,7 @@ def is_orderable(copy: Copy) -> bool:
     return (
         not copy["is_central"]
         and copy["status"] in {"bestellbar", "ausleihbar"}
-        and not any(keyword in copy["branch"] for keyword in NOT_ORDERABLE_BRANCH_KEYWORDS)
+        and is_lendable_location(copy)
     )
 
 
@@ -98,7 +103,10 @@ def classify_item(copies: list[Copy]) -> CopyStatus:
         return "unbekannt"
     if any(copy["status"] == "bestellt" for copy in copies):
         return "bestellt"
-    if any(copy["is_central"] and copy["status"] == "ausleihbar" for copy in copies):
+    if any(
+        copy["is_central"] and copy["status"] == "ausleihbar" and is_lendable_location(copy)
+        for copy in copies
+    ):
         return "ausleihbar"
     if any(is_orderable(copy) for copy in copies):
         return "bestellbar"

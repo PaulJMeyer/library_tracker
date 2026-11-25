@@ -2,7 +2,15 @@
 
 `library-tracker` is a private Python application that connects reading data from **READO** with the online catalog of **Stadtbibliothek Bremen**.
 
-The project started as an authenticated scraper for the library's personal wish list and has grown into a small integration pipeline: READO lists are synchronized to SQLite, ISBNs are resolved to works and editions, German print ISBNs can be matched against the Bremen catalog, and library availability history is stored locally.
+Once a day it reads the READO wishlist, finds German print editions of every wished-for book, searches them in the Bremen catalog, keeps the library *Merkliste* in sync (adds found books, removes books that were read or abandoned) and sends a short Telegram overview of what can be borrowed in the central library or ordered from another branch.
+
+```text
+READO lists ──► metadata (Open Library, Google Books, DNB) ──► German ISBN candidates
+                                                                   │
+Telegram ◄── availability overview ◄── library Merkliste ◄── Bremen catalog search
+```
+
+The project started as an authenticated scraper for the library's personal wish list and grew step by step into this pipeline. Personal data never touches the public repository: the daily run happens in a separate private repository (see [Automation](#automation)).
 
 ## Current capabilities
 
@@ -12,7 +20,7 @@ The project started as an authenticated scraper for the library's personal wish 
 - read the personal library wish list across multiple pages
 - parse titles, physical copies, branches, status and due dates
 - distinguish Zentralbibliothek from branch libraries
-- classify titles as `ausleihbar`, `bestellbar`, `entliehen`, `bestellt` or `unbekannt`
+- classify titles as `ausleihbar` (free copy in the Zentralbibliothek), `bestellbar` (free copy in another branch that can be ordered; prison library and reference-only copies excluded), `entliehen`, `bestellt` or `unbekannt`
 - read current loans from the account page
 - store copy metadata and availability snapshots in SQLite
 - search the catalog by ISBN, incrementally across runs (every searched ISBN is stored)
@@ -171,31 +179,17 @@ The public repository only runs CI (`mypy` and `pytest`) on pushes and pull requ
 
 Scheduled runs that use personal credentials or produce personal data (library scrape, SQLite database, results overview) run in a separate private repository, so logs and artifacts are never public. See [docs/private-runner](docs/private-runner/README.md) for the workflow template and setup.
 
-The scheduled pipeline (`sync --telegram`) synchronizes READO, resolves only new metadata, searches the catalog incrementally, adds found books to the Merkliste and sends a Telegram overview. It also removes books from the Merkliste once they move to a finished READO list. Next step: a catalog title/author search with safeguards for books without a matching ISBN.
+The scheduled pipeline (`sync --telegram`) runs these steps once a day; every step is cached, so a normal run only does new work:
 
-## Project goal
+1. read the READO lists (each list separately, one failing list does not block the others)
+2. resolve metadata and editions for new wishlist books only
+3. search the catalog for up to 15 not yet searched ISBNs per wishlist book
+4. read the library Merkliste
+5. remove books that moved to a finished READO list
+6. add newly found wishlist books
+7. send the Telegram overview (available, orderable, added, removed, warnings)
 
-The intended end state is:
-
-```text
-READO
-  ↓
-wishlist / tbr / reading / completed
-  ↓
-work + edition cache
-  ↓
-German print ISBN candidates
-  ↓
-Stadtbibliothek Bremen catalog
-  ↓
-library wishlist / availability state
-  ↓
-change detection
-  ↓
-mobile-friendly update (for example e-mail)
-```
-
-Books that move from the READO wishlist into TBR, reading or completed should no longer be treated as library-wishlist candidates. Bibliographic data should remain cached so it does not need to be fetched again.
+Planned features are listed in the [roadmap](ROADMAP.md).
 
 ## Safety and scope
 

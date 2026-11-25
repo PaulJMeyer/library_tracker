@@ -131,3 +131,6 @@ def test_prison_library_copies_are_not_orderable() -> None:
     jva = copy("Bibliothek i.d. JVA nicht online")
     assert classify_item([copy("10-Zentralbibliothek", "entliehen"), jva]) == "entliehen"  # type: ignore[list-item]
     assert classify_item([jva, copy("Vahr")]) == "bestellbar"  # type: ignore[list-item]
+    reference = copy("Krimibibliothek Präsenzbestand")
+    assert classify_item([reference]) == "entliehen"  # type: ignore[list-item]
+    assert classify_item([copy("10-Zentralbibliothek Präsenzbestand")]) == "entliehen"  # type: ignore[list-item]
