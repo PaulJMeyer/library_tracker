@@ -237,3 +237,24 @@ def test_old_library_matches_table_is_migrated(tmp_path: Path) -> None:
         "SELECT reado_isbn, catalog_title, memorize_status FROM library_matches"
     ).fetchall() == [("978", "T", "needs_review")]
     connection.close()
+
+
+def test_exact_reado_isbn_is_added_even_if_it_is_a_volume(db: Path) -> None:
+    from library_tracker.repositories.library_matches import save_library_match
+    from library_tracker.services.library_matching import add_matches_to_merkliste
+
+    connection = get_connection(db)
+    save_library_match(connection, "9782222222222", "9782222222222", "reado", "now")
+    connection.close()
+
+    client = Mock(spec=LibraryClient)
+    client.search_catalog_by_isbn.return_value = ["https://opac/hit/1"]
+    client.get_page.return_value = (
+        SINGLE_HIT.replace("Der Adept des Assassinen", "Die Weitseher, Band 1"),
+        BASE,
+    )
+
+    results = add_matches_to_merkliste([], client, progress=lambda _: None)
+
+    assert results == [("9782222222222", "Die Weitseher, Band 1", "added")]
+    client.add_to_memorize_list.assert_called_once()

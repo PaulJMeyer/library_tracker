@@ -193,7 +193,8 @@ def add_matches_to_merkliste(
     Uses only the catalog's 'in die Merkliste' link (never orders or paid reservations)
     and skips titles that are already on the Merkliste.
     Returns [(reado_isbn, catalog_title, status)] with status added/already_listed/failed/
-    needs_review (a single volume of a multi-volume edition, not added).
+    needs_review (an alternative edition that is a single volume of a multi-volume
+    edition, not added).
     """
     known = {normalize_title(title) for title in existing_titles}
     results: list[tuple[str, str, str]] = []
@@ -215,7 +216,9 @@ def add_matches_to_merkliste(
                         status = "already_listed"
                     elif memorize_url is None:
                         status = "failed"
-                    elif is_single_volume(title):
+                    elif matched_isbn != reado_isbn and is_single_volume(title):
+                        # Only alternative editions are checked: the exact READO ISBN
+                        # (e.g. "Band 1" of a series) is what the user asked for.
                         status = "needs_review"
                     else:
                         client.add_to_memorize_list(memorize_url)

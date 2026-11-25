@@ -90,7 +90,7 @@ python -m library_tracker merkliste-add      # add found books to the library Me
 python -m library_tracker match-report
 ```
 
-`library-match` checks one active READO wishlist entry and stops at the first catalog hit among its prioritized ISBN candidates. `match-books` works through all active wishlist books, stores every searched ISBN in `catalog_searches` and continues with the next ISBNs on the following run, so books with many editions are covered over several runs. ISBNs without a hit are searched again after 30 days. `merkliste-add` skips titles that are already on the Merkliste and retries failed additions on the next run. A hit that is a single volume of a multi-volume edition ("Band 3", "Bd. 2", "Vol. 1") is not added but reported for manual review. Fully loaned Merkliste entries are no longer removed automatically.
+`library-match` checks one active READO wishlist entry and stops at the first catalog hit among its prioritized ISBN candidates. `match-books` works through all active wishlist books, stores every searched ISBN in `catalog_searches` and continues with the next ISBNs on the following run, so books with many editions are covered over several runs. ISBNs without a hit are searched again after 30 days. `merkliste-add` skips titles that are already on the Merkliste and retries failed additions on the next run. If the hit is an alternative edition (not the exact READO ISBN) and a single volume of a multi-volume edition ("Band 3", "Bd. 2", "Vol. 1"), it is not added but reported for manual review. Fully loaned Merkliste entries are no longer removed automatically.
 
 ## Architecture
 
