@@ -17,6 +17,7 @@ library_tracker/
 │   ├── output.py
 │   ├── clients/
 │   │   ├── __init__.py
+│   │   ├── dnb.py
 │   │   ├── library.py
 │   │   ├── reado.py
 │   │   ├── openlibrary.py
@@ -41,6 +42,7 @@ library_tracker/
 │   ├── conftest.py
 │   ├── test_cli.py
 │   ├── test_database.py
+│   ├── test_dnb.py
 │   ├── test_entrypoint.py
 │   ├── test_googlebooks.py
 │   ├── test_telegram.py
@@ -174,6 +176,14 @@ Fallback metadata lookup:
 - exact ISBN verification against returned identifiers
 - retry/backoff for transient HTTP status codes
 - normalized metadata result structures
+
+### `clients/dnb.py`
+
+Deutsche Nationalbibliothek catalog via SRU (MARC21-xml):
+
+- ISBN lookup (`num=`) for title and authors
+- title/author search for German print editions, filtering out e-books, audio and other languages
+- ISBN-10 values are converted to ISBN-13
 
 ### `clients/telegram.py`
 

@@ -70,22 +70,33 @@ def _title_from_reado_url(url: str | None) -> str:
 def describe_metadata(state: dict[str, str | None]) -> tuple[str, str | None]:
     """Return (metadata source label, reason why no alternative editions exist)."""
     ol_status, ol_source = state["ol_status"], state["ol_source"]
+    dnb_found = state.get("dnb_status") == "found"
+    dnb_pending = state.get("dnb_status") is None
+
     if ol_status is None:
         return "nicht abgefragt", "Metadaten noch nicht abgefragt (openlibrary-resolve)"
     if ol_status == "resolved":
         label = "Open Library (über Titel)" if ol_source == "openlibrary_title" else "Open Library"
+        if dnb_found:
+            label += " + DNB"
         if state["editions"] is None:
             return label, "Ausgaben noch nicht geladen (openlibrary-editions)"
         return label, None
+    if dnb_found:
+        return "DNB", None
     if ol_status in {"ambiguous", "failed"}:
-        return "Open Library", f"Open Library: {ol_status}"
-    if state["gb_status"] is None:
+        label, reason = "Open Library", f"Open Library: {ol_status}"
+    elif state["gb_status"] is None:
         return "nicht gefunden", "Google-Books-Abfrage ausstehend (googlebooks-resolve)"
-    if state["gb_status"] != "found":
-        return "nicht gefunden", "Weder Open Library noch Google Books kennen die ISBN"
-    if state["title_link"] is None:
+    elif state["gb_status"] != "found":
+        label, reason = "nicht gefunden", "Weder Open Library, Google Books noch DNB kennen die ISBN"
+    elif state["title_link"] is None:
         return "nur Google Books", "Titelsuche ausstehend (openlibrary-link-titles)"
-    return "nur Google Books", "Kein passendes Open-Library-Werk über Titel/Autor"
+    else:
+        label, reason = "nur Google Books", "Kein passendes Open-Library-Werk über Titel/Autor"
+    if dnb_pending:
+        return label, "DNB-Abfrage ausstehend (dnb-editions)"
+    return label, reason
 
 
 def _print_progress(message: str) -> None:
@@ -120,7 +131,11 @@ def build_match_report(
         metadata, reason = describe_metadata(state)
         count = candidate_counts[isbn]
         if reason is None and count <= 1:
-            reason = "Keine weiteren deutschen oder englischen Ausgaben bekannt"
+            reason = (
+                "DNB-Abfrage ausstehend (dnb-editions)"
+                if state.get("dnb_status") is None
+                else "Keine weiteren deutschen oder englischen Ausgaben bekannt"
+            )
         match = None
         catalog_error: str | None = None
         if client is not None:
@@ -132,7 +147,12 @@ def build_match_report(
         rows.append(
             {
                 "isbn13": isbn,
-                "title": state["ol_title"] or state["gb_title"] or _title_from_reado_url(state["reado_url"]),
+                "title": (
+                    state["ol_title"]
+                    or state["gb_title"]
+                    or state.get("dnb_title")
+                    or _title_from_reado_url(state["reado_url"])
+                ),
                 "metadata": metadata,
                 "reason": reason,
                 "candidate_count": count,

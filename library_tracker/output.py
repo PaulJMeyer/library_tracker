@@ -174,6 +174,7 @@ CANDIDATE_SOURCE_LABELS = {
     "openlibrary_confirmed": "deutsche Druckausgabe",
     "openlibrary_unknown": "deutsche Ausgabe, Format unbekannt",
     "openlibrary_english": "englische Ausgabe",
+    "dnb": "deutsche Druckausgabe laut DNB",
 }
 
 

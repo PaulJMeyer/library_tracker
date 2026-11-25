@@ -121,6 +121,23 @@ CREATE TABLE IF NOT EXISTS openlibrary_title_links (
     FOREIGN KEY (isbn13) REFERENCES reado_books(isbn13) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS dnb_lookups (
+    isbn13 TEXT PRIMARY KEY,
+    status TEXT NOT NULL CHECK (status IN ('found', 'not_found')),
+    title TEXT,
+    authors_json TEXT NOT NULL,
+    searched_at TEXT NOT NULL,
+    FOREIGN KEY (isbn13) REFERENCES reado_books(isbn13) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS dnb_editions (
+    isbn13 TEXT NOT NULL,
+    edition_isbn TEXT NOT NULL,
+    title TEXT NOT NULL,
+    PRIMARY KEY (isbn13, edition_isbn),
+    FOREIGN KEY (isbn13) REFERENCES reado_books(isbn13) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS openlibrary_edition_syncs (
     work_key TEXT PRIMARY KEY,
     synced_at TEXT NOT NULL,

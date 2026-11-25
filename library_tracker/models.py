@@ -14,6 +14,7 @@ LibraryIsbnCandidateSource = Literal[
     "openlibrary_confirmed",
     "openlibrary_unknown",
     "openlibrary_english",
+    "dnb",
 ]
 
 

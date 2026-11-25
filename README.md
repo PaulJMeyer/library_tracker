@@ -38,11 +38,15 @@ List membership is stored separately from the bibliographic book cache, so movin
 - editions without a language tag count as German when their ISBN starts with 978-3
 - ISBN-10-only editions get a derived ISBN-13
 - Google-Books-only ISBNs are linked to an Open Library work by title/author search
+- the Deutsche Nationalbibliothek (public SRU interface, no key) is searched by ISBN and by
+  title/author for German print editions, which covers German titles and translations that
+  Open Library and Google Books miss
 - catalog ISBN candidates are prioritized as:
   1. original READO ISBN
-  2. confirmed German print edition
-  3. German edition with unknown physical format
-  4. English edition
+  2. confirmed German print edition (Open Library)
+  3. German print edition (DNB)
+  4. German edition with unknown physical format
+  5. English edition
 
 A real end-to-end match is already verified where the original READO ISBN was not found in Bremen but an alternative German edition of the same work was.
 
@@ -69,6 +73,7 @@ python -m library_tracker googlebooks-resolve
 python -m library_tracker openlibrary-link-titles     # title/author search for Google-Books-only ISBNs
 python -m library_tracker openlibrary-editions
 python -m library_tracker openlibrary-editions --refresh   # reload editions after parser improvements
+python -m library_tracker dnb-editions          # German print editions from the Deutsche Nationalbibliothek
 
 # Bremen catalog
 python -m library_tracker library-search <isbn>

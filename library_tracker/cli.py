@@ -4,6 +4,7 @@ import argparse
 from collections import Counter
 from collections.abc import Sequence
 
+from library_tracker.clients.dnb import DnbError
 from library_tracker.clients.googlebooks import GoogleBooksError
 from library_tracker.clients.library import LibraryClientError
 from library_tracker.clients.openlibrary import OpenLibraryError
@@ -27,6 +28,7 @@ from library_tracker.services.library_matching import (
 from library_tracker.services.library_scrape import scrape_library
 from library_tracker.services.metadata import (
     link_googlebooks_titles,
+    lookup_dnb_editions,
     resolve_googlebooks,
     resolve_openlibrary,
     sync_openlibrary_editions,
@@ -60,6 +62,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     commands.add_parser("openlibrary-resolve", help="Resolve uncached READO ISBNs.")
     commands.add_parser("googlebooks-resolve", help="Resolve Open Library fallback ISBNs.")
+    commands.add_parser(
+        "dnb-editions",
+        help="Find German print editions in the Deutsche Nationalbibliothek.",
+    )
     commands.add_parser(
         "openlibrary-link-titles",
         help="Find Open Library works by title/author for Google-Books-only ISBNs.",
@@ -176,6 +182,18 @@ def _run_openlibrary_link_titles() -> int:
     return 0
 
 
+def _run_dnb_editions() -> int:
+    results, failed = lookup_dnb_editions()
+    print(f"Wishlist books looked up in DNB: {len(results)}")
+    print(f"Found in DNB: {sum(found for _, found, _ in results)}")
+    print(f"German print editions cached: {sum(count for _, _, count in results)}")
+    for isbn, found, count in results:
+        print(f"{isbn}: {'found' if found else 'not found'}, {count} edition(s)")
+    if failed:
+        print(f"Failed (will be retried next run): {', '.join(failed)}")
+    return 0
+
+
 def _run_match_report(*, search: bool) -> int:
     print(format_match_report(build_match_report(search=search)))
     return 0
@@ -263,6 +281,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run_openlibrary_resolve()
         if args.command == "googlebooks-resolve":
             return _run_googlebooks_resolve()
+        if args.command == "dnb-editions":
+            return _run_dnb_editions()
         if args.command == "openlibrary-link-titles":
             return _run_openlibrary_link_titles()
         if args.command == "openlibrary-editions":
@@ -279,6 +299,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         ReadoError,
         OpenLibraryError,
         GoogleBooksError,
+        DnbError,
         TelegramError,
     ) as exc:
         print(f"Error: {exc}")

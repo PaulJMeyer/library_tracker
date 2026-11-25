@@ -3,16 +3,19 @@ from __future__ import annotations
 from datetime import UTC, datetime
 import time
 
+from library_tracker.clients.dnb import DnbClient, DnbError
 from library_tracker.clients.googlebooks import GoogleBooksClient
 from library_tracker.clients.openlibrary import OpenLibraryClient
 from library_tracker.config import require_env
 from library_tracker.database import get_connection, initialize_database
 from library_tracker.models import GoogleBooksResolution, OpenLibraryResolution
 from library_tracker.repositories.metadata import (
+    get_dnb_lookup_candidates,
     get_googlebooks_fallback_isbns,
     get_title_link_candidates,
     get_unresolved_reado_isbns,
     get_unsynced_wishlist_work_keys,
+    save_dnb_lookup,
     save_googlebooks_resolutions,
     save_openlibrary_editions,
     save_openlibrary_resolutions,
@@ -92,5 +95,50 @@ def sync_openlibrary_editions(*, refresh: bool = False) -> list[tuple[str, int]]
             summary.append((work_key, len(editions)))
             time.sleep(0.5)
         return summary
+    finally:
+        connection.close()
+
+
+def lookup_dnb_editions(
+    client: DnbClient | None = None,
+) -> tuple[list[tuple[str, bool, int]], list[str]]:
+    """Find German print editions in the DNB for wishlist books.
+
+    Returns ([(isbn, found, edition_count)], [isbns that failed and will be retried]).
+    """
+    connection = get_connection()
+    try:
+        initialize_database(connection)
+        candidates = get_dnb_lookup_candidates(connection)
+        client = client or DnbClient()
+        results: list[tuple[str, bool, int]] = []
+        failed: list[str] = []
+        for isbn, known_title, known_authors in candidates:
+            try:
+                record = client.lookup_isbn(isbn)
+                title = record.title if record else known_title
+                authors = (record.authors if record else []) or known_authors
+                editions: dict[str, str] = {}
+                if record and record.is_print and record.is_german:
+                    editions.update({edition: record.title for edition in record.isbns})
+                if title and authors:
+                    for found in client.find_german_print_editions(title, authors):
+                        for edition in found.isbns:
+                            editions.setdefault(edition, found.title)
+            except DnbError:
+                failed.append(isbn)
+                continue
+            editions.pop(isbn, None)
+            save_dnb_lookup(
+                connection,
+                isbn,
+                title=title,
+                authors=authors,
+                editions=sorted(editions.items()),
+                found=record is not None or bool(editions),
+                searched_at=_now(),
+            )
+            results.append((isbn, record is not None or bool(editions), len(editions)))
+        return results, failed
     finally:
         connection.close()

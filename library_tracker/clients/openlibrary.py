@@ -74,10 +74,18 @@ def authors_match(wanted: list[str], found: object) -> bool:
         return False
     found_text = " ".join(str(name) for name in found).casefold()
     return any(
-        (last := name.replace(",", " ").split()[-1].casefold()) and last in found_text
+        (last := surname(name).casefold()) and last in found_text
         for name in wanted
         if name.strip()
     )
+
+
+def surname(name: str) -> str:
+    """'Harari, Yuval Noah' and 'Yuval Noah Harari' both -> 'Harari'."""
+    if "," in name:
+        return name.split(",", 1)[0].strip()
+    parts = name.split()
+    return parts[-1] if parts else ""
 
 
 class OpenLibraryError(RuntimeError):

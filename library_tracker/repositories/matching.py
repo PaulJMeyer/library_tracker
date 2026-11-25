@@ -43,10 +43,13 @@ def get_wishlist_isbn_candidates(
         (reado_isbn,),
     ).fetchall()
 
+    buckets: dict[LibraryIsbnCandidateSource, list[str]] = {
+        "openlibrary_confirmed": [],
+        "dnb": [],
+        "openlibrary_unknown": [],
+        "openlibrary_english": [],
+    }
     for isbn, language, print_status in rows:
-        isbn = str(isbn)
-        if isbn in seen:
-            continue
         source: LibraryIsbnCandidateSource
         if language != "de":
             source = "openlibrary_english"
@@ -54,8 +57,23 @@ def get_wishlist_isbn_candidates(
             source = "openlibrary_confirmed"
         else:
             source = "openlibrary_unknown"
-        candidates.append({"isbn": isbn, "source": source})
-        seen.add(isbn)
+        buckets[source].append(str(isbn))
+
+    buckets["dnb"] = [
+        str(row[0])
+        for row in connection.execute(
+            "SELECT edition_isbn FROM dnb_editions WHERE isbn13 = ? ORDER BY edition_isbn",
+            (reado_isbn,),
+        )
+    ]
+
+    # Priority: confirmed German print (Open Library), German print (DNB),
+    # German with unknown format, English.
+    for source, isbns in buckets.items():
+        for isbn in isbns:
+            if isbn not in seen:
+                candidates.append({"isbn": isbn, "source": source})
+                seen.add(isbn)
 
     return candidates
 
@@ -75,7 +93,9 @@ def get_wishlist_metadata_states(
             CASE WHEN oes.work_key IS NULL THEN NULL ELSE 'synced' END AS editions,
             gbr.status AS gb_status,
             gbv.title AS gb_title,
-            CASE WHEN otl.isbn13 IS NULL THEN NULL ELSE 'searched' END AS title_link
+            CASE WHEN otl.isbn13 IS NULL THEN NULL ELSE 'searched' END AS title_link,
+            dl.status AS dnb_status,
+            dl.title AS dnb_title
         FROM reado_list_memberships AS rlm
         JOIN reado_books AS rb ON rb.isbn13 = rlm.isbn13
         LEFT JOIN bibliographic_resolutions AS br ON br.isbn13 = rb.isbn13
@@ -84,6 +104,7 @@ def get_wishlist_metadata_states(
         LEFT JOIN google_books_resolutions AS gbr ON gbr.isbn13 = rb.isbn13
         LEFT JOIN google_books_volumes AS gbv ON gbv.volume_id = gbr.volume_id
         LEFT JOIN openlibrary_title_links AS otl ON otl.isbn13 = rb.isbn13
+        LEFT JOIN dnb_lookups AS dl ON dl.isbn13 = rb.isbn13
         WHERE rlm.list_type = 'wishlist' AND rlm.is_active = 1
         ORDER BY rb.isbn13
         """
