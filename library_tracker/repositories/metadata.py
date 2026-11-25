@@ -280,3 +280,68 @@ def save_title_link(
             """,
             (work_key, searched_at, isbn),
         )
+
+
+def get_dnb_lookup_candidates(
+    connection: sqlite3.Connection,
+) -> list[tuple[str, str | None, list[str]]]:
+    """Active wishlist books not yet looked up in the DNB, with any known title/authors."""
+    rows = connection.execute(
+        """
+        SELECT rlm.isbn13, COALESCE(ow.title, gbv.title), gbv.authors_json
+        FROM reado_list_memberships AS rlm
+        LEFT JOIN dnb_lookups AS dl ON dl.isbn13 = rlm.isbn13
+        LEFT JOIN bibliographic_resolutions AS br ON br.isbn13 = rlm.isbn13
+        LEFT JOIN openlibrary_works AS ow ON ow.work_key = br.work_key
+        LEFT JOIN google_books_resolutions AS gbr ON gbr.isbn13 = rlm.isbn13
+        LEFT JOIN google_books_volumes AS gbv ON gbv.volume_id = gbr.volume_id
+        WHERE rlm.list_type = 'wishlist'
+          AND rlm.is_active = 1
+          AND dl.isbn13 IS NULL
+        ORDER BY rlm.isbn13
+        """
+    ).fetchall()
+    return [
+        (
+            str(isbn),
+            None if title is None else str(title),
+            [str(a) for a in json.loads(authors_json)] if authors_json else [],
+        )
+        for isbn, title, authors_json in rows
+    ]
+
+
+def save_dnb_lookup(
+    connection: sqlite3.Connection,
+    isbn: str,
+    *,
+    title: str | None,
+    authors: list[str],
+    editions: list[tuple[str, str]],
+    found: bool,
+    searched_at: str,
+) -> None:
+    with connection:
+        connection.execute(
+            """
+            INSERT INTO dnb_lookups (isbn13, status, title, authors_json, searched_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(isbn13) DO UPDATE SET
+                status = excluded.status,
+                title = excluded.title,
+                authors_json = excluded.authors_json,
+                searched_at = excluded.searched_at
+            """,
+            (
+                isbn,
+                "found" if found else "not_found",
+                title,
+                json.dumps(authors, ensure_ascii=False),
+                searched_at,
+            ),
+        )
+        connection.execute("DELETE FROM dnb_editions WHERE isbn13 = ?", (isbn,))
+        connection.executemany(
+            "INSERT OR IGNORE INTO dnb_editions (isbn13, edition_isbn, title) VALUES (?, ?, ?)",
+            [(isbn, edition_isbn, edition_title) for edition_isbn, edition_title in editions],
+        )

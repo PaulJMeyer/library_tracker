@@ -90,6 +90,8 @@ def _state(**overrides: str | None) -> dict[str, str | None]:
         "gb_status": None,
         "gb_title": None,
         "title_link": None,
+        "dnb_status": "not_found",
+        "dnb_title": None,
     }
     state.update(overrides)
     return state
@@ -107,8 +109,14 @@ def test_describe_metadata_explains_missing_steps() -> None:
         describe_metadata(_state(ol_status="resolved", ol_source="openlibrary"))[1]
     )
     assert describe_metadata(_state(ol_status="not_found", gb_status="not_found"))[1] == (
-        "Weder Open Library noch Google Books kennen die ISBN"
+        "Weder Open Library, Google Books noch DNB kennen die ISBN"
     )
+    assert describe_metadata(
+        _state(ol_status="not_found", gb_status="not_found", dnb_status=None)
+    )[1] == "DNB-Abfrage ausstehend (dnb-editions)"
+    assert describe_metadata(
+        _state(ol_status="not_found", gb_status="not_found", dnb_status="found")
+    ) == ("DNB", None)
     assert "openlibrary-link-titles" in str(
         describe_metadata(_state(ol_status="not_found", gb_status="found"))[1]
     )
@@ -193,3 +201,40 @@ def test_build_match_report_continues_after_catalog_error() -> None:
     assert rows[0]["catalog_error"] == "Library request failed (Timeout)"
     assert not rows[0]["catalog_checked"]
     assert rows[1]["match"] == {"isbn": "x", "source": "reado"}
+
+
+def test_lookup_dnb_editions_combines_isbn_and_title_search(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    from library_tracker.clients.dnb import DnbClient, DnbError, DnbRecord
+    from library_tracker.database import get_connection, initialize_database
+    from library_tracker.services.metadata import lookup_dnb_editions
+
+    db_path = tmp_path / "db.sqlite"
+    connection = get_connection(db_path)
+    initialize_database(connection)
+    for isbn in ("9781111111111", "9782222222222", "9783333333333"):
+        connection.execute("INSERT INTO reado_books VALUES (?, 'url', 'f', 'l')", (isbn,))
+        connection.execute(
+            "INSERT INTO reado_list_memberships VALUES (?, 'wishlist', 'f', 'l', 1)", (isbn,)
+        )
+    connection.commit()
+    connection.close()
+
+    client = Mock(spec=DnbClient)
+    client.lookup_isbn.side_effect = [
+        DnbRecord("Beispielroman", ["Muster, Erika"], ["ger"], ["9781111111111"]),
+        None,
+        DnbError("down"),
+    ]
+    client.find_german_print_editions.return_value = [
+        DnbRecord("Beispielroman", ["Muster, Erika"], ["ger"], ["9783499626029"])
+    ]
+
+    with patch(
+        "library_tracker.services.metadata.get_connection",
+        side_effect=lambda: get_connection(db_path),
+    ):
+        results, failed = lookup_dnb_editions(client)
+
+    assert results == [("9781111111111", True, 1), ("9782222222222", False, 0)]
+    assert failed == ["9783333333333"]
+    client.find_german_print_editions.assert_called_once_with("Beispielroman", ["Muster, Erika"])

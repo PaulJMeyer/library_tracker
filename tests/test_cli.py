@@ -96,3 +96,9 @@ def test_metadata_and_report_commands_route_flags() -> None:
     with patch("library_tracker.cli._run_openlibrary_link_titles", return_value=0) as command:
         assert main(["openlibrary-link-titles"]) == 0
     command.assert_called_once_with()
+
+
+def test_dnb_editions_routes() -> None:
+    with patch("library_tracker.cli._run_dnb_editions", return_value=0) as command:
+        assert main(["dnb-editions"]) == 0
+    command.assert_called_once_with()

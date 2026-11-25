@@ -268,3 +268,60 @@ def test_failed_title_link_is_not_retried(connection: sqlite3.Connection) -> Non
     )
     save_title_link(connection, "9781111111111", None, "later")
     assert get_title_link_candidates(connection) == []
+
+
+def test_dnb_editions_become_candidates_after_confirmed_openlibrary(
+    connection: sqlite3.Connection,
+) -> None:
+    from library_tracker.repositories.metadata import get_dnb_lookup_candidates, save_dnb_lookup
+
+    insert_reado_book(connection)
+    connection.execute(
+        "INSERT INTO reado_list_memberships VALUES (?, 'wishlist', 'first', 'last', 1)",
+        ("9781111111111",),
+    )
+    assert get_dnb_lookup_candidates(connection) == [("9781111111111", None, [])]
+
+    _resolve(connection, "9781111111111", "resolved", "OL123W")
+    save_openlibrary_editions(
+        connection,
+        "OL123W",
+        [
+            {
+                "edition_key": "OL1M",
+                "work_key": "OL123W",
+                "title": "Test Buch",
+                "languages": ["de"],
+                "physical_format": "Paperback",
+                "print_status": "confirmed",
+                "identifiers": [{"type": "ISBN_13", "identifier": "9783000000001"}],
+            },
+            {
+                "edition_key": "OL2M",
+                "work_key": "OL123W",
+                "title": "Test Buch",
+                "languages": ["de"],
+                "physical_format": None,
+                "print_status": "unknown",
+                "identifiers": [{"type": "ISBN_13", "identifier": "9783000000002"}],
+            },
+        ],
+        "now",
+    )
+    save_dnb_lookup(
+        connection,
+        "9781111111111",
+        title="Test Buch",
+        authors=["Muster, Erika"],
+        editions=[("9783000000009", "Test Buch"), ("9783000000001", "Test Buch")],
+        found=True,
+        searched_at="now",
+    )
+
+    assert get_dnb_lookup_candidates(connection) == []
+    assert get_wishlist_isbn_candidates(connection, "9781111111111") == [
+        {"isbn": "9781111111111", "source": "reado"},
+        {"isbn": "9783000000001", "source": "openlibrary_confirmed"},
+        {"isbn": "9783000000009", "source": "dnb"},
+        {"isbn": "9783000000002", "source": "openlibrary_unknown"},
+    ]
