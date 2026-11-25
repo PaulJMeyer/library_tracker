@@ -63,8 +63,8 @@ def read_list(
     scroll_wait_ms: int = 700,
 ) -> list[ReadoListEntry]:
     parsed = urlparse(list_url)
-    if parsed.scheme != "https" or parsed.netloc != "reado.app":
-        raise ReadoError("Expected a public READO URL.")
+    if parsed.scheme != "https" or parsed.netloc not in {"reado.app", "www.reado.app"}:
+        raise ReadoError(f"Expected a public https://reado.app/... list URL, got host {parsed.netloc!r}.")
 
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=headless, channel="chromium")

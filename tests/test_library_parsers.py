@@ -114,3 +114,20 @@ def test_parse_catalog_hits() -> None:
     ) == [
         "https://opac.stabi-hb.de/webOPACClient/singleHit.do?methodToCall=activateTab&tab=showTitleActive"
     ]
+
+
+def test_prison_library_copies_are_not_orderable() -> None:
+    def copy(branch: str, status: str = "ausleihbar") -> dict[str, object]:
+        return {
+            "media_number": "1",
+            "signature": "",
+            "branch": branch,
+            "status_text": status,
+            "status": status,
+            "due_date": None,
+            "is_central": "Zentralbibliothek" in branch,
+        }
+
+    jva = copy("Bibliothek i.d. JVA nicht online")
+    assert classify_item([copy("10-Zentralbibliothek", "entliehen"), jva]) == "entliehen"  # type: ignore[list-item]
+    assert classify_item([jva, copy("Vahr")]) == "bestellbar"  # type: ignore[list-item]

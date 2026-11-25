@@ -23,5 +23,5 @@ def test_entries_from_hrefs_deduplicates() -> None:
 
 
 def test_read_list_rejects_wrong_url() -> None:
-    with pytest.raises(ReadoError, match="Expected a public READO URL"):
+    with pytest.raises(ReadoError, match="Expected a public https://reado.app"):
         read_list("https://example.com/list")

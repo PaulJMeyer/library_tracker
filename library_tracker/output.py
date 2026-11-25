@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 from library_tracker.clients.openlibrary import strip_sort_markers
+from library_tracker.parsers.library import is_orderable
 from library_tracker.models import (
     AvailabilitySnapshot,
     Copy,
@@ -142,10 +143,7 @@ def format_telegram_item(item: Item) -> str:
     if item["overall_status"] == "ausleihbar":
         places = _unique([_shelf(c["branch"]) for c in available if c["is_central"]])
     else:
-        places = _unique(
-            [_branch_name(c["branch"]) for c in item["copies"]
-             if not c["is_central"] and c["status"] in {"ausleihbar", "bestellbar"}]
-        )
+        places = _unique([_branch_name(c["branch"]) for c in item["copies"] if is_orderable(c)])
     suffix = f" <i>({html.escape(', '.join(places))})</i>" if places else ""
     return f"• {title}{suffix}"
 
