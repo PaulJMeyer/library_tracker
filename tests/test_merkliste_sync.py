@@ -128,8 +128,8 @@ def test_add_matches_to_merkliste_adds_skips_and_retries(db: Path) -> None:
     results = add_matches_to_merkliste(["Schon da"], client, progress=lambda _: None)
 
     assert results == [
-        ("9781111111111", "¬Der Adept des Assassinen", "added"),
-        ("9782222222222", "¬Schon da", "already_listed"),
+        ("9781111111111", "Der Adept des Assassinen", "added"),
+        ("9782222222222", "Schon da", "already_listed"),
     ]
     client.add_to_memorize_list.assert_called_once()
     # Both are done now; nothing left to add on the next run.

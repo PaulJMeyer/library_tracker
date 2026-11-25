@@ -213,7 +213,7 @@ def _run_match_report() -> int:
 def _run_match_books() -> int:
     summary = match_wishlist_books()
     print(
-        f"Unmatched wishlist books: {summary['books']} | ISBNs searched: {summary['searched']}"
+        f"Wishlist books without catalog hit (checked): {summary['books']} | ISBNs searched: {summary['searched']}"
         f" | new matches: {summary['new_matches']} | errors: {summary['errors']}"
     )
     return 0

@@ -15,7 +15,7 @@ from library_tracker.models import (
     LibraryMatchResult,
     MatchReportRow,
 )
-from library_tracker.clients.openlibrary import normalize_title
+from library_tracker.clients.openlibrary import normalize_title, strip_sort_markers
 from library_tracker.parsers.library import parse_single_hit
 from library_tracker.repositories.library_matches import (
     get_match_states,
@@ -200,7 +200,8 @@ def add_matches_to_merkliste(
                     status = "failed"
                 else:
                     html, page_url = client.get_page(hits[0])
-                    title, memorize_url = parse_single_hit(html, page_url)
+                    raw_title, memorize_url = parse_single_hit(html, page_url)
+                    title = strip_sort_markers(raw_title)
                     if normalize_title(title) in known:
                         status = "already_listed"
                     elif memorize_url is None:
