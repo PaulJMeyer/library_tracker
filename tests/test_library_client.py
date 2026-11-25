@@ -93,6 +93,20 @@ def test_get_all_memorize_pages_and_remove_entries() -> None:
     assert len(pages) == 1
     assert len(pages[0]["entries"]) == 3
 
+    full_page = response(
+        '<form id="MemorizeBean"><input name="CSId" value="csid"></form>'
+        + "".join(
+            f'<div class="row border-bottom"><input type="checkbox" value="u{i}">'
+            '<a href="/webOPACClient/availability.do?methodToCall=runMemorizeAvailability">x</a></div>'
+            for i in range(10)
+        )
+    )
+    # The OPAC repeats the last page past the end: stop instead of looping forever.
+    with patch("library_tracker.clients.library._get", return_value=full_page) as get:
+        pages = client.get_all_memorize_pages()
+    assert len(pages) == 1
+    assert get.call_count == 2
+
     page: MemorizePage = {
         "cur_pos": "1",
         "cs_id": "csid",

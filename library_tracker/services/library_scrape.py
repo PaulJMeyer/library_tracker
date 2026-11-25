@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+
 from library_tracker.clients.library import LibraryClient
 from library_tracker.database import get_connection, initialize_database
 from library_tracker.models import Item, MerklisteEntry, ScrapeResult
@@ -19,6 +21,7 @@ def scrape_library(client: LibraryClient | None = None) -> ScrapeResult:
     client = client or LibraryClient.login()
     pages = client.get_all_memorize_pages()
     total_entries = sum(len(page["entries"]) for page in pages)
+    print(f"   Merkliste: {total_entries} Einträge", file=sys.stderr, flush=True)
 
     visible_items: list[Item] = []
     scraped_items: list[Item] = []
@@ -32,6 +35,12 @@ def scrape_library(client: LibraryClient | None = None) -> ScrapeResult:
                 client.get_availability_page(entry["availability_link"])
             )
             scraped_items.append(item)
+            if len(scraped_items) % 10 == 0:
+                print(
+                    f"   {len(scraped_items)}/{total_entries} Verfügbarkeiten gelesen",
+                    file=sys.stderr,
+                    flush=True,
+                )
             entries.append({"title": item["title"], "uuid": entry["uuid"], "page": page})
             if item["overall_status"] != "entliehen":
                 visible_items.append(item)
