@@ -142,3 +142,54 @@ def test_build_match_report_without_catalog_search() -> None:
     assert rows[0]["reason"] == "Keine weiteren deutschen oder englischen Ausgaben bekannt"
     assert rows[1]["metadata"] == "nicht abgefragt"
     assert not rows[0]["catalog_checked"]
+
+
+def test_limit_candidates_caps_german_and_english() -> None:
+    from library_tracker.services.library_matching import limit_candidates
+
+    candidates = (
+        [{"isbn": "r", "source": "reado"}]
+        + [{"isbn": f"de{i}", "source": "openlibrary_unknown"} for i in range(20)]
+        + [{"isbn": f"en{i}", "source": "openlibrary_english"} for i in range(10)]
+    )
+    limited = limit_candidates(candidates)  # type: ignore[arg-type]
+
+    assert len(limited) == 15
+    assert limited[0]["isbn"] == "r"
+    assert [c["isbn"] for c in limited[-3:]] == ["en0", "en1", "en2"]
+
+
+def test_build_match_report_continues_after_catalog_error() -> None:
+    from library_tracker.clients.library import LibraryClientError
+    from library_tracker.services.library_matching import build_match_report
+
+    connection = Mock(spec=sqlite3.Connection)
+    states = [
+        _state(ol_status="resolved", ol_source="openlibrary", ol_title="Broken", editions="synced"),
+        _state(isbn13="9782222222222", ol_status="resolved", ol_source="openlibrary", ol_title="Works", editions="synced"),
+    ]
+    client = Mock(spec=LibraryClient)
+    with (
+        patch("library_tracker.services.library_matching.get_connection", return_value=connection),
+        patch("library_tracker.services.library_matching.initialize_database"),
+        patch(
+            "library_tracker.services.library_matching.get_wishlist_metadata_states",
+            return_value=states,
+        ),
+        patch(
+            "library_tracker.services.library_matching.get_wishlist_isbn_candidates",
+            return_value=[{"isbn": "x", "source": "reado"}],
+        ),
+        patch(
+            "library_tracker.services.library_matching.match_wishlist_book",
+            side_effect=[
+                LibraryClientError("Library request failed (Timeout)"),
+                {"reado_isbn": "9782222222222", "attempts": [], "match": {"isbn": "x", "source": "reado"}},
+            ],
+        ),
+    ):
+        rows = build_match_report(client=client, progress=lambda _: None)
+
+    assert rows[0]["catalog_error"] == "Library request failed (Timeout)"
+    assert not rows[0]["catalog_checked"]
+    assert rows[1]["match"] == {"isbn": "x", "source": "reado"}

@@ -125,3 +125,53 @@ def test_account_availability_and_catalog_requests() -> None:
         assert client.search_catalog_by_isbn("978-0-000-00010-5") == [hit_url]
     assert get.call_args.args[1] == CATALOG_SEARCH_URL
     assert get.call_args.kwargs["params"]["searchString[0]"] == "9780000000105"
+
+
+def test_get_retries_timeouts_then_succeeds() -> None:
+    from library_tracker.clients.library import _get
+
+    session = Mock(spec=requests.Session)
+    session.get.side_effect = [requests.Timeout(), response("ok")]
+    with patch("library_tracker.clients.library.time.sleep") as sleep:
+        assert _get(session, "https://example.com/search.do?x=1").text == "ok"
+    assert session.get.call_count == 2
+    assert sleep.call_count == 2  # request delay + one retry delay
+
+
+def test_get_reports_cause_after_retries() -> None:
+    from library_tracker.clients.library import _get
+
+    session = Mock(spec=requests.Session)
+    session.get.side_effect = requests.ConnectionError()
+    with (
+        patch("library_tracker.clients.library.time.sleep"),
+        pytest.raises(LibraryClientError, match=r"ConnectionError\): https://example.com/search.do$"),
+    ):
+        _get(session, "https://example.com/search.do?CSId=secret")
+    assert session.get.call_count == 3
+
+
+def test_get_retries_server_errors() -> None:
+    from library_tracker.clients.library import _get
+
+    session = Mock(spec=requests.Session)
+    session.get.side_effect = [response(status=503), response("ok")]
+    with patch("library_tracker.clients.library.time.sleep"):
+        assert _get(session, "https://example.com").text == "ok"
+
+
+def test_catalog_search_logs_in_again_after_failure() -> None:
+    client = LibraryClient(Mock(spec=requests.Session), "old-csid")
+    fresh = LibraryClient(Mock(spec=requests.Session), "new-csid")
+    hit_url = "https://opac.stabi-hb.de/webOPACClient/singleHit.do?identifier=1"
+    with (
+        patch(
+            "library_tracker.clients.library._get",
+            side_effect=[LibraryClientError("expired"), response("", url=hit_url)],
+        ) as get,
+        patch.object(LibraryClient, "login", return_value=fresh),
+    ):
+        assert client.search_catalog_by_isbn("9780000000105") == [hit_url]
+
+    assert client.cs_id == "new-csid"
+    assert get.call_args.kwargs["params"]["CSId"] == "new-csid"

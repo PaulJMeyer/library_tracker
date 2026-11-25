@@ -1,10 +1,17 @@
 from __future__ import annotations
 
-from library_tracker.clients.library import LibraryClient
-from library_tracker.database import get_connection, initialize_database
 import re
+import sys
+from collections.abc import Callable
 
-from library_tracker.models import LibraryMatchAttempt, LibraryMatchResult, MatchReportRow
+from library_tracker.clients.library import LibraryClient, LibraryClientError
+from library_tracker.database import get_connection, initialize_database
+from library_tracker.models import (
+    LibraryIsbnCandidate,
+    LibraryMatchAttempt,
+    LibraryMatchResult,
+    MatchReportRow,
+)
 from library_tracker.repositories.matching import (
     get_wishlist_isbn_candidates,
     get_wishlist_metadata_states,
@@ -15,6 +22,17 @@ def search_catalog(isbn: str, client: LibraryClient | None = None) -> list[str]:
     return (client or LibraryClient.login()).search_catalog_by_isbn(isbn)
 
 
+MAX_GERMAN_CANDIDATES = 12
+MAX_ENGLISH_CANDIDATES = 3
+
+
+def limit_candidates(candidates: list[LibraryIsbnCandidate]) -> list[LibraryIsbnCandidate]:
+    """Keep catalog searches per book bounded; popular works have hundreds of editions."""
+    german = [c for c in candidates if c["source"] != "openlibrary_english"]
+    english = [c for c in candidates if c["source"] == "openlibrary_english"]
+    return german[:MAX_GERMAN_CANDIDATES] + english[:MAX_ENGLISH_CANDIDATES]
+
+
 def match_wishlist_book(
     reado_isbn: str,
     client: LibraryClient | None = None,
@@ -22,7 +40,7 @@ def match_wishlist_book(
     connection = get_connection()
     try:
         initialize_database(connection)
-        candidates = get_wishlist_isbn_candidates(connection, reado_isbn)
+        candidates = limit_candidates(get_wishlist_isbn_candidates(connection, reado_isbn))
     finally:
         connection.close()
 
@@ -70,17 +88,24 @@ def describe_metadata(state: dict[str, str | None]) -> tuple[str, str | None]:
     return "nur Google Books", "Kein passendes Open-Library-Werk über Titel/Autor"
 
 
+def _print_progress(message: str) -> None:
+    print(message, file=sys.stderr, flush=True)
+
+
 def build_match_report(
     *,
     search: bool = True,
     client: LibraryClient | None = None,
+    progress: Callable[[str], None] = _print_progress,
 ) -> list[MatchReportRow]:
     connection = get_connection()
     try:
         initialize_database(connection)
         states = get_wishlist_metadata_states(connection)
         candidate_counts = {
-            str(state["isbn13"]): len(get_wishlist_isbn_candidates(connection, str(state["isbn13"])))
+            str(state["isbn13"]): len(
+                limit_candidates(get_wishlist_isbn_candidates(connection, str(state["isbn13"])))
+            )
             for state in states
         }
     finally:
@@ -90,13 +115,20 @@ def build_match_report(
         client = client or LibraryClient.login()
 
     rows: list[MatchReportRow] = []
-    for state in states:
+    for index, state in enumerate(states, start=1):
         isbn = str(state["isbn13"])
         metadata, reason = describe_metadata(state)
         count = candidate_counts[isbn]
         if reason is None and count <= 1:
             reason = "Keine weiteren deutschen oder englischen Ausgaben bekannt"
-        match = match_wishlist_book(isbn, client)["match"] if client is not None else None
+        match = None
+        catalog_error: str | None = None
+        if client is not None:
+            progress(f"[{index}/{len(states)}] {isbn}: {count} ISBN(s) im Katalog suchen")
+            try:
+                match = match_wishlist_book(isbn, client)["match"]
+            except LibraryClientError as exc:
+                catalog_error = str(exc)
         rows.append(
             {
                 "isbn13": isbn,
@@ -104,7 +136,8 @@ def build_match_report(
                 "metadata": metadata,
                 "reason": reason,
                 "candidate_count": count,
-                "catalog_checked": client is not None,
+                "catalog_checked": client is not None and catalog_error is None,
+                "catalog_error": catalog_error,
                 "match": match,
             }
         )
