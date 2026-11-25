@@ -69,7 +69,12 @@ def _sync_list(list_type: ReadoListType) -> None:
     sync_lists(headless=True, list_types=(list_type,))
 
 
-def run_sync(*, client: LibraryClient | None = None, log: Callable[[str], None] = _log) -> SyncReport:
+def run_sync(
+    *,
+    client: LibraryClient | None = None,
+    fresh_login: Callable[[], LibraryClient] = LibraryClient.login,
+    log: Callable[[str], None] = _log,
+) -> SyncReport:
     report = SyncReport()
 
     # Each list on its own: one failing list (for example an empty one) must not
@@ -119,7 +124,16 @@ def run_sync(*, client: LibraryClient | None = None, log: Callable[[str], None] 
             report.warnings.append(f"{failed} Titel nicht auf die Merkliste gesetzt")
 
     if report.added_titles or report.removed_titles:
-        rescrape = report.step("Merkliste neu lesen", lambda: scrape_library(library))
-        if rescrape is not None:
+        # A fresh session: after adding or removing entries, paging through the
+        # Merkliste in the same OPAC session only returned the first page.
+        rescrape = report.step("Merkliste neu lesen", lambda: scrape_library(fresh_login()))
+        expected = scrape["total_entries"] - len(report.removed_titles) + len(report.added_titles)
+        if rescrape is not None and rescrape["total_entries"] >= expected:
             report.scrape = rescrape
+        elif rescrape is not None:
+            _log(
+                f"   Nur {rescrape['total_entries']} von mindestens {expected} Einträgen gelesen, "
+                "verwende die erste Lesung."
+            )
+            report.warnings.append("Merkliste nach dem Ergänzen unvollständig gelesen")
     return report
