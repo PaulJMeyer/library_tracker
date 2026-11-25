@@ -27,37 +27,46 @@ jobs:
       - name: Install library-tracker from the public repository
         run: python -m pip install "git+https://github.com/PaulJMeyer/library_tracker@master"
 
+      - name: Install Chromium for READO
+        run: python -m playwright install --with-deps chromium
+
       - name: Restore previous SQLite database
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           mkdir -p data
-          RUN_ID=$(gh run list \
-            --workflow daily.yml \
-            --status success \
-            --limit 1 \
-            --json databaseId \
-            --jq '.[0].databaseId')
+          # Newest non-expired database artifact, also from failed runs, so
+          # catalog search progress is kept even when one step failed.
+          RUN_ID=$(gh api "repos/$GH_REPO/actions/artifacts?name=library-tracker-db&per_page=20" \
+            --jq '[.artifacts[] | select(.expired == false)][0].workflow_run.id // empty')
 
           if [ -n "$RUN_ID" ]; then
-            gh run download "$RUN_ID" \
-              --name library-tracker-db \
-              --dir data \
-              || echo "No previous database artifact found."
+            gh run download "$RUN_ID" --name library-tracker-db --dir data
           else
-            echo "No previous successful workflow run found."
+            echo "No previous database artifact found, starting with an empty database."
           fi
 
-      - name: Run library scrape and send Telegram overview
+      # Full pipeline: READO lists -> metadata -> catalog search (a few new
+      # ISBNs per book and run) -> add found books to the Merkliste ->
+      # Telegram overview. Failing steps are reported as a warning in
+      # Telegram; the job then fails, but the database is still uploaded.
+      - name: Sync and send Telegram overview
         env:
           LIBRARY_USERNAME: ${{ secrets.LIBRARY_USERNAME }}
           LIBRARY_PASSWORD: ${{ secrets.LIBRARY_PASSWORD }}
+          READO_WISHLIST_URL: ${{ secrets.READO_WISHLIST_URL }}
+          READO_TBR_URL: ${{ secrets.READO_TBR_URL }}
+          READO_READING_URL: ${{ secrets.READO_READING_URL }}
+          READO_COMPLETED_URL: ${{ secrets.READO_COMPLETED_URL }}
+          OPENLIBRARY_CONTACT_EMAIL: ${{ secrets.OPENLIBRARY_CONTACT_EMAIL }}
+          GOOGLE_BOOKS_API_KEY: ${{ secrets.GOOGLE_BOOKS_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: library-tracker scrape --telegram
+        run: library-tracker sync --telegram
 
       - name: Upload SQLite database
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: library-tracker-db
@@ -66,8 +75,10 @@ jobs:
           if-no-files-found: error
 
       - name: Upload results overview
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: results
           path: results.md
           retention-days: 14
+          if-no-files-found: ignore

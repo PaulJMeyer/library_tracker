@@ -31,13 +31,15 @@ library_tracker/
 │   │   ├── availability.py
 │   │   ├── reado.py
 │   │   ├── metadata.py
-│   │   └── matching.py
+│   │   ├── matching.py
+│   │   └── library_matches.py
 │   └── services/
 │       ├── __init__.py
 │       ├── library_scrape.py
 │       ├── reado_sync.py
 │       ├── metadata.py
-│       └── library_matching.py
+│       ├── library_matching.py
+│       └── sync.py
 ├── tests/
 │   ├── conftest.py
 │   ├── test_cli.py
@@ -48,6 +50,7 @@ library_tracker/
 │   ├── test_telegram.py
 │   ├── test_isbn.py
 │   ├── test_library_client.py
+│   ├── test_merkliste_sync.py
 │   ├── test_library_parsers.py
 │   ├── test_openlibrary.py
 │   ├── test_output.py
@@ -242,6 +245,13 @@ Builds the prioritized ISBN list for one active READO wishlist book:
 
 Duplicates are removed and English editions remain cached but are not used for Bremen matching yet.
 
+### `repositories/library_matches.py`
+
+Stores the incremental catalog state:
+
+- `catalog_searches`: every ISBN searched in the Bremen catalog, with hit URL and time
+- `library_matches`: the first catalog hit per READO wishlist book and its Merkliste status (`added`, `already_listed`, `failed`)
+
 ## Services
 
 ### `services/library_scrape.py`
@@ -251,10 +261,9 @@ Orchestrates the legacy library-wishlist workflow:
 1. log in
 2. read all library wish-list pages
 3. load and parse availability
-4. remove fully checked-out library-wishlist entries
-5. persist all scraped copies/snapshots
-6. sort visible items
-7. load current loans
+4. persist all scraped copies/snapshots
+5. sort visible items (fully loaned titles are hidden, not removed)
+6. load current loans
 
 ### `services/reado_sync.py`
 
@@ -272,9 +281,13 @@ Orchestrates cached external metadata work:
 
 - direct catalog search for one ISBN
 - prioritized matching for one active READO wishlist book
-- stop after the first Bremen catalog hit
+- `match_wishlist_books`: incremental search for all wishlist books (15 new ISBNs per book and run, recheck misses after 30 days)
+- `add_matches_to_merkliste`: open the catalog hit and follow only its "in die Merkliste" link
+- `build_match_report`: diagnostic report from stored state
 
-This is the current verified end-to-end bridge between READO and the library.
+### `services/sync.py`
+
+Runs the full pipeline step by step (READO, metadata, catalog search, Merkliste read/add). A failing step is recorded as a warning and the remaining steps still run.
 
 ## SQLite data model
 

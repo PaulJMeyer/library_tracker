@@ -138,6 +138,23 @@ CREATE TABLE IF NOT EXISTS dnb_editions (
     FOREIGN KEY (isbn13) REFERENCES reado_books(isbn13) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS catalog_searches (
+    isbn TEXT PRIMARY KEY,
+    hit_url TEXT,
+    searched_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS library_matches (
+    reado_isbn TEXT PRIMARY KEY,
+    matched_isbn TEXT NOT NULL,
+    source TEXT NOT NULL,
+    matched_at TEXT NOT NULL,
+    catalog_title TEXT,
+    memorize_status TEXT CHECK (memorize_status IN ('added', 'already_listed', 'failed')),
+    memorize_checked_at TEXT,
+    FOREIGN KEY (reado_isbn) REFERENCES reado_books(isbn13) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS openlibrary_edition_syncs (
     work_key TEXT PRIMARY KEY,
     synced_at TEXT NOT NULL,

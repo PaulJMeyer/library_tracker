@@ -15,7 +15,8 @@ The project started as an authenticated scraper for the library's personal wish 
 - classify titles as `ausleihbar`, `bestellbar`, `entliehen`, `bestellt` or `unbekannt`
 - read current loans from the account page
 - store copy metadata and availability snapshots in SQLite
-- search the catalog by ISBN
+- search the catalog by ISBN, incrementally across runs (every searched ISBN is stored)
+- add wishlist books found in the catalog to the library Merkliste (free "in die Merkliste" link only)
 
 ### READO
 
@@ -53,7 +54,11 @@ A real end-to-end match is already verified where the original READO ISBN was no
 ## CLI
 
 ```bash
-# Existing library wish-list scrape + availability history
+# Full pipeline: READO -> metadata -> catalog -> Merkliste -> overview
+python -m library_tracker sync
+python -m library_tracker sync --telegram
+
+# Library wish-list scrape + availability history
 python -m library_tracker
 python -m library_tracker scrape
 python -m library_tracker scrape --telegram   # also send the overview via Telegram
@@ -78,13 +83,14 @@ python -m library_tracker dnb-editions          # German print editions from the
 # Bremen catalog
 python -m library_tracker library-search <isbn>
 python -m library_tracker library-match <reado_isbn>
+python -m library_tracker match-books        # search up to 15 new ISBNs per wishlist book
+python -m library_tracker merkliste-add      # add found books to the library Merkliste
 
-# Diagnose: why do wishlist books (not) match?
+# Diagnose: why do wishlist books (not) match? (reads stored state only)
 python -m library_tracker match-report
-python -m library_tracker match-report --no-catalog
 ```
 
-`library-match` checks one active READO wishlist entry and stops at the first catalog hit among its prioritized ISBN candidates.
+`library-match` checks one active READO wishlist entry and stops at the first catalog hit among its prioritized ISBN candidates. `match-books` works through all active wishlist books, stores every searched ISBN in `catalog_searches` and continues with the next ISBNs on the following run, so books with many editions are covered over several runs. ISBNs without a hit are searched again after 30 days. `merkliste-add` skips titles that are already on the Merkliste and retries failed additions on the next run. Fully loaned Merkliste entries are no longer removed automatically.
 
 ## Architecture
 
@@ -97,13 +103,16 @@ services/
  ├── library_scrape
  ├── reado_sync
  ├── metadata
- └── library_matching
+ ├── library_matching
+ └── sync (full pipeline)
  ↓
 clients/                    repositories/
  ├── library               ├── availability
  ├── reado                 ├── reado
  ├── openlibrary           ├── metadata
- └── googlebooks           └── matching
+ ├── googlebooks           ├── matching
+ ├── dnb                   └── library_matches
+ └── telegram
         ↓                         ↓
 external services               SQLite
 
@@ -159,7 +168,7 @@ The public repository only runs CI (`mypy` and `pytest`) on pushes and pull requ
 
 Scheduled runs that use personal credentials or produce personal data (library scrape, SQLite database, results overview) run in a separate private repository, so logs and artifacts are never public. See [docs/private-runner](docs/private-runner/README.md) for the workflow template and setup.
 
-The next automation milestone is a single scheduled pipeline that synchronizes READO, resolves only new metadata, matches wishlist books against the library, compares the result with the previous state and sends a concise update when something relevant changes.
+The scheduled pipeline (`sync --telegram`) synchronizes READO, resolves only new metadata, searches the catalog incrementally, adds found books to the Merkliste and sends a Telegram overview. Next steps: remove Merkliste entries when books leave the READO wishlist, and a catalog title/author search with safeguards for books without a matching ISBN.
 
 ## Project goal
 

@@ -41,9 +41,9 @@ def test_library_scrape_orchestrates_client_and_persistence() -> None:
         result = scrape_library(client)
 
     assert result["total_entries"] == 2
-    assert result["removed_count"] == 1
+    assert result["all_titles"] == ["Loaned", "Available"]
     assert [item["title"] for item in result["items"]] == ["Available"]
-    client.remove_entries.assert_called_once_with(page, ["loaned"])
+    client.remove_entries.assert_not_called()
     persist.assert_called_once_with(connection, [loaned, available])
     connection.close.assert_called_once_with()
 
@@ -122,36 +122,6 @@ def test_describe_metadata_explains_missing_steps() -> None:
     )
 
 
-def test_build_match_report_without_catalog_search() -> None:
-    from library_tracker.services.library_matching import build_match_report
-
-    connection = Mock(spec=sqlite3.Connection)
-    states = [
-        _state(ol_status="resolved", ol_source="openlibrary", ol_title="Example Book", editions="synced"),
-        _state(isbn13="9782222222222", reado_url="https://reado.app/de/book/other-book/9782222222222"),
-    ]
-    with (
-        patch("library_tracker.services.library_matching.get_connection", return_value=connection),
-        patch("library_tracker.services.library_matching.initialize_database"),
-        patch(
-            "library_tracker.services.library_matching.get_wishlist_metadata_states",
-            return_value=states,
-        ),
-        patch(
-            "library_tracker.services.library_matching.get_wishlist_isbn_candidates",
-            return_value=[{"isbn": "x", "source": "reado"}],
-        ),
-        patch("library_tracker.services.library_matching.LibraryClient") as client_class,
-    ):
-        rows = build_match_report(search=False)
-
-    client_class.login.assert_not_called()
-    assert [row["title"] for row in rows] == ["Example Book", "other book"]
-    assert rows[0]["reason"] == "Keine weiteren deutschen oder englischen Ausgaben bekannt"
-    assert rows[1]["metadata"] == "nicht abgefragt"
-    assert not rows[0]["catalog_checked"]
-
-
 def test_limit_candidates_caps_german_and_english() -> None:
     from library_tracker.services.library_matching import limit_candidates
 
@@ -165,42 +135,6 @@ def test_limit_candidates_caps_german_and_english() -> None:
     assert len(limited) == 15
     assert limited[0]["isbn"] == "r"
     assert [c["isbn"] for c in limited[-3:]] == ["en0", "en1", "en2"]
-
-
-def test_build_match_report_continues_after_catalog_error() -> None:
-    from library_tracker.clients.library import LibraryClientError
-    from library_tracker.services.library_matching import build_match_report
-
-    connection = Mock(spec=sqlite3.Connection)
-    states = [
-        _state(ol_status="resolved", ol_source="openlibrary", ol_title="Broken", editions="synced"),
-        _state(isbn13="9782222222222", ol_status="resolved", ol_source="openlibrary", ol_title="Works", editions="synced"),
-    ]
-    client = Mock(spec=LibraryClient)
-    with (
-        patch("library_tracker.services.library_matching.get_connection", return_value=connection),
-        patch("library_tracker.services.library_matching.initialize_database"),
-        patch(
-            "library_tracker.services.library_matching.get_wishlist_metadata_states",
-            return_value=states,
-        ),
-        patch(
-            "library_tracker.services.library_matching.get_wishlist_isbn_candidates",
-            return_value=[{"isbn": "x", "source": "reado"}],
-        ),
-        patch(
-            "library_tracker.services.library_matching.match_wishlist_book",
-            side_effect=[
-                LibraryClientError("Library request failed (Timeout)"),
-                {"reado_isbn": "9782222222222", "attempts": [], "match": {"isbn": "x", "source": "reado"}},
-            ],
-        ),
-    ):
-        rows = build_match_report(client=client, progress=lambda _: None)
-
-    assert rows[0]["catalog_error"] == "Library request failed (Timeout)"
-    assert not rows[0]["catalog_checked"]
-    assert rows[1]["match"] == {"isbn": "x", "source": "reado"}
 
 
 def test_lookup_dnb_editions_combines_isbn_and_title_search(tmp_path) -> None:  # type: ignore[no-untyped-def]
@@ -238,3 +172,45 @@ def test_lookup_dnb_editions_combines_isbn_and_title_search(tmp_path) -> None:  
     assert results == [("9781111111111", True, 1), ("9782222222222", False, 0)]
     assert failed == ["9783333333333"]
     client.find_german_print_editions.assert_called_once_with("Beispielroman", ["Muster, Erika"])
+
+
+def test_run_sync_continues_after_failed_steps() -> None:
+    from library_tracker.clients.dnb import DnbError
+    from library_tracker.services import sync
+
+    scrape_result = {"total_entries": 1, "items": [], "loans": [], "all_titles": ["Old"]}
+    client = Mock(spec=LibraryClient)
+    with (
+        patch.object(sync, "sync_lists"),
+        patch.object(sync, "resolve_openlibrary"),
+        patch.object(sync, "resolve_googlebooks"),
+        patch.object(sync, "link_googlebooks_titles"),
+        patch.object(sync, "sync_openlibrary_editions"),
+        patch.object(sync, "lookup_dnb_editions", side_effect=DnbError("down")),
+        patch.object(
+            sync,
+            "match_wishlist_books",
+            return_value={"books": 1, "searched": 1, "new_matches": 1, "errors": 0},
+        ),
+        patch.object(sync, "scrape_library", return_value=scrape_result) as scrape,
+        patch.object(
+            sync, "add_matches_to_merkliste", return_value=[("1", "New", "added")]
+        ) as add,
+        patch.object(sync, "_log"),
+    ):
+        report = sync.run_sync(client=client, log=lambda _: None)
+
+    assert report.warnings == ["DNB fehlgeschlagen"]
+    assert report.added_titles == ["New"]
+    add.assert_called_once_with(["Old"], client)
+    assert scrape.call_count == 2  # re-read after adding
+
+
+def test_configured_reado_list_types(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    from library_tracker.config import configured_reado_list_types
+
+    for name in ("READO_TBR_URL", "READO_READING_URL", "READO_COMPLETED_URL"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("READO_READING_URL", "https://reado.app/x")
+
+    assert configured_reado_list_types() == ("wishlist", "reading")

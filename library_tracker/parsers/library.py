@@ -248,3 +248,20 @@ def parse_catalog_hit_urls(html: str, response_url: str) -> list[str]:
             direct_hit_url = absolute_url
 
     return list(hits.values()) or ([direct_hit_url] if direct_hit_url else [])
+
+
+def parse_single_hit(html: str, page_url: str) -> tuple[str, str | None]:
+    """Return (title, absolute 'in die Merkliste' URL or None) of a catalog single-hit page."""
+    soup = BeautifulSoup(html, "html.parser")
+    title = "(Titel unbekannt)"
+    for heading in soup.find_all("h2"):
+        text = clean_text(heading.get_text(" ", strip=True))
+        if text and not text.startswith("Menu Closed") and "Vormerkung" not in text and "Bestellung" not in text:
+            title = text
+            break
+    link = soup.find(
+        "a",
+        href=lambda href: isinstance(href, str) and "methodToCall=addToMemorizeList" in href,
+    )
+    memorize_url = urljoin(page_url, _tag_value(link, "href")) if isinstance(link, Tag) else None
+    return title, memorize_url
