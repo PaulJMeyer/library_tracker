@@ -7,6 +7,7 @@ def test_default_command_runs_scrape() -> None:
     result = {
         "total_entries": 0,
         "all_titles": [],
+        "entries": [],
         "items": [],
         "loans": [],
     }
@@ -25,6 +26,7 @@ def test_scrape_with_telegram_sends_overview(monkeypatch) -> None:  # type: igno
     result = {
         "total_entries": 0,
         "all_titles": [],
+        "entries": [],
         "items": [],
         "loans": [],
     }
@@ -95,7 +97,7 @@ def test_metadata_and_report_commands_route_flags() -> None:
         assert main(["sync", "--telegram"]) == 0
     command.assert_called_once_with(telegram=True)
 
-    for name, func in (("match-books", "_run_match_books"), ("merkliste-add", "_run_merkliste_add")):
+    for name, func in (("match-books", "_run_match_books"), ("merkliste-add", "_run_merkliste_add"), ("merkliste-cleanup", "_run_merkliste_cleanup")):
         with patch(f"library_tracker.cli.{func}", return_value=0) as command:
             assert main([name]) == 0
         command.assert_called_once_with()

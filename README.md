@@ -26,6 +26,7 @@ Public READO lists can be synchronized independently:
 - `tbr`
 - `reading`
 - `completed`
+- `abandoned` (Abgebrochen)
 
 List membership is stored separately from the bibliographic book cache, so moving a book between READO lists does not discard metadata that has already been resolved.
 
@@ -85,12 +86,13 @@ python -m library_tracker library-search <isbn>
 python -m library_tracker library-match <reado_isbn>
 python -m library_tracker match-books        # search up to 15 new ISBNs per wishlist book
 python -m library_tracker merkliste-add      # add found books to the library Merkliste
+python -m library_tracker merkliste-cleanup  # remove books on finished READO lists from the Merkliste
 
 # Diagnose: why do wishlist books (not) match? (reads stored state only)
 python -m library_tracker match-report
 ```
 
-`library-match` checks one active READO wishlist entry and stops at the first catalog hit among its prioritized ISBN candidates. `match-books` works through all active wishlist books, stores every searched ISBN in `catalog_searches` and continues with the next ISBNs on the following run, so books with many editions are covered over several runs. ISBNs without a hit are searched again after 30 days. `merkliste-add` skips titles that are already on the Merkliste and retries failed additions on the next run. If the hit is an alternative edition (not the exact READO ISBN) and a single volume of a multi-volume edition ("Band 3", "Bd. 2", "Vol. 1"), it is not added but reported for manual review. Fully loaned Merkliste entries are no longer removed automatically.
+`library-match` checks one active READO wishlist entry and stops at the first catalog hit among its prioritized ISBN candidates. `match-books` works through all active wishlist books, stores every searched ISBN in `catalog_searches` and continues with the next ISBNs on the following run, so books with many editions are covered over several runs. ISBNs without a hit are searched again after 30 days. `merkliste-add` skips titles that are already on the Merkliste and retries failed additions on the next run. If the hit is an alternative edition (not the exact READO ISBN) and a single volume of a multi-volume edition ("Band 3", "Bd. 2", "Vol. 1"), it is not added but reported for manual review. Fully loaned Merkliste entries are no longer removed automatically. `merkliste-cleanup` removes books that are on a finished READO list (TBR, reading, completed, abandoned) and not on the wishlist; each book is checked once (state in `merkliste_removals`).
 
 ## Architecture
 
@@ -145,6 +147,7 @@ READO_WISHLIST_URL=...
 READO_TBR_URL=...
 READO_READING_URL=...
 READO_COMPLETED_URL=...
+READO_ABANDONED_URL=...
 
 OPENLIBRARY_CONTACT_EMAIL=...
 GOOGLE_BOOKS_API_KEY=...
@@ -168,7 +171,7 @@ The public repository only runs CI (`mypy` and `pytest`) on pushes and pull requ
 
 Scheduled runs that use personal credentials or produce personal data (library scrape, SQLite database, results overview) run in a separate private repository, so logs and artifacts are never public. See [docs/private-runner](docs/private-runner/README.md) for the workflow template and setup.
 
-The scheduled pipeline (`sync --telegram`) synchronizes READO, resolves only new metadata, searches the catalog incrementally, adds found books to the Merkliste and sends a Telegram overview. Next steps: remove Merkliste entries when books leave the READO wishlist, and a catalog title/author search with safeguards for books without a matching ISBN.
+The scheduled pipeline (`sync --telegram`) synchronizes READO, resolves only new metadata, searches the catalog incrementally, adds found books to the Merkliste and sends a Telegram overview. It also removes books from the Merkliste once they move to a finished READO list. Next step: a catalog title/author search with safeguards for books without a matching ISBN.
 
 ## Project goal
 

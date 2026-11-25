@@ -157,6 +157,16 @@ CREATE TABLE IF NOT EXISTS library_matches (
     FOREIGN KEY (reado_isbn) REFERENCES reado_books(isbn13) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS merkliste_removals (
+    isbn13 TEXT PRIMARY KEY,
+    catalog_title TEXT,
+    status TEXT NOT NULL CHECK (
+        status IN ('removed', 'not_on_merkliste', 'not_in_catalog', 'failed')
+    ),
+    checked_at TEXT NOT NULL,
+    FOREIGN KEY (isbn13) REFERENCES reado_books(isbn13) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS openlibrary_edition_syncs (
     work_key TEXT PRIMARY KEY,
     synced_at TEXT NOT NULL,

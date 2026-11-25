@@ -17,13 +17,17 @@ READO_LIST_TYPES: tuple[ReadoListType, ...] = (
     "tbr",
     "reading",
     "completed",
+    "abandoned",
 )
+# READO lists whose books are done with: they are removed from the library Merkliste.
+FINISHED_LIST_TYPES: tuple[ReadoListType, ...] = ("tbr", "reading", "completed", "abandoned")
 
 READO_LIST_ENV_VARS: dict[ReadoListType, str] = {
     "wishlist": "READO_WISHLIST_URL",
     "tbr": "READO_TBR_URL",
     "reading": "READO_READING_URL",
     "completed": "READO_COMPLETED_URL",
+    "abandoned": "READO_ABANDONED_URL",
 }
 
 

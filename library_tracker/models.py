@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Literal, TypedDict
 
 
-ReadoListType = Literal["wishlist", "tbr", "reading", "completed"]
+ReadoListType = Literal["wishlist", "tbr", "reading", "completed", "abandoned"]
 CopyStatus = Literal["ausleihbar", "bestellbar", "entliehen", "bestellt", "unbekannt"]
 OpenLibraryResolutionStatus = Literal["resolved", "not_found", "ambiguous", "failed"]
 GoogleBooksResolutionStatus = Literal["found", "not_found", "ambiguous", "failed"]
@@ -143,8 +143,15 @@ class MatchReportRow(TypedDict):
     memorize_status: str | None
 
 
+class MerklisteEntry(TypedDict):
+    title: str
+    uuid: str
+    page: MemorizePage
+
+
 class ScrapeResult(TypedDict):
     total_entries: int
     all_titles: list[str]
+    entries: list[MerklisteEntry]
     items: list[Item]
     loans: list[Loan]

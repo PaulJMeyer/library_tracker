@@ -42,6 +42,7 @@ def test_library_scrape_orchestrates_client_and_persistence() -> None:
 
     assert result["total_entries"] == 2
     assert result["all_titles"] == ["Loaned", "Available"]
+    assert [entry["title"] for entry in result["entries"]] == ["Loaned", "Available"]
     assert [item["title"] for item in result["items"]] == ["Available"]
     client.remove_entries.assert_not_called()
     persist.assert_called_once_with(connection, [loaned, available])
@@ -178,7 +179,13 @@ def test_run_sync_continues_after_failed_steps() -> None:
     from library_tracker.clients.dnb import DnbError
     from library_tracker.services import sync
 
-    scrape_result = {"total_entries": 1, "items": [], "loans": [], "all_titles": ["Old"]}
+    scrape_result = {
+        "total_entries": 2,
+        "items": [],
+        "loans": [],
+        "all_titles": ["Old", "Finished"],
+        "entries": [],
+    }
     client = Mock(spec=LibraryClient)
     with (
         patch.object(sync, "sync_lists"),
@@ -194,6 +201,11 @@ def test_run_sync_continues_after_failed_steps() -> None:
         ),
         patch.object(sync, "scrape_library", return_value=scrape_result) as scrape,
         patch.object(
+            sync,
+            "remove_finished_from_merkliste",
+            return_value=[("2", "Finished", "removed")],
+        ) as remove,
+        patch.object(
             sync, "add_matches_to_merkliste", return_value=[("1", "New", "added")]
         ) as add,
         patch.object(sync, "_log"),
@@ -202,14 +214,16 @@ def test_run_sync_continues_after_failed_steps() -> None:
 
     assert report.warnings == ["DNB fehlgeschlagen"]
     assert report.added_titles == ["New"]
+    assert report.removed_titles == ["Finished"]
+    remove.assert_called_once_with([], client)
     add.assert_called_once_with(["Old"], client)
-    assert scrape.call_count == 2  # re-read after adding
+    assert scrape.call_count == 2  # one re-read after removing and adding
 
 
 def test_configured_reado_list_types(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     from library_tracker.config import configured_reado_list_types
 
-    for name in ("READO_TBR_URL", "READO_READING_URL", "READO_COMPLETED_URL"):
+    for name in ("READO_TBR_URL", "READO_READING_URL", "READO_COMPLETED_URL", "READO_ABANDONED_URL"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("READO_READING_URL", "https://reado.app/x")
 
