@@ -25,3 +25,11 @@ def test_entries_from_hrefs_deduplicates() -> None:
 def test_read_list_rejects_wrong_url() -> None:
     with pytest.raises(ReadoError, match="Expected a public https://reado.app"):
         read_list("https://example.com/list")
+
+
+def test_describe_url_hides_parameter_values() -> None:
+    from library_tracker.clients.reado import _describe_url
+
+    described = _describe_url("https://reado.app/de/lists/abc?source=profile&userId=secret")
+    assert described == "Pfad '/de/lists/abc', Parameter ['source', 'userId']"
+    assert "secret" not in described

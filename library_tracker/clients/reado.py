@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import cast
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
 
 from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, sync_playwright
 
@@ -62,6 +62,13 @@ def _collect_entries(page: Page) -> list[ReadoListEntry]:
     return entries_from_hrefs(hrefs)
 
 
+def _describe_url(url: str) -> str:
+    """Path and query parameter names of the configured URL, without their values."""
+    parsed = urlparse(url)
+    names = sorted(parse_qs(parsed.query, keep_blank_values=True))
+    return f"Pfad {parsed.path!r}, Parameter {names}"
+
+
 def _describe_page(page: Page, status: int | None) -> str:
     """Short diagnosis for the log: HTTP status, final path and page title."""
     try:
@@ -98,7 +105,8 @@ def read_list(
             except PlaywrightTimeoutError as exc:
                 raise ReadoError(
                     "No book links appeared on the READO list "
-                    f"({_describe_page(page, response.status if response else None)})."
+                    f"(configured: {_describe_url(list_url)}; "
+                    f"{_describe_page(page, response.status if response else None)})."
                 ) from exc
 
             previous_count = -1
