@@ -9,6 +9,14 @@ from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, sy
 from library_tracker.config import READO_BASE_URL
 from library_tracker.models import ReadoListEntry
 
+# Headless Chromium announces itself as "HeadlessChrome", which some sites answer
+# with an empty page or a bot check. A normal desktop user agent avoids that.
+BROWSER_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+)
+BOOK_LINK_TIMEOUT_MS = 45_000
+
 BOOK_PATH_PATTERN = re.compile(r"^/(?:de|en)/book/[^/?#]+/(?P<isbn>97[89]\d{10})/?$")
 
 
@@ -54,6 +62,16 @@ def _collect_entries(page: Page) -> list[ReadoListEntry]:
     return entries_from_hrefs(hrefs)
 
 
+def _describe_page(page: Page, status: int | None) -> str:
+    """Short diagnosis for the log: HTTP status, final path and page title."""
+    try:
+        title = page.title()[:80]
+        body = " ".join(page.inner_text("body").split())[:120]
+    except Exception:  # noqa: BLE001 - diagnosis only
+        title, body = "?", ""
+    return f"HTTP {status}, Seite {urlparse(page.url).path!r}, Titel {title!r}, Text {body!r}"
+
+
 def read_list(
     list_url: str,
     *,
@@ -68,13 +86,20 @@ def read_list(
 
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=headless, channel="chromium")
-        page = browser.new_page(viewport={"width": 1280, "height": 900})
+        page = browser.new_page(
+            viewport={"width": 1280, "height": 900},
+            user_agent=BROWSER_USER_AGENT,
+            locale="de-DE",
+        )
         try:
-            page.goto(list_url, wait_until="domcontentloaded", timeout=45_000)
+            response = page.goto(list_url, wait_until="domcontentloaded", timeout=45_000)
             try:
-                page.wait_for_selector('a[href*="/book/"]', timeout=20_000)
+                page.wait_for_selector('a[href*="/book/"]', timeout=BOOK_LINK_TIMEOUT_MS)
             except PlaywrightTimeoutError as exc:
-                raise ReadoError("No book links appeared on the READO list.") from exc
+                raise ReadoError(
+                    "No book links appeared on the READO list "
+                    f"({_describe_page(page, response.status if response else None)})."
+                ) from exc
 
             previous_count = -1
             unchanged_rounds = 0
