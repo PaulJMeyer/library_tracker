@@ -14,7 +14,7 @@ public.
    - `LIBRARY_USERNAME`
    - `LIBRARY_PASSWORD`
    - `READO_WISHLIST_URL` (required for `sync`)
-   - `READO_TBR_URL`, `READO_READING_URL`, `READO_COMPLETED_URL` (optional; books on these lists are no longer treated as wishlist books)
+   - `READO_TBR_URL`, `READO_READING_URL`, `READO_COMPLETED_URL`, `READO_ABANDONED_URL` (optional; books on these lists are removed from the Merkliste)
    - `OPENLIBRARY_CONTACT_EMAIL`
    - `GOOGLE_BOOKS_API_KEY` (optional)
    - `TELEGRAM_BOT_TOKEN` (from @BotFather)
@@ -36,8 +36,11 @@ The workflow installs `library-tracker` from the public repository's
 2. resolve metadata for new books only (Open Library, Google Books, DNB editions)
 3. search the Bremen catalog: up to 15 not yet searched ISBNs per wishlist book and run. Every search is stored, so books with many editions are covered over several days. ISBNs without a hit are searched again after 30 days.
 4. read the library Merkliste
-5. add wishlist books found in the catalog to the Merkliste (only via the catalog's free "in die Merkliste" link, never a reservation)
-6. send the Telegram overview, including newly added titles
+5. remove books that are on a finished READO list (Stapel ungelesener Bücher, Am Lesen/Hören, Abgeschlossen, Abgebrochen) and not on the wishlist. Each book is checked once; books without a stored catalog title need one catalog search, at most 30 per run.
+6. add wishlist books found in the catalog to the Merkliste (only via the catalog's free "in die Merkliste" link, never a reservation)
+7. send the Telegram overview, including added and removed titles
+
+Removing runs before adding so the Merkliste page data from step 4 stays valid; the result is the same.
 
 If a step fails, the remaining steps still run and the Telegram message
 contains a warning. The job is then marked as failed, but the database is
@@ -50,7 +53,7 @@ The daily run sends one message with two sections:
 - **Ausleihbar in der Zentralbibliothek**: a copy is available in the central library (with its shelf location)
 - **Bestellbar aus anderen Zweigstellen**: no copy is free in the central library, but one is in another branch (with branch names)
 
-Titles added to the Merkliste in this run are listed under **Neu auf der Merkliste**. Alternative editions that are a single volume of a multi-volume edition are not added; they appear once under **Bitte prüfen**. Fully loaned titles stay on the Merkliste and are simply not shown.
+Titles added to the Merkliste in this run are listed under **Neu auf der Merkliste**, removed ones under **Von der Merkliste entfernt**. Alternative editions that are a single volume of a multi-volume edition are not added; they appear once under **Bitte prüfen**. Fully loaned titles stay on the Merkliste and are simply not shown.
 
 Setup:
 

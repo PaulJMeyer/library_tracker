@@ -6,11 +6,15 @@ from collections.abc import Sequence
 
 from library_tracker.clients.dnb import DnbError
 from library_tracker.clients.googlebooks import GoogleBooksError
-from library_tracker.clients.library import LibraryClientError
+from library_tracker.clients.library import LibraryClient, LibraryClientError
 from library_tracker.clients.openlibrary import OpenLibraryError
 from library_tracker.clients.reado import ReadoError
 from library_tracker.clients.telegram import TelegramClient, TelegramError
-from library_tracker.config import ConfigurationError, get_telegram_settings
+from library_tracker.config import (
+    ConfigurationError,
+    configured_reado_list_types,
+    get_telegram_settings,
+)
 from library_tracker.database import get_connection, initialize_database
 from library_tracker.models import ReadoListType
 from library_tracker.output import (
@@ -29,6 +33,7 @@ from library_tracker.services.library_matching import (
 )
 from library_tracker.services.sync import run_sync
 from library_tracker.services.library_scrape import scrape_library
+from library_tracker.services.merkliste_cleanup import remove_finished_from_merkliste
 from library_tracker.services.metadata import (
     link_googlebooks_titles,
     lookup_dnb_editions,
@@ -103,6 +108,10 @@ def build_parser() -> argparse.ArgumentParser:
         "merkliste-add",
         help="Put matched wishlist books on the library Merkliste (never orders or reservations).",
     )
+    commands.add_parser(
+        "merkliste-cleanup",
+        help="Remove books on finished READO lists (TBR, reading, completed, abandoned) from the Merkliste.",
+    )
     sync = commands.add_parser(
         "sync",
         help="Daily pipeline: READO, metadata, catalog matches, Merkliste, overview.",
@@ -130,11 +139,8 @@ def _run_history(media_number: str) -> int:
 
 
 def _run_reado(*, headless: bool, wishlist_only: bool) -> int:
-    list_types: tuple[ReadoListType, ...] = ("wishlist",) if wishlist_only else (
-        "wishlist",
-        "tbr",
-        "reading",
-        "completed",
+    list_types: tuple[ReadoListType, ...] = (
+        ("wishlist",) if wishlist_only else configured_reado_list_types()
     )
     entries, results = sync_lists(headless=headless, list_types=list_types)
     total_new = {
@@ -228,6 +234,15 @@ def _run_merkliste_add() -> int:
     return 0
 
 
+def _run_merkliste_cleanup() -> int:
+    client = LibraryClient.login()
+    results = remove_finished_from_merkliste(scrape_library(client)["entries"], client)
+    for isbn13, title, status in results:
+        print(f"{isbn13} | {title} | {status}")
+    print(f"Removed from Merkliste: {sum(status == 'removed' for _, _, status in results)}")
+    return 0
+
+
 def _run_sync(*, telegram: bool) -> int:
     client = _telegram_client() if telegram else None
     report = run_sync()
@@ -235,6 +250,8 @@ def _run_sync(*, telegram: bool) -> int:
         print_scrape_result(report.scrape)
     if report.added_titles:
         print(f"\nNeu auf der Merkliste: {', '.join(report.added_titles)}")
+    if report.removed_titles:
+        print(f"\nVon der Merkliste entfernt: {', '.join(report.removed_titles)}")
     if report.review_titles:
         print(f"\nBitte prüfen (nicht hinzugefügt): {', '.join(report.review_titles)}")
     if report.warnings:
@@ -253,6 +270,7 @@ def _run_sync(*, telegram: bool) -> int:
                     added_titles=report.added_titles,
                     warnings=report.warnings,
                     review_titles=report.review_titles,
+                    removed_titles=report.removed_titles,
                 )
             )
         print("Telegram overview sent.")
@@ -353,6 +371,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run_match_books()
         if args.command == "merkliste-add":
             return _run_merkliste_add()
+        if args.command == "merkliste-cleanup":
+            return _run_merkliste_cleanup()
         if args.command == "sync":
             return _run_sync(telegram=bool(args.telegram))
         if args.command == "library-search":

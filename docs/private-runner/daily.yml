@@ -48,8 +48,8 @@ jobs:
           fi
 
       # Full pipeline: READO lists -> metadata -> catalog search (a few new
-      # ISBNs per book and run) -> add found books to the Merkliste ->
-      # Telegram overview. Failing steps are reported as a warning in
+      # ISBNs per book and run) -> remove finished books from the Merkliste ->
+      # add found wishlist books -> Telegram overview. Failing steps are reported as a warning in
       # Telegram; the job then fails, but the database is still uploaded.
       - name: Sync and send Telegram overview
         env:
@@ -59,6 +59,7 @@ jobs:
           READO_TBR_URL: ${{ secrets.READO_TBR_URL }}
           READO_READING_URL: ${{ secrets.READO_READING_URL }}
           READO_COMPLETED_URL: ${{ secrets.READO_COMPLETED_URL }}
+          READO_ABANDONED_URL: ${{ secrets.READO_ABANDONED_URL }}
           OPENLIBRARY_CONTACT_EMAIL: ${{ secrets.OPENLIBRARY_CONTACT_EMAIL }}
           GOOGLE_BOOKS_API_KEY: ${{ secrets.GOOGLE_BOOKS_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

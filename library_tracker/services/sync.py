@@ -1,4 +1,4 @@
-"""Daily pipeline: READO wishlist -> metadata -> catalog matches -> Merkliste -> overview."""
+"""Daily pipeline: READO lists -> metadata -> catalog matches -> Merkliste -> overview."""
 from __future__ import annotations
 
 import sys
@@ -8,7 +8,7 @@ from typing import TypeVar
 from library_tracker.clients.dnb import DnbError
 from library_tracker.clients.googlebooks import GoogleBooksError
 from library_tracker.clients.library import LibraryClient, LibraryClientError
-from library_tracker.clients.openlibrary import OpenLibraryError
+from library_tracker.clients.openlibrary import OpenLibraryError, normalize_title
 from library_tracker.clients.reado import ReadoError
 from library_tracker.config import ConfigurationError, configured_reado_list_types
 from library_tracker.models import ScrapeResult
@@ -17,6 +17,7 @@ from library_tracker.services.library_matching import (
     match_wishlist_books,
 )
 from library_tracker.services.library_scrape import scrape_library
+from library_tracker.services.merkliste_cleanup import remove_finished_from_merkliste
 from library_tracker.services.metadata import (
     link_googlebooks_titles,
     lookup_dnb_editions,
@@ -46,6 +47,7 @@ class SyncReport:
         self.warnings: list[str] = []
         self.added_titles: list[str] = []
         self.review_titles: list[str] = []
+        self.removed_titles: list[str] = []
         self.scrape: ScrapeResult | None = None
 
     def step(self, name: str, action: Callable[[], T]) -> T | None:
@@ -85,7 +87,20 @@ def run_sync(*, client: LibraryClient | None = None, log: Callable[[str], None] 
     if report.scrape is None:
         return report
 
-    existing = report.scrape["all_titles"]
+    # Removing first keeps the Merkliste page data from the scrape valid.
+    scrape = report.scrape
+    removals = report.step(
+        "Merkliste aufräumen",
+        lambda: remove_finished_from_merkliste(scrape["entries"], library),
+    )
+    if removals:
+        report.removed_titles = [title for _, title, status in removals if status == "removed"]
+        failed_removals = sum(status == "failed" for _, _, status in removals)
+        if failed_removals:
+            report.warnings.append(f"{failed_removals} Titel nicht von der Merkliste entfernt")
+
+    removed = {normalize_title(title) for title in report.removed_titles}
+    existing = [title for title in scrape["all_titles"] if normalize_title(title) not in removed]
     results = report.step("Merkliste ergänzen", lambda: add_matches_to_merkliste(existing, library))
     if results:
         report.added_titles = [title for _, title, status in results if status == "added"]
@@ -93,8 +108,9 @@ def run_sync(*, client: LibraryClient | None = None, log: Callable[[str], None] 
         failed = sum(status == "failed" for _, _, status in results)
         if failed:
             report.warnings.append(f"{failed} Titel nicht auf die Merkliste gesetzt")
-        if report.added_titles:
-            rescrape = report.step("Merkliste neu lesen", lambda: scrape_library(library))
-            if rescrape is not None:
-                report.scrape = rescrape
+
+    if report.added_titles or report.removed_titles:
+        rescrape = report.step("Merkliste neu lesen", lambda: scrape_library(library))
+        if rescrape is not None:
+            report.scrape = rescrape
     return report

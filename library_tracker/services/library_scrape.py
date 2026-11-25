@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from library_tracker.clients.library import LibraryClient
 from library_tracker.database import get_connection, initialize_database
-from library_tracker.models import Item, ScrapeResult
+from library_tracker.models import Item, MerklisteEntry, ScrapeResult
 from library_tracker.parsers.library import parse_availability_page, parse_loans
 from library_tracker.repositories.availability import persist_items
 
@@ -22,6 +22,7 @@ def scrape_library(client: LibraryClient | None = None) -> ScrapeResult:
 
     visible_items: list[Item] = []
     scraped_items: list[Item] = []
+    entries: list[MerklisteEntry] = []
 
     # Titles stay on the Merkliste even when every copy is checked out: the READO
     # wishlist decides what is monitored, and the overview only shows available ones.
@@ -31,6 +32,7 @@ def scrape_library(client: LibraryClient | None = None) -> ScrapeResult:
                 client.get_availability_page(entry["availability_link"])
             )
             scraped_items.append(item)
+            entries.append({"title": item["title"], "uuid": entry["uuid"], "page": page})
             if item["overall_status"] != "entliehen":
                 visible_items.append(item)
 
@@ -46,6 +48,7 @@ def scrape_library(client: LibraryClient | None = None) -> ScrapeResult:
     return {
         "total_entries": total_entries,
         "all_titles": [item["title"] for item in scraped_items],
+        "entries": entries,
         "items": visible_items,
         "loans": loans,
     }

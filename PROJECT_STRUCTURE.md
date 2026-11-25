@@ -32,13 +32,15 @@ library_tracker/
 │   │   ├── reado.py
 │   │   ├── metadata.py
 │   │   ├── matching.py
-│   │   └── library_matches.py
+│   │   ├── library_matches.py
+│   │   └── merkliste_removals.py
 │   └── services/
 │       ├── __init__.py
 │       ├── library_scrape.py
 │       ├── reado_sync.py
 │       ├── metadata.py
 │       ├── library_matching.py
+│       ├── merkliste_cleanup.py
 │       └── sync.py
 ├── tests/
 │   ├── conftest.py
@@ -50,6 +52,7 @@ library_tracker/
 │   ├── test_telegram.py
 │   ├── test_isbn.py
 │   ├── test_library_client.py
+│   ├── test_merkliste_cleanup.py
 │   ├── test_merkliste_sync.py
 │   ├── test_library_parsers.py
 │   ├── test_openlibrary.py
@@ -285,9 +288,13 @@ Orchestrates cached external metadata work:
 - `add_matches_to_merkliste`: open the catalog hit and follow only its "in die Merkliste" link
 - `build_match_report`: diagnostic report from stored state
 
+### `services/merkliste_cleanup.py`
+
+Removes books that are on a finished READO list (TBR, reading, completed, abandoned) and not on the wishlist from the Merkliste. It uses the stored catalog title of auto-added books, otherwise one catalog search per book (30 per run). Each book is checked once (`merkliste_removals`); failed removals are retried, and a book that returns to the wishlist can be removed again later.
+
 ### `services/sync.py`
 
-Runs the full pipeline step by step (READO, metadata, catalog search, Merkliste read/add). A failing step is recorded as a warning and the remaining steps still run.
+Runs the full pipeline step by step (READO, metadata, catalog search, Merkliste read/clean up/add). A failing step is recorded as a warning and the remaining steps still run.
 
 ## SQLite data model
 

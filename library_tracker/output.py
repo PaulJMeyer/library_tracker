@@ -157,6 +157,7 @@ def format_telegram_message(
     added_titles: list[str] | None = None,
     warnings: list[str] | None = None,
     review_titles: list[str] | None = None,
+    removed_titles: list[str] | None = None,
 ) -> str:
     today = today or datetime.date.today()
     lines = [f"<b>📚 Merkliste – {today.strftime('%d.%m.%Y')}</b>"]
@@ -169,6 +170,9 @@ def format_telegram_message(
     if added_titles:
         lines.extend(["", f"<b>Neu auf der Merkliste ({len(added_titles)})</b>"])
         lines.extend(f"• {html.escape(strip_sort_markers(title))}" for title in added_titles)
+    if removed_titles:
+        lines.extend(["", f"<b>Von der Merkliste entfernt ({len(removed_titles)})</b>"])
+        lines.extend(f"• {html.escape(strip_sort_markers(title))}" for title in removed_titles)
     if review_titles:
         lines.extend(["", f"<b>Bitte prüfen, nicht hinzugefügt ({len(review_titles)})</b>"])
         lines.extend(f"• {html.escape(strip_sort_markers(title))}" for title in review_titles)
