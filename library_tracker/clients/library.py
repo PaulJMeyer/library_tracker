@@ -15,8 +15,10 @@ from library_tracker.parsers.library import (
 )
 from collections.abc import Mapping
 
-REQUEST_TIMEOUT = 10
+REQUEST_TIMEOUT = 20
 REQUEST_DELAY = 1.0
+RETRY_DELAYS = (2.0, 5.0)
+RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
 LOGIN_PAGE_URL = urljoin(LIBRARY_BASE_URL, "/webOPACClient/start.do?StartPage=UserAccount")
 LOGIN_URL = urljoin(LIBRARY_BASE_URL, "/webOPACClient/login.do")
@@ -127,8 +129,19 @@ class LibraryClient:
             "language": "de",
             "selectedDefaultProfile": "1",
         }
-        response = _get(self.session, CATALOG_SEARCH_URL, params=params)
+        try:
+            response = _get(self.session, CATALOG_SEARCH_URL, params=params)
+        except LibraryClientError:
+            # Long runs can outlive the OPAC session; log in again once and retry.
+            self._relogin()
+            params["CSId"] = self.cs_id
+            response = _get(self.session, CATALOG_SEARCH_URL, params=params)
         return parse_catalog_hit_urls(response.text, response.url)
+
+    def _relogin(self) -> None:
+        fresh = LibraryClient.login()
+        self.session = fresh.session
+        self.cs_id = fresh.cs_id
 
     @staticmethod
     def _wishlist_page_url(cur_pos: int) -> str:
@@ -145,12 +158,32 @@ def _get(
 ) -> requests.Response:
     if delay:
         time.sleep(REQUEST_DELAY)
-    try:
-        response = session.get(url, params=params, timeout=REQUEST_TIMEOUT)
-        response.raise_for_status()
-        return response
-    except requests.RequestException as exc:
-        raise LibraryClientError(f"Library request failed: {url}") from exc
+    for attempt in range(len(RETRY_DELAYS) + 1):
+        try:
+            response = session.get(url, params=params, timeout=REQUEST_TIMEOUT)
+            if response.status_code in RETRYABLE_STATUS_CODES and attempt < len(RETRY_DELAYS):
+                time.sleep(RETRY_DELAYS[attempt])
+                continue
+            response.raise_for_status()
+            return response
+        except (requests.Timeout, requests.ConnectionError) as exc:
+            if attempt < len(RETRY_DELAYS):
+                time.sleep(RETRY_DELAYS[attempt])
+                continue
+            raise LibraryClientError(
+                f"Library request failed ({type(exc).__name__}): {url.split('?')[0]}"
+            ) from exc
+        except requests.RequestException as exc:
+            raise LibraryClientError(
+                f"Library request failed ({_describe(exc)}): {url.split('?')[0]}"
+            ) from exc
+    raise LibraryClientError(f"Library request failed after retries: {url.split('?')[0]}")
+
+
+def _describe(exc: requests.RequestException) -> str:
+    if exc.response is not None:
+        return f"HTTP {exc.response.status_code}"
+    return type(exc).__name__
 
 
 def _post(

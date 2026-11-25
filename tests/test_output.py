@@ -280,6 +280,7 @@ def test_format_match_report_summarizes_reasons() -> None:
                 "reason": None,
                 "candidate_count": 3,
                 "catalog_checked": True,
+                "catalog_error": None,
                 "match": {"isbn": "9783333333333", "source": "openlibrary_confirmed"},
             },
             {
@@ -289,6 +290,17 @@ def test_format_match_report_summarizes_reasons() -> None:
                 "reason": "Weder Open Library noch Google Books kennen die ISBN",
                 "candidate_count": 1,
                 "catalog_checked": True,
+                "catalog_error": None,
+                "match": None,
+            },
+            {
+                "isbn13": "9783333333333",
+                "title": "Broken Book",
+                "metadata": "Open Library",
+                "reason": None,
+                "candidate_count": 2,
+                "catalog_checked": False,
+                "catalog_error": "Library request failed (Timeout): https://example.com",
                 "match": None,
             },
         ]
@@ -296,5 +308,7 @@ def test_format_match_report_summarizes_reasons() -> None:
 
     assert "Katalog: gefunden mit 9783333333333 (deutsche Druckausgabe)" in report
     assert "Katalog: nicht gefunden" in report
-    assert "Im Katalog gefunden: 1/2" in report
+    assert "Im Katalog gefunden: 1/3" in report
+    assert "Katalog: Suche fehlgeschlagen (Library request failed (Timeout)" in report
+    assert "Katalogsuche fehlgeschlagen: 1" in report
     assert "1x Weder Open Library noch Google Books kennen die ISBN" in report

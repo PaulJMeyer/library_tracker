@@ -185,6 +185,8 @@ def format_match_report(rows: list[MatchReportRow]) -> str:
         if row["match"] is not None:
             source = CANDIDATE_SOURCE_LABELS.get(row["match"]["source"], row["match"]["source"])
             lines.append(f"  Katalog: gefunden mit {row['match']['isbn']} ({source})")
+        elif row["catalog_error"]:
+            lines.append(f"  Katalog: Suche fehlgeschlagen ({row['catalog_error']})")
         elif row["catalog_checked"]:
             lines.append("  Katalog: nicht gefunden")
         if row["reason"] and row["match"] is None:
@@ -193,8 +195,12 @@ def format_match_report(rows: list[MatchReportRow]) -> str:
 
     found = sum(row["match"] is not None for row in rows)
     lines.append("Zusammenfassung:")
-    if rows and rows[0]["catalog_checked"]:
+    checked = [row for row in rows if row["catalog_checked"]]
+    failed = sum(bool(row["catalog_error"]) for row in rows)
+    if checked or failed:
         lines.append(f"  Im Katalog gefunden: {found}/{len(rows)}")
+    if failed:
+        lines.append(f"  Katalogsuche fehlgeschlagen: {failed}")
     reasons: dict[str, int] = {}
     for row in rows:
         if row["match"] is None and row["reason"]:

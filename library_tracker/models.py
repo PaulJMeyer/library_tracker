@@ -138,6 +138,7 @@ class MatchReportRow(TypedDict):
     reason: str | None
     candidate_count: int
     catalog_checked: bool
+    catalog_error: str | None
     match: LibraryIsbnCandidate | None
 
 
