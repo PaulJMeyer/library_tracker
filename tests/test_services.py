@@ -216,7 +216,7 @@ def test_run_sync_continues_after_failed_steps() -> None:
         ) as add,
         patch.object(sync, "_log"),
     ):
-        report = sync.run_sync(client=client, log=lambda _: None)
+        report = sync.run_sync(client=client, fresh_login=lambda: client, log=lambda _: None)
 
     # The failing READO list does not stop the wishlist from being synced.
     assert [call.kwargs["list_types"] for call in reado.call_args_list] == [("wishlist",), ("abandoned",)]
@@ -236,3 +236,35 @@ def test_configured_reado_list_types(monkeypatch) -> None:  # type: ignore[no-un
     monkeypatch.setenv("READO_READING_URL", "https://reado.app/x")
 
     assert configured_reado_list_types() == ("wishlist", "reading")
+
+
+def test_run_sync_keeps_first_read_when_reread_is_incomplete() -> None:
+    from library_tracker.services import sync
+
+    full = {"total_entries": 30, "items": [], "loans": [], "all_titles": ["Old"], "entries": []}
+    partial = {"total_entries": 10, "items": [], "loans": [], "all_titles": ["New"], "entries": []}
+    client = Mock(spec=LibraryClient)
+    fresh = Mock(spec=LibraryClient)
+    with (
+        patch.object(sync, "configured_reado_list_types", return_value=("wishlist",)),
+        patch.object(sync, "sync_lists"),
+        patch.object(sync, "resolve_openlibrary"),
+        patch.object(sync, "resolve_googlebooks"),
+        patch.object(sync, "link_googlebooks_titles"),
+        patch.object(sync, "sync_openlibrary_editions"),
+        patch.object(sync, "lookup_dnb_editions"),
+        patch.object(
+            sync,
+            "match_wishlist_books",
+            return_value={"books": 1, "searched": 1, "new_matches": 1, "errors": 0},
+        ),
+        patch.object(sync, "scrape_library", side_effect=[full, partial]) as scrape,
+        patch.object(sync, "remove_finished_from_merkliste", return_value=[]),
+        patch.object(sync, "add_matches_to_merkliste", return_value=[("1", "New", "added")]),
+        patch.object(sync, "_log"),
+    ):
+        report = sync.run_sync(client=client, fresh_login=lambda: fresh, log=lambda _: None)
+
+    assert scrape.call_args_list[1].args == (fresh,)  # re-read in a new session
+    assert report.scrape is full
+    assert report.warnings == ["Merkliste nach dem Ergänzen unvollständig gelesen"]
