@@ -57,6 +57,11 @@ can only send messages so far. Planned approach: a small serverless function
 - [ ] show the same work only once in the Telegram message when several editions are on the Merkliste
 - [ ] loan reminders: titles due in the next 3 days (loans are already read from the account page)
 
+### P1 — Availability statistics
+
+- [ ] loan quota per title from the daily availability snapshots (also used for "seltene Chance")
+- [ ] Telegram command for the X most loaned books (e.g. `/top 10`), sorted by loan quota, highest first
+
 ### P1 — Second READO account
 
 - [ ] monitor the wishlist of another READO account with the same rules
