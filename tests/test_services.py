@@ -20,7 +20,10 @@ def test_library_scrape_orchestrates_client_and_persistence() -> None:
         ],
     }
     client.get_all_memorize_pages.return_value = [page]
-    client.get_availability_page.side_effect = ["loaned-html", "available-html"]
+    client.get_availability_pages.side_effect = [
+        ("loaned-details", "loaned-html"),
+        ("<p>Umfang: 320 S.</p>", "available-html"),
+    ]
     client.remove_entries.return_value = True
     client.get_account_page.return_value = "account-html"
 
@@ -44,6 +47,7 @@ def test_library_scrape_orchestrates_client_and_persistence() -> None:
     assert result["all_titles"] == ["Loaned", "Available"]
     assert [entry["title"] for entry in result["entries"]] == ["Loaned", "Available"]
     assert [item["title"] for item in result["items"]] == ["Available"]
+    assert result["items"][0]["pages"] == 320
     client.remove_entries.assert_not_called()
     persist.assert_called_once_with(connection, [loaned, available])
     connection.close.assert_called_once_with()

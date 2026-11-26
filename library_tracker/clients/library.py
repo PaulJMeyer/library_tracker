@@ -99,9 +99,10 @@ class LibraryClient:
         }
         return _get(self.session, WISHLIST_URL, params=params).status_code == 200
 
-    def get_availability_page(self, availability_link: str) -> str:
-        _get(self.session, availability_link)
-        return _get(self.session, EXEMPLAR_TAB_URL).text
+    def get_availability_pages(self, availability_link: str) -> tuple[str, str]:
+        """(title page with details such as the extent, copies tab) of one Merkliste entry."""
+        details = _get(self.session, availability_link).text
+        return details, _get(self.session, EXEMPLAR_TAB_URL).text
 
     def get_account_page(self) -> str:
         return _get(self.session, ACCOUNT_URL).text

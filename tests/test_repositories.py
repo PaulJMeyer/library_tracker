@@ -66,6 +66,14 @@ def test_sync_reado_list_keeps_other_lists(connection: sqlite3.Connection) -> No
 
 def test_metadata_resolution_queries(connection: sqlite3.Connection) -> None:
     insert_reado_book(connection)
+    connection.execute(
+        "INSERT INTO reado_list_memberships VALUES ('9781111111111', 'completed', 'f', 'l', 1)"
+    )
+    # Only wishlist books need metadata.
+    assert get_unresolved_reado_isbns(connection) == []
+    connection.execute(
+        "INSERT INTO reado_list_memberships VALUES ('9781111111111', 'wishlist', 'f', 'l', 1)"
+    )
     assert get_unresolved_reado_isbns(connection) == ["9781111111111"]
 
     save_openlibrary_resolutions(

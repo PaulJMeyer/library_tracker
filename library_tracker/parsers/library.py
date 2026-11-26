@@ -16,9 +16,18 @@ from library_tracker.models import (
 )
 
 CENTRAL_BRANCH_KEYWORD = "10-Zentralbibliothek"
-# Branches whose copies cannot be ordered to the central library (e.g. the prison library).
-NOT_ORDERABLE_BRANCH_KEYWORDS = ("JVA", "nicht online")
+# Locations whose copies cannot be borrowed or ordered: the prison library and
+# reference-only collections ("Präsenzbestand").
+NOT_LENDABLE_BRANCH_KEYWORDS = ("JVA", "nicht online", "Präsenzbestand")
+
+
+def is_lendable_location(copy: Copy) -> bool:
+    return not any(keyword in copy["branch"] for keyword in NOT_LENDABLE_BRANCH_KEYWORDS)
 DATE_PATTERN = re.compile(r"\b\d{2}\.\d{2}\.\d{4}\b")
+# Extent as printed in catalog records: "347 S.", "XII, 347 Seiten", "347 pages".
+PAGES_PATTERN = re.compile(
+    r"(?:\b[IVXLC]+\s*,\s*)?\b(\d{2,4})\s*(?:S\.|Seiten\b|p\.|pages\b)", re.IGNORECASE
+)
 
 
 def clean_text(text: str) -> str:
@@ -89,7 +98,7 @@ def is_orderable(copy: Copy) -> bool:
     return (
         not copy["is_central"]
         and copy["status"] in {"bestellbar", "ausleihbar"}
-        and not any(keyword in copy["branch"] for keyword in NOT_ORDERABLE_BRANCH_KEYWORDS)
+        and is_lendable_location(copy)
     )
 
 
@@ -98,11 +107,25 @@ def classify_item(copies: list[Copy]) -> CopyStatus:
         return "unbekannt"
     if any(copy["status"] == "bestellt" for copy in copies):
         return "bestellt"
-    if any(copy["is_central"] and copy["status"] == "ausleihbar" for copy in copies):
+    if any(
+        copy["is_central"] and copy["status"] == "ausleihbar" and is_lendable_location(copy)
+        for copy in copies
+    ):
         return "ausleihbar"
     if any(is_orderable(copy) for copy in copies):
         return "bestellbar"
     return "entliehen"
+
+
+def parse_page_count(html: str) -> int | None:
+    """Number of pages from a catalog title page, preferring the 'Umfang' field."""
+    text = clean_text(BeautifulSoup(html, "html.parser").get_text(" "))
+    umfang = text.find("Umfang")
+    for part in ([text[umfang : umfang + 120]] if umfang >= 0 else []) + [text]:
+        match = PAGES_PATTERN.search(part)
+        if match:
+            return int(match.group(1))
+    return None
 
 
 def parse_title(soup: BeautifulSoup) -> str:

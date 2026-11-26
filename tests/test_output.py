@@ -334,3 +334,26 @@ def test_format_telegram_message_lists_added_titles_and_warnings() -> None:
     assert "<b>Von der Merkliste entfernt (1)</b>\n• Der Fremde" in message
     assert "<b>Bitte prüfen, nicht hinzugefügt (1)</b>\n• Faust, Band 3" in message
     assert message.endswith("⚠️ <i>DNB fehlgeschlagen</i>")
+
+
+def test_format_telegram_item_shows_page_count() -> None:
+    from library_tracker.output import format_telegram_item
+
+    item = {
+        "title": "Nexus",
+        "overall_status": "ausleihbar",
+        "pages": 640,
+        "copies": [
+            {
+                "media_number": "1",
+                "signature": "",
+                "branch": "10-Zentralbibliothek / 2.OG Dom-Flügel",
+                "status_text": "ausleihbar",
+                "status": "ausleihbar",
+                "due_date": None,
+                "is_central": True,
+            }
+        ],
+    }
+    line = format_telegram_item(item)  # type: ignore[arg-type]
+    assert line.startswith("• Nexus, 640 S. <i>(")
