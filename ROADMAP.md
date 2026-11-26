@@ -94,6 +94,21 @@ automatically (e.g. a careful title/author search with "Bitte prüfen").
 - [ ] architecture diagram in the README
 - [ ] versioned schema migrations if the SQLite schema keeps changing
 
+## Long-term goal
+
+### Own server
+
+The Cloudflare Worker comes first. Later the tracker should run on its own server.
+Which one is still open: Steam Deck, a free online server or a Raspberry Pi.
+
+- [ ] daily run as a timer on the server (replaces GitHub Actions and the Worker start)
+- [ ] Telegram bot via long polling: commands answered in seconds, no public address needed
+
+### Own app
+
+- [ ] once everything works: present the tracker as its own app, e.g. a web app (PWA) on the
+  phone home screen with the overview, statistics and buttons for renewals
+
 ## Safety constraint
 
 Paid reservations (`Vormerkung`, currently 1 €) must **never** be triggered automatically.
