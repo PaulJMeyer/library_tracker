@@ -50,13 +50,12 @@ can only send messages so far. Planned approach: a small serverless function
 - [ ] send only when something changed, plus a short weekly summary
 - [ ] mark titles that became available since the previous run ("neu")
 - [ ] "seltene Chance" ⭐: mark titles that are usually loaned but available today
-- [ ] show the same work only once when two editions are on the Merkliste
+  (loan quota per title from the daily availability snapshots)
+- [ ] put all editions of a wishlist book that the catalog has on the Merkliste, not only the first hit
+  (keep searching after the first hit, detect duplicates by catalog record instead of by title,
+  remove all editions once the book is finished)
+- [ ] show the same work only once in the Telegram message when several editions are on the Merkliste
 - [ ] loan reminders: titles due in the next 3 days (loans are already read from the account page)
-
-### P1 — Availability statistics
-
-- [ ] loan quota per title from the daily availability snapshots
-- [ ] Telegram command: titles that were loaned more than 50 % of the time
 
 ### P1 — Second READO account
 
