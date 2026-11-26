@@ -7,7 +7,8 @@ name: Daily library run
 
 on:
   schedule:
-    - cron: "0 5 * * *"  # 06:00 Berlin (winter time)
+    # Not on the full hour: GitHub often delays or drops scheduled runs at :00.
+    - cron: "17 5 * * *"  # 06:17 Berlin (winter time), 07:17 in summer
   workflow_dispatch:
 
 permissions:
