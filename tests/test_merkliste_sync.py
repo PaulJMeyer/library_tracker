@@ -21,6 +21,15 @@ SINGLE_HIT = """
 BASE = "https://opac.stabi-hb.de/webOPACClient/singleHit.do?methodToCall=showHit&curPos=1"
 
 
+def _copies_html(media_number: str) -> str:
+    return (
+        '<div class="row py-1">'
+        f'<div class="col-12">{media_number}</div><div class="col-12">Sig</div>'
+        '<div class="col-12">10-Zentralbibliothek</div><div class="col-12">ausleihbar</div>'
+        "</div>"
+    )
+
+
 def test_parse_single_hit_finds_title_and_merkliste_link() -> None:
     title, url = parse_single_hit(SINGLE_HIT, BASE)
 
@@ -74,26 +83,141 @@ def test_match_wishlist_books_continues_with_next_isbns_each_run(db: Path) -> No
 
     first = match_wishlist_books(client, progress=lambda _: None)
     # Book 1: READO ISBN + 14 of 20 DNB editions; book 2: only its READO ISBN.
-    assert first == {"books": 2, "searched": 16, "new_matches": 0, "errors": 0}
+    assert first == {"books": 2, "searched": 16, "new_matches": 0, "new_editions": 0, "errors": 0}
 
     searched_first = {call.args[0] for call in client.search_catalog_by_isbn.call_args_list}
     client.search_catalog_by_isbn.reset_mock()
     client.search_catalog_by_isbn.side_effect = lambda isbn: (
-        ["https://opac/hit"] if isbn == "9783000000016" else []
+        ["https://opac/hit"] if isbn in {"9783000000016", "9783000000018"} else []
     )
 
     second = match_wishlist_books(client, progress=lambda _: None)
 
     searched_second = [call.args[0] for call in client.search_catalog_by_isbn.call_args_list]
     assert not searched_first & set(searched_second)
-    assert searched_second == ["9783000000014", "9783000000015", "9783000000016"]
+    # The search goes on after the first hit to find every edition.
+    assert searched_second == [f"978300000001{i}" for i in range(4, 10)]
     assert second["new_matches"] == 1
+    assert second["new_editions"] == 2
 
     connection = get_connection(db)
     assert connection.execute("SELECT reado_isbn, matched_isbn, source FROM library_matches").fetchall() == [
         ("9781111111111", "9783000000016", "dnb")
     ]
+    assert connection.execute(
+        "SELECT reado_isbn, isbn FROM catalog_editions ORDER BY isbn"
+    ).fetchall() == [("9781111111111", "9783000000016"), ("9781111111111", "9783000000018")]
     connection.close()
+
+    # Found ISBNs are not searched again; nothing new to search until misses expire.
+    client.search_catalog_by_isbn.reset_mock()
+    assert match_wishlist_books(client, progress=lambda _: None)["searched"] == 0
+
+
+def test_matched_books_search_further_editions_within_budget(db: Path) -> None:
+    from library_tracker.repositories.library_matches import save_library_match
+    from library_tracker.services.library_matching import match_wishlist_books
+
+    connection = get_connection(db)
+    save_library_match(connection, "9781111111111", "9781111111111", "reado", "now")
+    connection.close()
+
+    client = Mock(spec=LibraryClient)
+    client.search_catalog_by_isbn.return_value = []
+
+    summary = match_wishlist_books(client, extra_edition_searches=5, progress=lambda _: None)
+
+    searched = [call.args[0] for call in client.search_catalog_by_isbn.call_args_list]
+    # Unmatched book 2 first, then 5 further editions of the already matched book 1.
+    assert searched == ["9782222222222"] + [f"97830000{i:05d}" for i in range(5)]
+    assert summary["searched"] == 6
+
+
+def test_all_editions_are_added_but_same_record_only_once(db: Path) -> None:
+    from library_tracker.repositories.library_matches import save_catalog_edition, save_library_match
+    from library_tracker.services.library_matching import add_matches_to_merkliste
+
+    connection = get_connection(db)
+    save_library_match(connection, "9781111111111", "9781111111111", "reado", "now")
+    for isbn in ("9783000000001", "9783000000002", "9783000000003"):
+        save_catalog_edition(connection, "9781111111111", isbn, "dnb", "now")
+    save_catalog_edition(connection, "9781111111111", "9780000000001", "openlibrary_english", "now")
+    connection.close()
+
+    # Same title for every edition; the copy numbers tell the catalog records apart.
+    # ...002 is the same record as ...001, ...003 is already on the Merkliste.
+    copies = {
+        "9781111111111": "A1",
+        "9783000000001": "B1",
+        "9783000000002": "B1",
+        "9783000000003": "C1",
+    }
+    client = Mock(spec=LibraryClient)
+    client.search_catalog_by_isbn.side_effect = lambda isbn: [f"https://opac/hit/{isbn}"]
+    client.get_page.side_effect = lambda url: (
+        SINGLE_HIT + _copies_html(copies[url.rsplit("/", 1)[1]]),
+        BASE,
+    )
+
+    results = add_matches_to_merkliste(
+        ["Der Adept des Assassinen"], client, existing_media_numbers=["C1"], progress=lambda _: None
+    )
+
+    assert results == [
+        ("9781111111111", "Der Adept des Assassinen", "added"),
+        ("9781111111111", "Der Adept des Assassinen", "added"),
+        ("9781111111111", "Der Adept des Assassinen", "already_listed"),
+        ("9781111111111", "Der Adept des Assassinen", "already_listed"),
+    ]
+    assert client.add_to_memorize_list.call_count == 2
+    # The English edition is skipped because German editions exist.
+    assert "9780000000001" not in [c.args[0] for c in client.search_catalog_by_isbn.call_args_list]
+
+    connection = get_connection(db)
+    assert connection.execute(
+        "SELECT isbn, media_numbers, memorize_status FROM catalog_editions "
+        "WHERE source != 'openlibrary_english' ORDER BY isbn"
+    ).fetchall() == [
+        ("9781111111111", "A1", "added"),
+        ("9783000000001", "B1", "added"),
+        ("9783000000002", "B1", "already_listed"),
+        ("9783000000003", "C1", "already_listed"),
+    ]
+    connection.close()
+
+
+def test_copy_numbers_are_read_from_the_copies_tab(db: Path) -> None:
+    from library_tracker.repositories.library_matches import save_library_match
+    from library_tracker.services.library_matching import add_matches_to_merkliste
+
+    connection = get_connection(db)
+    save_library_match(connection, "9781111111111", "9781111111111", "reado", "now")
+    connection.close()
+
+    tab_link = (
+        '<a href="/webOPACClient/singleHit.do?methodToCall=activateTab'
+        '&amp;tab=showExemplarActive">Exemplare</a>'
+    )
+    pages = {
+        "https://opac/hit/9781111111111": SINGLE_HIT + tab_link,
+        "https://opac.stabi-hb.de/webOPACClient/singleHit.do?methodToCall=activateTab&tab=showExemplarActive": _copies_html("X1"),
+    }
+    client = Mock(spec=LibraryClient)
+    client.search_catalog_by_isbn.side_effect = lambda isbn: [f"https://opac/hit/{isbn}"]
+    client.get_page.side_effect = lambda url: (pages[url], BASE)
+
+    # Same title on the Merkliste, but another catalog record: added.
+    results = add_matches_to_merkliste(
+        ["Der Adept des Assassinen"], client, existing_media_numbers=["Z9"], progress=lambda _: None
+    )
+
+    assert results == [("9781111111111", "Der Adept des Assassinen", "added")]
+    # Hit page, copies tab, hit page again before following its Merkliste link.
+    assert [c.args[0] for c in client.get_page.call_args_list] == [
+        "https://opac/hit/9781111111111",
+        "https://opac.stabi-hb.de/webOPACClient/singleHit.do?methodToCall=activateTab&tab=showExemplarActive",
+        "https://opac/hit/9781111111111",
+    ]
 
 
 def test_misses_are_rechecked_after_the_waiting_period(db: Path) -> None:

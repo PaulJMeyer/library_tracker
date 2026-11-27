@@ -157,6 +157,23 @@ CREATE TABLE IF NOT EXISTS library_matches (
     FOREIGN KEY (reado_isbn) REFERENCES reado_books(isbn13) ON DELETE CASCADE
 );
 
+-- Every catalog edition found for a wishlist book (library_matches keeps the first one).
+CREATE TABLE IF NOT EXISTS catalog_editions (
+    reado_isbn TEXT NOT NULL,
+    isbn TEXT NOT NULL,
+    source TEXT NOT NULL,
+    found_at TEXT NOT NULL,
+    catalog_title TEXT,
+    -- Space-separated copy numbers of the catalog record: identify the record on the Merkliste.
+    media_numbers TEXT,
+    memorize_status TEXT CHECK (
+        memorize_status IN ('added', 'already_listed', 'failed', 'needs_review')
+    ),
+    memorize_checked_at TEXT,
+    PRIMARY KEY (reado_isbn, isbn),
+    FOREIGN KEY (reado_isbn) REFERENCES reado_books(isbn13) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS merkliste_removals (
     isbn13 TEXT PRIMARY KEY,
     catalog_title TEXT,
@@ -193,6 +210,7 @@ def initialize_database(connection: sqlite3.Connection) -> None:
         connection.executescript(SCHEMA_SQL)
         _migrate_reado_list_memberships(connection)
         _migrate_library_matches_statuses(connection)
+        _seed_catalog_editions(connection)
 
 
 def _get_table_columns(connection: sqlite3.Connection, table_name: str) -> set[str]:
@@ -220,6 +238,20 @@ def _migrate_library_matches_statuses(connection: sqlite3.Connection) -> None:
         """
     )
     connection.execute("DROP TABLE library_matches_old")
+
+
+def _seed_catalog_editions(connection: sqlite3.Connection) -> None:
+    """Every first match is also an edition (covers databases from before catalog_editions)."""
+    connection.execute(
+        """
+        INSERT OR IGNORE INTO catalog_editions (
+            reado_isbn, isbn, source, found_at, catalog_title, memorize_status, memorize_checked_at
+        )
+        SELECT reado_isbn, matched_isbn, source, matched_at, catalog_title,
+               memorize_status, memorize_checked_at
+        FROM library_matches
+        """
+    )
 
 
 def _migrate_reado_list_memberships(connection: sqlite3.Connection) -> None:

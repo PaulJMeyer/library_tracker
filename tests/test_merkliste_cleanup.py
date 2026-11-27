@@ -116,3 +116,34 @@ def test_book_back_on_wishlist_can_be_removed_again(db: Path) -> None:
 
     results = remove_finished_from_merkliste([_entry("Babel", "u9")], client, lookup_limit=0, progress=lambda _: None)
     assert results == [("9781111111111", "Babel", "removed")]
+
+
+def test_removes_every_edition_of_a_finished_book(db: Path) -> None:
+    from library_tracker.repositories.library_matches import (
+        save_catalog_edition,
+        save_edition_memorize_result,
+    )
+    from library_tracker.services.merkliste_cleanup import remove_finished_from_merkliste
+
+    connection = get_connection(db)
+    save_catalog_edition(connection, "9781111111111", "9783000000002", "dnb", "now")
+    save_edition_memorize_result(
+        connection, "9781111111111", "9783000000002", "added", "Babel (Taschenbuch)", ["M7"], "now"
+    )
+    connection.close()
+
+    client = Mock(spec=LibraryClient)
+    client.remove_entries.return_value = True
+    entries: list[MerklisteEntry] = [
+        _entry("Babel", "u1"),
+        {"title": "Babel - Roman", "uuid": "u2", "page": PAGE, "media_numbers": ["M7", "M8"]},
+        _entry("Wunschbuch", "u3"),
+    ]
+
+    results = remove_finished_from_merkliste(entries, client, lookup_limit=0, progress=lambda _: None)
+
+    assert results[:2] == [
+        ("9781111111111", "Babel", "removed"),
+        ("9781111111111", "Babel - Roman", "removed"),
+    ]
+    assert [call.args[1] for call in client.remove_entries.call_args_list] == [["u1"], ["u2"]]

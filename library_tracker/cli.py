@@ -233,15 +233,21 @@ def _run_match_report() -> int:
 def _run_match_books() -> int:
     summary = match_wishlist_books()
     print(
-        f"Wishlist books without catalog hit (checked): {summary['books']} | ISBNs searched: {summary['searched']}"
-        f" | new matches: {summary['new_matches']} | errors: {summary['errors']}"
+        f"Wishlist books checked: {summary['books']} | ISBNs searched: {summary['searched']}"
+        f" | new matches: {summary['new_matches']} | new editions: {summary['new_editions']}"
+        f" | errors: {summary['errors']}"
     )
     return 0
 
 
 def _run_merkliste_add() -> int:
-    existing = scrape_library()["all_titles"]
-    results = add_matches_to_merkliste(existing)
+    scrape = scrape_library()
+    results = add_matches_to_merkliste(
+        scrape["all_titles"],
+        existing_media_numbers=[
+            number for entry in scrape["entries"] for number in entry.get("media_numbers", [])
+        ],
+    )
     for reado_isbn, title, status in results:
         print(f"{reado_isbn} | {title} | {status}")
     print(f"Added to Merkliste: {sum(status == 'added' for _, _, status in results)}")

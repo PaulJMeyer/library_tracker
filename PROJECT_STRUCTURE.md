@@ -255,7 +255,8 @@ Duplicates are removed and English editions remain cached but are not used for B
 Stores the incremental catalog state:
 
 - `catalog_searches`: every ISBN searched in the Bremen catalog, with hit URL and time
-- `library_matches`: the first catalog hit per READO wishlist book and its Merkliste status (`added`, `already_listed`, `failed`)
+- `library_matches`: the first catalog hit per READO wishlist book and its Merkliste status (`added`, `already_listed`, `failed`, `needs_review`)
+- `catalog_editions`: every catalog edition found per wishlist book, with catalog title, copy numbers (identify the catalog record on the Merkliste) and Merkliste status
 
 ## Services
 
@@ -286,13 +287,13 @@ Orchestrates cached external metadata work:
 
 - direct catalog search for one ISBN
 - prioritized matching for one active READO wishlist book
-- `match_wishlist_books`: incremental search for all wishlist books (15 new ISBNs per book and run, recheck misses after 30 days)
-- `add_matches_to_merkliste`: open the catalog hit and follow only its "in die Merkliste" link
+- `match_wishlist_books`: incremental search for all editions of all wishlist books (15 new ISBNs per book and run, books without a hit first, at most 150 ISBNs per run for further editions, recheck misses after 30 days)
+- `add_matches_to_merkliste`: open each found edition's catalog hit and follow only its "in die Merkliste" link; skips catalog records already on the Merkliste (copy numbers, title as fallback)
 - `build_match_report`: diagnostic report from stored state
 
 ### `services/merkliste_cleanup.py`
 
-Removes books that are on a finished READO list (TBR, reading, completed, abandoned) and not on the wishlist from the Merkliste. It uses the stored catalog title of auto-added books, otherwise one catalog search per book (30 per run). Each book is checked once (`merkliste_removals`); failed removals are retried, and a book that returns to the wishlist can be removed again later.
+Removes books that are on a finished READO list (TBR, reading, completed, abandoned) and not on the wishlist from the Merkliste. It removes every edition: Merkliste entries matching a stored catalog title or copy number of any found edition, otherwise it uses one catalog search per book (30 per run). Each book is checked once (`merkliste_removals`); failed removals are retried, and a book that returns to the wishlist can be removed again later.
 
 ### `services/sync.py`
 

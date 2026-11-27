@@ -27,7 +27,7 @@ Configured list types:
 - completed
 - abandoned
 
-Books on tbr/reading/completed/abandoned (and not on the wishlist) are removed from the library Merkliste. List membership is stored separately from bibliographic cache data. Moving a book between lists must not delete resolved work/edition metadata.
+Books on tbr/reading/completed/abandoned (and not on the wishlist) are removed from the library Merkliste with all their editions. List membership is stored separately from bibliographic cache data. Moving a book between lists must not delete resolved work/edition metadata.
 
 ## Current metadata workflow
 
@@ -55,7 +55,7 @@ READO lists (one step per list)
 → incremental catalog search
 → read Merkliste
 → remove finished books
-→ add found wishlist books (only "in die Merkliste")
+→ add every found edition of a wishlist book (only "in die Merkliste"; same catalog record by copy number only once)
 → fresh-session re-read
 → Telegram overview
 ```
