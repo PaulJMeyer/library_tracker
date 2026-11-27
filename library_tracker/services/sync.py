@@ -93,7 +93,10 @@ def run_sync(
 
     summary = report.step("Katalogsuche", lambda: match_wishlist_books(library))
     if summary:
-        log(f"   {summary['new_matches']} neue Treffer, {summary['searched']} ISBNs gesucht")
+        log(
+            f"   {summary['new_matches']} neue Treffer, {summary.get('new_editions', 0)} neue Ausgaben, "
+            f"{summary['searched']} ISBNs gesucht"
+        )
         if summary["errors"]:
             report.warnings.append(f"Katalogsuche: {summary['errors']} Fehler")
 
@@ -115,7 +118,16 @@ def run_sync(
 
     removed = {normalize_title(title) for title in report.removed_titles}
     existing = [title for title in scrape["all_titles"] if normalize_title(title) not in removed]
-    results = report.step("Merkliste ergänzen", lambda: add_matches_to_merkliste(existing, library))
+    existing_media = [
+        number
+        for entry in scrape["entries"]
+        if normalize_title(entry["title"]) not in removed
+        for number in entry.get("media_numbers", [])
+    ]
+    results = report.step(
+        "Merkliste ergänzen",
+        lambda: add_matches_to_merkliste(existing, library, existing_media_numbers=existing_media),
+    )
     if results:
         report.added_titles = [title for _, title, status in results if status == "added"]
         report.review_titles = [title for _, title, status in results if status == "needs_review"]

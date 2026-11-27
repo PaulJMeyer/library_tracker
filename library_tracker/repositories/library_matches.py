@@ -5,21 +5,6 @@ import sqlite3
 from library_tracker.models import LibraryIsbnCandidateSource
 
 
-def get_unmatched_wishlist_isbns(connection: sqlite3.Connection) -> list[str]:
-    return [
-        str(row[0])
-        for row in connection.execute(
-            """
-            SELECT rlm.isbn13
-            FROM reado_list_memberships AS rlm
-            LEFT JOIN library_matches AS lm ON lm.reado_isbn = rlm.isbn13
-            WHERE rlm.list_type = 'wishlist' AND rlm.is_active = 1 AND lm.reado_isbn IS NULL
-            ORDER BY rlm.isbn13
-            """
-        )
-    ]
-
-
 def get_recent_misses(connection: sqlite3.Connection, since: str) -> set[str]:
     """ISBNs searched without a hit at or after `since` (skipped until then)."""
     return {
@@ -76,23 +61,6 @@ def save_library_match(
         )
 
 
-def get_matches_to_memorize(connection: sqlite3.Connection) -> list[tuple[str, str]]:
-    """(reado_isbn, matched_isbn) of active wishlist matches not yet on the Merkliste."""
-    return [
-        (str(reado_isbn), str(matched_isbn))
-        for reado_isbn, matched_isbn in connection.execute(
-            """
-            SELECT lm.reado_isbn, lm.matched_isbn
-            FROM library_matches AS lm
-            JOIN reado_list_memberships AS rlm
-              ON rlm.isbn13 = lm.reado_isbn AND rlm.list_type = 'wishlist' AND rlm.is_active = 1
-            WHERE lm.memorize_status IS NULL OR lm.memorize_status = 'failed'
-            ORDER BY lm.reado_isbn
-            """
-        )
-    ]
-
-
 def save_memorize_result(
     connection: sqlite3.Connection,
     reado_isbn: str,
@@ -120,3 +88,127 @@ def get_match_states(connection: sqlite3.Connection) -> dict[str, tuple[str, str
             "SELECT reado_isbn, matched_isbn, source, memorize_status FROM library_matches"
         )
     }
+
+
+def get_wishlist_isbns_for_search(connection: sqlite3.Connection) -> list[tuple[str, bool]]:
+    """(isbn13, already matched) of active wishlist books, books without a match first."""
+    return [
+        (str(isbn13), bool(matched))
+        for isbn13, matched in connection.execute(
+            """
+            SELECT rlm.isbn13, lm.reado_isbn IS NOT NULL AS matched
+            FROM reado_list_memberships AS rlm
+            LEFT JOIN library_matches AS lm ON lm.reado_isbn = rlm.isbn13
+            WHERE rlm.list_type = 'wishlist' AND rlm.is_active = 1
+            ORDER BY matched, rlm.isbn13
+            """
+        )
+    ]
+
+
+def get_catalog_hits(connection: sqlite3.Connection) -> set[str]:
+    """ISBNs that were found in the catalog (searched again only via their edition)."""
+    return {
+        str(row[0])
+        for row in connection.execute("SELECT isbn FROM catalog_searches WHERE hit_url IS NOT NULL")
+    }
+
+
+def get_edition_isbns(connection: sqlite3.Connection, reado_isbn: str) -> set[str]:
+    return {
+        str(row[0])
+        for row in connection.execute(
+            "SELECT isbn FROM catalog_editions WHERE reado_isbn = ?", (reado_isbn,)
+        )
+    }
+
+
+def save_catalog_edition(
+    connection: sqlite3.Connection,
+    reado_isbn: str,
+    isbn: str,
+    source: LibraryIsbnCandidateSource,
+    found_at: str,
+) -> None:
+    with connection:
+        connection.execute(
+            """
+            INSERT OR IGNORE INTO catalog_editions (reado_isbn, isbn, source, found_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (reado_isbn, isbn, source, found_at),
+        )
+
+
+def get_editions_to_memorize(connection: sqlite3.Connection) -> list[tuple[str, str]]:
+    """(reado_isbn, edition isbn) of active wishlist editions not yet on the Merkliste.
+
+    English editions only count when no other edition of the book is in the catalog.
+    """
+    return [
+        (str(reado_isbn), str(isbn))
+        for reado_isbn, isbn in connection.execute(
+            """
+            SELECT ce.reado_isbn, ce.isbn
+            FROM catalog_editions AS ce
+            JOIN reado_list_memberships AS rlm
+              ON rlm.isbn13 = ce.reado_isbn AND rlm.list_type = 'wishlist' AND rlm.is_active = 1
+            WHERE (ce.memorize_status IS NULL OR ce.memorize_status = 'failed')
+              AND NOT (
+                  ce.source = 'openlibrary_english'
+                  AND EXISTS (
+                      SELECT 1 FROM catalog_editions AS other
+                      WHERE other.reado_isbn = ce.reado_isbn
+                        AND other.source != 'openlibrary_english'
+                  )
+              )
+            ORDER BY ce.reado_isbn,
+                CASE ce.source
+                    WHEN 'reado' THEN 0
+                    WHEN 'openlibrary_confirmed' THEN 1
+                    WHEN 'dnb' THEN 2
+                    WHEN 'openlibrary_unknown' THEN 3
+                    ELSE 4
+                END,
+                ce.isbn
+            """
+        )
+    ]
+
+
+def save_edition_memorize_result(
+    connection: sqlite3.Connection,
+    reado_isbn: str,
+    isbn: str,
+    status: str,
+    catalog_title: str | None,
+    media_numbers: list[str],
+    checked_at: str,
+) -> None:
+    with connection:
+        connection.execute(
+            """
+            UPDATE catalog_editions
+            SET memorize_status = ?, catalog_title = COALESCE(?, catalog_title),
+                media_numbers = COALESCE(?, media_numbers), memorize_checked_at = ?
+            WHERE reado_isbn = ? AND isbn = ?
+            """,
+            (
+                status,
+                catalog_title,
+                " ".join(media_numbers) or None,
+                checked_at,
+                reado_isbn,
+                isbn,
+            ),
+        )
+        # Keep the first match's status in sync for the match report.
+        connection.execute(
+            """
+            UPDATE library_matches
+            SET memorize_status = ?, catalog_title = COALESCE(?, catalog_title),
+                memorize_checked_at = ?
+            WHERE reado_isbn = ? AND matched_isbn = ?
+            """,
+            (status, catalog_title, checked_at, reado_isbn, isbn),
+        )

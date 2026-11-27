@@ -45,7 +45,14 @@ def scrape_library(client: LibraryClient | None = None) -> ScrapeResult:
                     file=sys.stderr,
                     flush=True,
                 )
-            entries.append({"title": item["title"], "uuid": entry["uuid"], "page": page})
+            entries.append(
+                {
+                    "title": item["title"],
+                    "uuid": entry["uuid"],
+                    "page": page,
+                    "media_numbers": [copy["media_number"] for copy in item["copies"]],
+                }
+            )
             if item["overall_status"] != "entliehen":
                 visible_items.append(item)
 
