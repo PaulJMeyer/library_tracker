@@ -169,20 +169,27 @@ def format_telegram_message(
     review_titles: list[str] | None = None,
     removed_titles: list[str] | None = None,
     second_wishlist_titles: list[str] | None = None,
+    own_wishlist_titles: list[str] | None = None,
     second_wishlist_heading: str = "Von der zweiten Wunschliste:",
 ) -> str:
     """Telegram overview of available Merkliste titles.
 
-    With `second_wishlist_titles` (catalog titles of books only on the second
-    READO wishlist) those titles get their own section under
-    `second_wishlist_heading`."""
+    With `second_wishlist_titles` (catalog titles of books on the second READO
+    wishlist) those titles get their own section under `second_wishlist_heading`.
+    They stay in the main section too when they are in `own_wishlist_titles`."""
     today = today or datetime.date.today()
     lines = [f"<b>📚 Merkliste – {today.strftime('%d.%m.%Y')}</b>"]
     own_items = items
     second_items: list[Item] = []
     if second_wishlist_titles is not None:
         second = {normalize_title(title) for title in second_wishlist_titles}
-        own_items = [item for item in items if normalize_title(item["title"]) not in second]
+        own = {normalize_title(title) for title in own_wishlist_titles or []}
+        # Books on both wishlists are listed in both sections.
+        own_items = [
+            item
+            for item in items
+            if normalize_title(item["title"]) in own or normalize_title(item["title"]) not in second
+        ]
         second_items = [item for item in items if normalize_title(item["title"]) in second]
     lines.extend(_format_status_sections(own_items))
     if second_wishlist_titles is not None:

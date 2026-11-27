@@ -18,7 +18,7 @@ from library_tracker.config import (
 )
 from library_tracker.database import get_connection, initialize_database
 from library_tracker.models import ReadoListType, ScrapeResult
-from library_tracker.repositories.library_matches import get_second_wishlist_only_titles
+from library_tracker.repositories.library_matches import get_wishlist_catalog_titles
 from library_tracker.services.library_matching import (
     add_matches_to_merkliste,
     match_wishlist_books,
@@ -58,6 +58,7 @@ class SyncReport:
         self.scrape: ScrapeResult | None = None
         # None: no second wishlist configured, so the overview has no extra section.
         self.second_wishlist_titles: list[str] | None = None
+        self.own_wishlist_titles: list[str] = []
 
     def step(self, name: str, action: Callable[[], T]) -> T | None:
         _log(f"== {name}")
@@ -73,11 +74,15 @@ def _sync_list(list_type: ReadoListType) -> None:
     sync_lists(headless=True, list_types=(list_type,))
 
 
-def _second_wishlist_titles() -> list[str]:
+def _wishlist_titles() -> tuple[list[str], list[str]]:
+    """Catalog titles on the own and on the second wishlist."""
     connection = get_connection()
     try:
         initialize_database(connection)
-        return get_second_wishlist_only_titles(connection)
+        return (
+            get_wishlist_catalog_titles(connection, "wishlist"),
+            get_wishlist_catalog_titles(connection, "second_wishlist"),
+        )
     finally:
         connection.close()
 
@@ -151,7 +156,7 @@ def run_sync(
             report.warnings.append("Merkliste nach dem Ergänzen unvollständig gelesen")
 
     if "second_wishlist" in configured_reado_list_types():
-        report.second_wishlist_titles = report.step(
-            "Zweite Wunschliste zuordnen", _second_wishlist_titles
-        )
+        titles = report.step("Zweite Wunschliste zuordnen", _wishlist_titles)
+        if titles is not None:
+            report.own_wishlist_titles, report.second_wishlist_titles = titles
     return report

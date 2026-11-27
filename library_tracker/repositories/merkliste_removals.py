@@ -20,8 +20,9 @@ def forget_removals_of_wishlist_books(connection: sqlite3.Connection) -> None:
 
 
 def get_finished_books_to_check(connection: sqlite3.Connection) -> list[tuple[str, str | None]]:
-    """(isbn13, stored catalog title or None) of books on a finished READO list
-    (and not on any wishlist) that were not checked against the Merkliste yet."""
+    """(isbn13, stored catalog title or None) of books on a finished READO list or
+    no longer on the second wishlist (and not on any wishlist) that were not
+    checked against the Merkliste yet."""
     placeholders = ", ".join("?" for _ in FINISHED_LIST_TYPES)
     return [
         (str(isbn13), str(title) if title is not None else None)
@@ -31,7 +32,12 @@ def get_finished_books_to_check(connection: sqlite3.Connection) -> list[tuple[st
             FROM reado_list_memberships AS rlm
             LEFT JOIN library_matches AS lm ON lm.reado_isbn = rlm.isbn13
             LEFT JOIN merkliste_removals AS mr ON mr.isbn13 = rlm.isbn13
-            WHERE rlm.list_type IN ({placeholders}) AND rlm.is_active = 1
+            WHERE (
+                (rlm.list_type IN ({placeholders}) AND rlm.is_active = 1)
+                -- The second wishlist has no finished lists here: a book that left it
+                -- is done with for its owner.
+                OR (rlm.list_type = 'second_wishlist' AND rlm.is_active = 0)
+              )
               AND (mr.isbn13 IS NULL OR mr.status = 'failed')
               AND rlm.isbn13 NOT IN (
                   SELECT isbn13 FROM reado_list_memberships

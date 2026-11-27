@@ -277,12 +277,14 @@ def test_format_telegram_message_puts_second_wishlist_in_own_section() -> None:
     items = [
         make_item("Eigenes Buch", "ausleihbar", [make_copy("ausleihbar", None, status="ausleihbar", branch=central)]),
         make_item("¬Das zweite Buch", "ausleihbar", [make_copy("ausleihbar", None, status="ausleihbar", branch=central)]),
+        make_item("Gemeinsames Buch", "ausleihbar", [make_copy("ausleihbar", None, status="ausleihbar", branch=central)]),
     ]
 
     message = format_telegram_message(
         items,
         today=datetime.date(2026, 11, 27),
-        second_wishlist_titles=["Das zweite Buch"],
+        second_wishlist_titles=["Das zweite Buch", "Gemeinsames Buch"],
+        own_wishlist_titles=["Eigenes Buch", "Gemeinsames Buch"],
         second_wishlist_heading="Von Annas Wunschliste:",
     )
 
@@ -290,16 +292,18 @@ def test_format_telegram_message_puts_second_wishlist_in_own_section() -> None:
         [
             "<b>📚 Merkliste – 27.11.2026</b>",
             "",
-            "<b>Ausleihbar in der Zentralbibliothek (1)</b>",
+            "<b>Ausleihbar in der Zentralbibliothek (2)</b>",
             "• Eigenes Buch <i>(1.OG Romane A-Z)</i>",
+            "• Gemeinsames Buch <i>(1.OG Romane A-Z)</i>",
             "",
             "<b>Bestellbar aus anderen Zweigstellen (0)</b>",
             "– keine –",
             "",
             "<b>Von Annas Wunschliste:</b>",
             "",
-            "<b>Ausleihbar in der Zentralbibliothek (1)</b>",
+            "<b>Ausleihbar in der Zentralbibliothek (2)</b>",
             "• Das zweite Buch <i>(1.OG Romane A-Z)</i>",
+            "• Gemeinsames Buch <i>(1.OG Romane A-Z)</i>",
             "",
             "<b>Bestellbar aus anderen Zweigstellen (0)</b>",
             "– keine –",

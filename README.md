@@ -188,9 +188,9 @@ The scheduled pipeline (`sync --telegram`) runs these steps once a day; every st
 2. resolve metadata and editions for new wishlist books only
 3. search the catalog for up to 15 not yet searched ISBNs per wishlist book
 4. read the library Merkliste
-5. remove books that moved to a finished READO list
+5. remove books that moved to a finished READO list or left the second wishlist
 6. add newly found wishlist books
-7. send the Telegram overview (available, orderable, added, removed, warnings; books only on the optional second wishlist get their own section)
+7. send the Telegram overview (available, orderable, added, removed, warnings; books on the optional second wishlist get their own section)
 
 Planned features are listed in the [roadmap](ROADMAP.md).
 

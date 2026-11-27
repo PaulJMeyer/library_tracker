@@ -338,8 +338,8 @@ def test_dnb_editions_become_candidates_after_confirmed_openlibrary(
 def test_second_wishlist_counts_as_wishlist(connection: sqlite3.Connection) -> None:
     from library_tracker.repositories.library_matches import (
         get_matches_to_memorize,
-        get_second_wishlist_only_titles,
         get_unmatched_wishlist_isbns,
+        get_wishlist_catalog_titles,
         save_library_match,
         save_memorize_result,
     )
@@ -365,4 +365,10 @@ def test_second_wishlist_counts_as_wishlist(connection: sqlite3.Connection) -> N
     for isbn, title in ((own, "Eigen"), (both, "Beide"), (second, "Zweit"), (finished, "Fertig")):
         save_memorize_result(connection, isbn, "added", title, "t")
 
-    assert get_second_wishlist_only_titles(connection) == ["Fertig", "Zweit"]
+    assert get_wishlist_catalog_titles(connection, "wishlist") == ["Beide", "Eigen"]
+    assert get_wishlist_catalog_titles(connection, "second_wishlist") == ["Beide", "Fertig", "Zweit"]
+
+    # Leaving the second wishlist makes a book a removal candidate, unless the
+    # own wishlist still has it.
+    sync_reado_list(connection, [entry(finished)], "second_wishlist", "t2")
+    assert get_finished_books_to_check(connection) == [(second, "Zweit")]

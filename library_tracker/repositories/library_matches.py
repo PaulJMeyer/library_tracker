@@ -123,30 +123,20 @@ def get_match_states(connection: sqlite3.Connection) -> dict[str, tuple[str, str
     }
 
 
-def get_second_wishlist_only_titles(connection: sqlite3.Connection) -> list[str]:
-    """Catalog titles of books that are only on the second wishlist, not on the own one.
 
-    Books on both wishlists (also as different editions with the same catalog
-    title) stay in the main section of the overview."""
+def get_wishlist_catalog_titles(connection: sqlite3.Connection, list_type: str) -> list[str]:
+    """Catalog titles of the matched books that are active on the given wishlist."""
     return [
         str(row[0])
         for row in connection.execute(
             """
             SELECT DISTINCT lm.catalog_title
             FROM library_matches AS lm
-            JOIN reado_list_memberships AS second
-              ON second.isbn13 = lm.reado_isbn
-             AND second.list_type = 'second_wishlist' AND second.is_active = 1
+            JOIN reado_list_memberships AS rlm
+              ON rlm.isbn13 = lm.reado_isbn AND rlm.list_type = ? AND rlm.is_active = 1
             WHERE lm.catalog_title IS NOT NULL
-              AND lm.catalog_title NOT IN (
-                  SELECT own_lm.catalog_title
-                  FROM library_matches AS own_lm
-                  JOIN reado_list_memberships AS own
-                    ON own.isbn13 = own_lm.reado_isbn
-                   AND own.list_type = 'wishlist' AND own.is_active = 1
-                  WHERE own_lm.catalog_title IS NOT NULL
-              )
             ORDER BY lm.catalog_title
-            """
+            """,
+            (list_type,),
         )
     ]

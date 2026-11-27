@@ -37,9 +37,9 @@ The workflow installs `library-tracker` from the public repository's
 2. resolve metadata for new books only (Open Library, Google Books, DNB editions)
 3. search the Bremen catalog: up to 15 not yet searched ISBNs per wishlist book and run. Every search is stored, so books with many editions are covered over several days. ISBNs without a hit are searched again after 30 days.
 4. read the library Merkliste
-5. remove books that are on a finished READO list (Stapel ungelesener Bücher, Am Lesen/Hören, Abgeschlossen, Abgebrochen) and not on either wishlist. Each book is checked once; books without a stored catalog title need one catalog search, at most 30 per run.
+5. remove books that are on a finished READO list (Stapel ungelesener Bücher, Am Lesen/Hören, Abgeschlossen, Abgebrochen) and not on either wishlist, and books that left the second wishlist (unless the own wishlist has them). Each book is checked once; books without a stored catalog title need one catalog search, at most 30 per run.
 6. add wishlist books found in the catalog to the Merkliste (only via the catalog's free "in die Merkliste" link, never a reservation)
-7. send the Telegram overview, including added and removed titles. Titles that are only on the second wishlist are listed in their own section at the end.
+7. send the Telegram overview, including added and removed titles. Titles on the second wishlist are listed in their own section at the end (books on both wishlists appear in both sections).
 
 Removing runs before adding so the Merkliste page data from step 4 stays valid; the result is the same.
 

@@ -281,7 +281,7 @@ def test_run_sync_assigns_second_wishlist_titles() -> None:
         patch.object(sync, "scrape_library", return_value=scrape_result),
         patch.object(sync, "remove_finished_from_merkliste", return_value=[]),
         patch.object(sync, "add_matches_to_merkliste", return_value=[]),
-        patch.object(sync, "_second_wishlist_titles", return_value=["A"]),
+        patch.object(sync, "_wishlist_titles", return_value=(["B"], ["A"])),
         patch.object(sync, "_log"),
     ):
         report = sync.run_sync(client=client, log=lambda _: None)
@@ -291,6 +291,7 @@ def test_run_sync_assigns_second_wishlist_titles() -> None:
         ("second_wishlist",),
     ]
     assert report.second_wishlist_titles == ["A"]
+    assert report.own_wishlist_titles == ["B"]
     assert report.warnings == []
 
 

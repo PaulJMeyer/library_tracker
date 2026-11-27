@@ -273,6 +273,7 @@ def _run_sync(*, telegram: bool) -> int:
                     review_titles=report.review_titles,
                     removed_titles=report.removed_titles,
                     second_wishlist_titles=report.second_wishlist_titles,
+                    own_wishlist_titles=report.own_wishlist_titles,
                     second_wishlist_heading=second_wishlist_heading(),
                 )
             )
