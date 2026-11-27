@@ -65,7 +65,8 @@ A real end-to-end match is already verified where the original READO ISBN was no
 ```bash
 # Full pipeline: READO -> metadata -> catalog -> Merkliste -> overview
 python -m library_tracker sync
-python -m library_tracker sync --telegram
+python -m library_tracker sync --telegram            # only sends if the overview changed
+python -m library_tracker sync --telegram --always   # send even if nothing changed
 
 # Library wish-list scrape + availability history
 python -m library_tracker
@@ -187,7 +188,7 @@ The scheduled pipeline (`sync --telegram`) runs these steps once a day; every st
 4. read the library Merkliste
 5. remove books that moved to a finished READO list
 6. add newly found wishlist books
-7. send the Telegram overview (available, orderable, added, removed, warnings)
+7. send the Telegram overview (available, orderable, added, removed, warnings), but only if it differs from the last message; runs with warnings always send
 
 Planned features are listed in the [roadmap](ROADMAP.md).
 

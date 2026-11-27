@@ -33,7 +33,8 @@ library_tracker/
 │   │   ├── metadata.py
 │   │   ├── matching.py
 │   │   ├── library_matches.py
-│   │   └── merkliste_removals.py
+│   │   ├── merkliste_removals.py
+│   │   └── telegram_overviews.py
 │   └── services/
 │       ├── __init__.py
 │       ├── library_scrape.py
@@ -50,6 +51,7 @@ library_tracker/
 │   ├── test_entrypoint.py
 │   ├── test_googlebooks.py
 │   ├── test_telegram.py
+│   ├── test_telegram_overviews.py
 │   ├── test_isbn.py
 │   ├── test_library_client.py
 │   ├── test_merkliste_cleanup.py

@@ -95,7 +95,7 @@ def test_metadata_and_report_commands_route_flags() -> None:
 
     with patch("library_tracker.cli._run_sync", return_value=0) as command:
         assert main(["sync", "--telegram"]) == 0
-    command.assert_called_once_with(telegram=True)
+    command.assert_called_once_with(telegram=True, always=False)
 
     for name, func in (("match-books", "_run_match_books"), ("merkliste-add", "_run_merkliste_add"), ("merkliste-cleanup", "_run_merkliste_cleanup")):
         with patch(f"library_tracker.cli.{func}", return_value=0) as command:

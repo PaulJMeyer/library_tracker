@@ -172,6 +172,12 @@ CREATE TABLE IF NOT EXISTS openlibrary_edition_syncs (
     synced_at TEXT NOT NULL,
     FOREIGN KEY (work_key) REFERENCES openlibrary_works(work_key) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS telegram_overviews (
+    chat_id TEXT PRIMARY KEY,
+    fingerprint TEXT NOT NULL,
+    sent_at TEXT NOT NULL
+);
 """
 
 
