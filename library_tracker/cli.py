@@ -24,6 +24,11 @@ from library_tracker.output import (
     print_scrape_result,
 )
 from library_tracker.repositories.availability import get_copy_history
+from library_tracker.repositories.telegram_overviews import (
+    get_last_fingerprint,
+    overview_fingerprint,
+    save_fingerprint,
+)
 from library_tracker.services.library_matching import (
     add_matches_to_merkliste,
     build_match_report,
@@ -116,7 +121,16 @@ def build_parser() -> argparse.ArgumentParser:
         "sync",
         help="Daily pipeline: READO, metadata, catalog matches, Merkliste, overview.",
     )
-    sync.add_argument("--telegram", action="store_true", help="Send the overview via Telegram.")
+    sync.add_argument(
+        "--telegram",
+        action="store_true",
+        help="Send the overview via Telegram, but only if it changed since the last message.",
+    )
+    sync.add_argument(
+        "--always",
+        action="store_true",
+        help="With --telegram: send the overview even if nothing changed.",
+    )
     return parser
 
 
@@ -243,7 +257,24 @@ def _run_merkliste_cleanup() -> int:
     return 0
 
 
-def _run_sync(*, telegram: bool) -> int:
+def _send_overview_if_changed(client: TelegramClient, message: str, *, always: bool) -> bool:
+    """Send the overview unless it equals the last one sent (ignoring the date).
+
+    Messages with warnings are always sent. Returns whether a message was sent."""
+    fingerprint = overview_fingerprint(message)
+    connection = get_connection()
+    try:
+        initialize_database(connection)
+        if not always and get_last_fingerprint(connection, client.chat_id) == fingerprint:
+            return False
+        client.send_message(message)
+        save_fingerprint(connection, client.chat_id, fingerprint)
+    finally:
+        connection.close()
+    return True
+
+
+def _run_sync(*, telegram: bool, always: bool = False) -> int:
     client = _telegram_client() if telegram else None
     report = run_sync()
     if report.scrape is not None:
@@ -263,17 +294,19 @@ def _run_sync(*, telegram: bool) -> int:
                 + "; ".join(report.warnings)
                 + ")."
             )
+            print("Telegram warning sent.")
         else:
-            client.send_message(
-                format_telegram_message(
-                    report.scrape["items"],
-                    added_titles=report.added_titles,
-                    warnings=report.warnings,
-                    review_titles=report.review_titles,
-                    removed_titles=report.removed_titles,
-                )
+            message = format_telegram_message(
+                report.scrape["items"],
+                added_titles=report.added_titles,
+                warnings=report.warnings,
+                review_titles=report.review_titles,
+                removed_titles=report.removed_titles,
             )
-        print("Telegram overview sent.")
+            if _send_overview_if_changed(client, message, always=always or bool(report.warnings)):
+                print("Telegram overview sent.")
+            else:
+                print("Overview unchanged since the last Telegram message, nothing sent.")
     return 1 if report.warnings else 0
 
 
@@ -374,7 +407,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "merkliste-cleanup":
             return _run_merkliste_cleanup()
         if args.command == "sync":
-            return _run_sync(telegram=bool(args.telegram))
+            return _run_sync(telegram=bool(args.telegram), always=bool(args.always))
         if args.command == "library-search":
             return _run_library_search(str(args.isbn))
         if args.command == "library-match":
