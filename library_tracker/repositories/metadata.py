@@ -3,15 +3,16 @@ from __future__ import annotations
 import json
 import sqlite3
 
+from library_tracker.config import WISHLIST_TYPES_SQL
 from library_tracker.models import GoogleBooksResolution, OpenLibraryEdition, OpenLibraryResolution
 
 
-# Metadata is only needed to find library editions of wishlist books, so books
+# Metadata is only needed to find library editions of wishlist books (both wishlists), so books
 # that are only on TBR/reading/completed/abandoned lists are not looked up.
-ON_ACTIVE_WISHLIST = """
+ON_ACTIVE_WISHLIST = f"""
     EXISTS (
         SELECT 1 FROM reado_list_memberships AS wl
-        WHERE wl.isbn13 = {column} AND wl.list_type = 'wishlist' AND wl.is_active = 1
+        WHERE wl.isbn13 = {{column}} AND wl.list_type IN {WISHLIST_TYPES_SQL} AND wl.is_active = 1
     )
 """
 
@@ -168,12 +169,12 @@ def get_unsynced_wishlist_work_keys(
     return [
         str(row[0])
         for row in connection.execute(
-            """
+            f"""
             SELECT DISTINCT br.work_key
             FROM reado_list_memberships AS rlm
             JOIN bibliographic_resolutions AS br ON br.isbn13 = rlm.isbn13
             LEFT JOIN openlibrary_edition_syncs AS oes ON oes.work_key = br.work_key
-            WHERE rlm.list_type = 'wishlist'
+            WHERE rlm.list_type IN {WISHLIST_TYPES_SQL}
               AND rlm.is_active = 1
               AND br.source IN ('openlibrary', 'openlibrary_title')
               AND br.status = 'resolved'
@@ -305,15 +306,15 @@ def get_dnb_lookup_candidates(
 ) -> list[tuple[str, str | None, list[str]]]:
     """Active wishlist books not yet looked up in the DNB, with any known title/authors."""
     rows = connection.execute(
-        """
-        SELECT rlm.isbn13, COALESCE(ow.title, gbv.title), gbv.authors_json
+        f"""
+        SELECT DISTINCT rlm.isbn13, COALESCE(ow.title, gbv.title), gbv.authors_json
         FROM reado_list_memberships AS rlm
         LEFT JOIN dnb_lookups AS dl ON dl.isbn13 = rlm.isbn13
         LEFT JOIN bibliographic_resolutions AS br ON br.isbn13 = rlm.isbn13
         LEFT JOIN openlibrary_works AS ow ON ow.work_key = br.work_key
         LEFT JOIN google_books_resolutions AS gbr ON gbr.isbn13 = rlm.isbn13
         LEFT JOIN google_books_volumes AS gbv ON gbv.volume_id = gbr.volume_id
-        WHERE rlm.list_type = 'wishlist'
+        WHERE rlm.list_type IN {WISHLIST_TYPES_SQL}
           AND rlm.is_active = 1
           AND dl.isbn13 IS NULL
         ORDER BY rlm.isbn13

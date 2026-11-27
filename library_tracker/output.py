@@ -5,7 +5,7 @@ import html
 import re
 from pathlib import Path
 
-from library_tracker.clients.openlibrary import strip_sort_markers
+from library_tracker.clients.openlibrary import normalize_title, strip_sort_markers
 from library_tracker.parsers.library import is_lendable_location, is_orderable
 from library_tracker.models import (
     AvailabilitySnapshot,
@@ -149,6 +149,17 @@ def format_telegram_item(item: Item) -> str:
     return f"• {title}{pages}{suffix}"
 
 
+def _format_status_sections(items: list[Item]) -> list[str]:
+    lines: list[str] = []
+    for status in SUMMARY_STATUSES:
+        matching = [item for item in items if item["overall_status"] == status]
+        lines.extend(["", f"<b>{TELEGRAM_HEADINGS[status]} ({len(matching)})</b>"])
+        lines.extend(format_telegram_item(item) for item in matching)
+        if not matching:
+            lines.append("– keine –")
+    return lines
+
+
 def format_telegram_message(
     items: list[Item],
     today: datetime.date | None = None,
@@ -157,15 +168,26 @@ def format_telegram_message(
     warnings: list[str] | None = None,
     review_titles: list[str] | None = None,
     removed_titles: list[str] | None = None,
+    second_wishlist_titles: list[str] | None = None,
+    second_wishlist_heading: str = "Von der zweiten Wunschliste:",
 ) -> str:
+    """Telegram overview of available Merkliste titles.
+
+    With `second_wishlist_titles` (catalog titles of books only on the second
+    READO wishlist) those titles get their own section under
+    `second_wishlist_heading`."""
     today = today or datetime.date.today()
     lines = [f"<b>📚 Merkliste – {today.strftime('%d.%m.%Y')}</b>"]
-    for status in SUMMARY_STATUSES:
-        matching = [item for item in items if item["overall_status"] == status]
-        lines.extend(["", f"<b>{TELEGRAM_HEADINGS[status]} ({len(matching)})</b>"])
-        lines.extend(format_telegram_item(item) for item in matching)
-        if not matching:
-            lines.append("– keine –")
+    own_items = items
+    second_items: list[Item] = []
+    if second_wishlist_titles is not None:
+        second = {normalize_title(title) for title in second_wishlist_titles}
+        own_items = [item for item in items if normalize_title(item["title"]) not in second]
+        second_items = [item for item in items if normalize_title(item["title"]) in second]
+    lines.extend(_format_status_sections(own_items))
+    if second_wishlist_titles is not None:
+        lines.extend(["", f"<b>{html.escape(second_wishlist_heading)}</b>"])
+        lines.extend(_format_status_sections(second_items))
     if added_titles:
         lines.extend(["", f"<b>Neu auf der Merkliste ({len(added_titles)})</b>"])
         lines.extend(f"• {html.escape(strip_sort_markers(title))}" for title in added_titles)

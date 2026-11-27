@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
+from library_tracker.config import WISHLIST_TYPES_SQL
 from library_tracker.models import LibraryIsbnCandidateSource
 
 
@@ -9,11 +10,11 @@ def get_unmatched_wishlist_isbns(connection: sqlite3.Connection) -> list[str]:
     return [
         str(row[0])
         for row in connection.execute(
-            """
-            SELECT rlm.isbn13
+            f"""
+            SELECT DISTINCT rlm.isbn13
             FROM reado_list_memberships AS rlm
             LEFT JOIN library_matches AS lm ON lm.reado_isbn = rlm.isbn13
-            WHERE rlm.list_type = 'wishlist' AND rlm.is_active = 1 AND lm.reado_isbn IS NULL
+            WHERE rlm.list_type IN {WISHLIST_TYPES_SQL} AND rlm.is_active = 1 AND lm.reado_isbn IS NULL
             ORDER BY rlm.isbn13
             """
         )
@@ -81,11 +82,11 @@ def get_matches_to_memorize(connection: sqlite3.Connection) -> list[tuple[str, s
     return [
         (str(reado_isbn), str(matched_isbn))
         for reado_isbn, matched_isbn in connection.execute(
-            """
-            SELECT lm.reado_isbn, lm.matched_isbn
+            f"""
+            SELECT DISTINCT lm.reado_isbn, lm.matched_isbn
             FROM library_matches AS lm
             JOIN reado_list_memberships AS rlm
-              ON rlm.isbn13 = lm.reado_isbn AND rlm.list_type = 'wishlist' AND rlm.is_active = 1
+              ON rlm.isbn13 = lm.reado_isbn AND rlm.list_type IN {WISHLIST_TYPES_SQL} AND rlm.is_active = 1
             WHERE lm.memorize_status IS NULL OR lm.memorize_status = 'failed'
             ORDER BY lm.reado_isbn
             """
@@ -120,3 +121,32 @@ def get_match_states(connection: sqlite3.Connection) -> dict[str, tuple[str, str
             "SELECT reado_isbn, matched_isbn, source, memorize_status FROM library_matches"
         )
     }
+
+
+def get_second_wishlist_only_titles(connection: sqlite3.Connection) -> list[str]:
+    """Catalog titles of books that are only on the second wishlist, not on the own one.
+
+    Books on both wishlists (also as different editions with the same catalog
+    title) stay in the main section of the overview."""
+    return [
+        str(row[0])
+        for row in connection.execute(
+            """
+            SELECT DISTINCT lm.catalog_title
+            FROM library_matches AS lm
+            JOIN reado_list_memberships AS second
+              ON second.isbn13 = lm.reado_isbn
+             AND second.list_type = 'second_wishlist' AND second.is_active = 1
+            WHERE lm.catalog_title IS NOT NULL
+              AND lm.catalog_title NOT IN (
+                  SELECT own_lm.catalog_title
+                  FROM library_matches AS own_lm
+                  JOIN reado_list_memberships AS own
+                    ON own.isbn13 = own_lm.reado_isbn
+                   AND own.list_type = 'wishlist' AND own.is_active = 1
+                  WHERE own_lm.catalog_title IS NOT NULL
+              )
+            ORDER BY lm.catalog_title
+            """
+        )
+    ]

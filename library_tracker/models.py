@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 
 
-ReadoListType = Literal["wishlist", "tbr", "reading", "completed", "abandoned"]
+ReadoListType = Literal["wishlist", "second_wishlist", "tbr", "reading", "completed", "abandoned"]
 CopyStatus = Literal["ausleihbar", "bestellbar", "entliehen", "bestellt", "unbekannt"]
 OpenLibraryResolutionStatus = Literal["resolved", "not_found", "ambiguous", "failed"]
 GoogleBooksResolutionStatus = Literal["found", "not_found", "ambiguous", "failed"]

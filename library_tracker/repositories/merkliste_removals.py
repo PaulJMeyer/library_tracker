@@ -2,18 +2,18 @@ from __future__ import annotations
 
 import sqlite3
 
-from library_tracker.config import FINISHED_LIST_TYPES
+from library_tracker.config import FINISHED_LIST_TYPES, WISHLIST_TYPES_SQL
 
 
 def forget_removals_of_wishlist_books(connection: sqlite3.Connection) -> None:
     """A book that is back on the wishlist may be removed again once it is finished."""
     with connection:
         connection.execute(
-            """
+            f"""
             DELETE FROM merkliste_removals
             WHERE isbn13 IN (
                 SELECT isbn13 FROM reado_list_memberships
-                WHERE list_type = 'wishlist' AND is_active = 1
+                WHERE list_type IN {WISHLIST_TYPES_SQL} AND is_active = 1
             )
             """
         )
@@ -21,7 +21,7 @@ def forget_removals_of_wishlist_books(connection: sqlite3.Connection) -> None:
 
 def get_finished_books_to_check(connection: sqlite3.Connection) -> list[tuple[str, str | None]]:
     """(isbn13, stored catalog title or None) of books on a finished READO list
-    (and not on the wishlist) that were not checked against the Merkliste yet."""
+    (and not on any wishlist) that were not checked against the Merkliste yet."""
     placeholders = ", ".join("?" for _ in FINISHED_LIST_TYPES)
     return [
         (str(isbn13), str(title) if title is not None else None)
@@ -35,7 +35,7 @@ def get_finished_books_to_check(connection: sqlite3.Connection) -> list[tuple[st
               AND (mr.isbn13 IS NULL OR mr.status = 'failed')
               AND rlm.isbn13 NOT IN (
                   SELECT isbn13 FROM reado_list_memberships
-                  WHERE list_type = 'wishlist' AND is_active = 1
+                  WHERE list_type IN {WISHLIST_TYPES_SQL} AND is_active = 1
               )
             ORDER BY rlm.isbn13
             """,

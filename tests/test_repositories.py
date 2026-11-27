@@ -333,3 +333,36 @@ def test_dnb_editions_become_candidates_after_confirmed_openlibrary(
         {"isbn": "9783000000009", "source": "dnb"},
         {"isbn": "9783000000002", "source": "openlibrary_unknown"},
     ]
+
+
+def test_second_wishlist_counts_as_wishlist(connection: sqlite3.Connection) -> None:
+    from library_tracker.repositories.library_matches import (
+        get_matches_to_memorize,
+        get_second_wishlist_only_titles,
+        get_unmatched_wishlist_isbns,
+        save_library_match,
+        save_memorize_result,
+    )
+    from library_tracker.repositories.merkliste_removals import get_finished_books_to_check
+
+    def entry(isbn: str) -> ReadoListEntry:
+        return {"isbn13": isbn, "reado_url": f"https://reado.app/de/book/x/{isbn}"}
+
+    own, both, second, finished = "9780000000001", "9780000000002", "9780000000003", "9780000000004"
+    sync_reado_list(connection, [entry(own), entry(both)], "wishlist", "t")
+    sync_reado_list(connection, [entry(both), entry(second), entry(finished)], "second_wishlist", "t")
+    sync_reado_list(connection, [entry(finished)], "completed", "t")
+
+    # Books on both wishlists are listed once.
+    assert get_unmatched_wishlist_isbns(connection) == [own, both, second, finished]
+    assert get_wishlist_isbn_candidates(connection, second)[0]["isbn"] == second
+    # A finished book stays on the Merkliste while the second wishlist wants it.
+    assert get_finished_books_to_check(connection) == []
+
+    for isbn in (own, both, second, finished):
+        save_library_match(connection, isbn, isbn, "reado", "t")
+    assert len(get_matches_to_memorize(connection)) == 4
+    for isbn, title in ((own, "Eigen"), (both, "Beide"), (second, "Zweit"), (finished, "Fertig")):
+        save_memorize_result(connection, isbn, "added", title, "t")
+
+    assert get_second_wishlist_only_titles(connection) == ["Fertig", "Zweit"]

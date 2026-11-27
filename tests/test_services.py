@@ -235,11 +235,63 @@ def test_run_sync_continues_after_failed_steps() -> None:
 def test_configured_reado_list_types(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     from library_tracker.config import configured_reado_list_types
 
-    for name in ("READO_TBR_URL", "READO_READING_URL", "READO_COMPLETED_URL", "READO_ABANDONED_URL"):
+    for name in (
+        "READO_SECOND_WISHLIST_URL",
+        "READO_TBR_URL",
+        "READO_READING_URL",
+        "READO_COMPLETED_URL",
+        "READO_ABANDONED_URL",
+    ):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("READO_READING_URL", "https://reado.app/x")
 
     assert configured_reado_list_types() == ("wishlist", "reading")
+
+    monkeypatch.setenv("READO_SECOND_WISHLIST_URL", "https://reado.app/y")
+    assert configured_reado_list_types() == ("wishlist", "second_wishlist", "reading")
+
+
+def test_second_wishlist_heading(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    from library_tracker.config import second_wishlist_heading
+
+    monkeypatch.delenv("READO_SECOND_WISHLIST_NAME", raising=False)
+    assert second_wishlist_heading() == "Von der zweiten Wunschliste:"
+    monkeypatch.setenv("READO_SECOND_WISHLIST_NAME", "Anna")
+    assert second_wishlist_heading() == "Von Annas Wunschliste:"
+    monkeypatch.setenv("READO_SECOND_WISHLIST_NAME", " Hans ")
+    assert second_wishlist_heading() == "Von Hans' Wunschliste:"
+
+
+def test_run_sync_assigns_second_wishlist_titles() -> None:
+    from library_tracker.services import sync
+
+    scrape_result = {"total_entries": 1, "items": [], "loans": [], "all_titles": ["A"], "entries": []}
+    client = Mock(spec=LibraryClient)
+    with (
+        patch.object(
+            sync, "configured_reado_list_types", return_value=("wishlist", "second_wishlist")
+        ),
+        patch.object(sync, "sync_lists") as reado,
+        patch.object(sync, "resolve_openlibrary"),
+        patch.object(sync, "resolve_googlebooks"),
+        patch.object(sync, "link_googlebooks_titles"),
+        patch.object(sync, "sync_openlibrary_editions"),
+        patch.object(sync, "lookup_dnb_editions"),
+        patch.object(sync, "match_wishlist_books", return_value=None),
+        patch.object(sync, "scrape_library", return_value=scrape_result),
+        patch.object(sync, "remove_finished_from_merkliste", return_value=[]),
+        patch.object(sync, "add_matches_to_merkliste", return_value=[]),
+        patch.object(sync, "_second_wishlist_titles", return_value=["A"]),
+        patch.object(sync, "_log"),
+    ):
+        report = sync.run_sync(client=client, log=lambda _: None)
+
+    assert [call.kwargs["list_types"] for call in reado.call_args_list] == [
+        ("wishlist",),
+        ("second_wishlist",),
+    ]
+    assert report.second_wishlist_titles == ["A"]
+    assert report.warnings == []
 
 
 def test_run_sync_keeps_first_read_when_reread_is_incomplete() -> None:

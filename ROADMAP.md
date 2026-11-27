@@ -64,9 +64,9 @@ can only send messages so far. Planned approach: a small serverless function
 
 ### P1 — Second READO account
 
-- [ ] monitor the wishlist of another READO account with the same rules
+- [x] monitor the wishlist of another READO account with the same rules (`READO_SECOND_WISHLIST_URL`, books go on the same library Merkliste)
 - [ ] separate state per account (matches, Merkliste entries)
-- [ ] separate sections at the end of the Telegram message: "verfügbar von X's Merkliste", "bestellbar von X's Merkliste"
+- [x] separate section at the end of the Telegram message ("Von X's Wunschliste:" with available and orderable titles, name from `READO_SECOND_WISHLIST_NAME`)
 
 ### P2 — Loans and orders from Telegram (only with explicit confirmation)
 

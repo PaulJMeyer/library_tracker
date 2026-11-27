@@ -58,6 +58,9 @@ jobs:
           LIBRARY_USERNAME: ${{ secrets.LIBRARY_USERNAME }}
           LIBRARY_PASSWORD: ${{ secrets.LIBRARY_PASSWORD }}
           READO_WISHLIST_URL: ${{ secrets.READO_WISHLIST_URL }}
+          # Optional second READO account: its wishlist gets its own Telegram section.
+          READO_SECOND_WISHLIST_URL: ${{ secrets.READO_SECOND_WISHLIST_URL }}
+          READO_SECOND_WISHLIST_NAME: ""  # owner's first name for the heading "Von <Name>s Wunschliste:"
           READO_TBR_URL: ${{ secrets.READO_TBR_URL }}
           READO_READING_URL: ${{ secrets.READO_READING_URL }}
           READO_COMPLETED_URL: ${{ secrets.READO_COMPLETED_URL }}

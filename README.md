@@ -100,7 +100,7 @@ python -m library_tracker merkliste-cleanup  # remove books on finished READO li
 python -m library_tracker match-report
 ```
 
-`library-match` checks one active READO wishlist entry and stops at the first catalog hit among its prioritized ISBN candidates. `match-books` works through all active wishlist books, stores every searched ISBN in `catalog_searches` and continues with the next ISBNs on the following run, so books with many editions are covered over several runs. ISBNs without a hit are searched again after 30 days. `merkliste-add` skips titles that are already on the Merkliste and retries failed additions on the next run. If the hit is an alternative edition (not the exact READO ISBN) and a single volume of a multi-volume edition ("Band 3", "Bd. 2", "Vol. 1"), it is not added but reported for manual review. Fully loaned Merkliste entries are no longer removed automatically. `merkliste-cleanup` removes books that are on a finished READO list (TBR, reading, completed, abandoned) and not on the wishlist; each book is checked once (state in `merkliste_removals`).
+`library-match` checks one active READO wishlist entry and stops at the first catalog hit among its prioritized ISBN candidates. `match-books` works through all active wishlist books, stores every searched ISBN in `catalog_searches` and continues with the next ISBNs on the following run, so books with many editions are covered over several runs. ISBNs without a hit are searched again after 30 days. `merkliste-add` skips titles that are already on the Merkliste and retries failed additions on the next run. If the hit is an alternative edition (not the exact READO ISBN) and a single volume of a multi-volume edition ("Band 3", "Bd. 2", "Vol. 1"), it is not added but reported for manual review. Fully loaned Merkliste entries are no longer removed automatically. `merkliste-cleanup` removes books that are on a finished READO list (TBR, reading, completed, abandoned) and not on a wishlist; each book is checked once (state in `merkliste_removals`).
 
 ## Architecture
 
@@ -152,6 +152,9 @@ LIBRARY_USERNAME=...
 LIBRARY_PASSWORD=...
 
 READO_WISHLIST_URL=...
+# optional: wishlist of a second READO account, shown in its own Telegram section
+READO_SECOND_WISHLIST_URL=...
+READO_SECOND_WISHLIST_NAME=...
 READO_TBR_URL=...
 READO_READING_URL=...
 READO_COMPLETED_URL=...
@@ -187,7 +190,7 @@ The scheduled pipeline (`sync --telegram`) runs these steps once a day; every st
 4. read the library Merkliste
 5. remove books that moved to a finished READO list
 6. add newly found wishlist books
-7. send the Telegram overview (available, orderable, added, removed, warnings)
+7. send the Telegram overview (available, orderable, added, removed, warnings; books only on the optional second wishlist get their own section)
 
 Planned features are listed in the [roadmap](ROADMAP.md).
 

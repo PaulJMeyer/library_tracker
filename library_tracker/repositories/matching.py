@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
+from library_tracker.config import WISHLIST_TYPES_SQL
 from library_tracker.models import LibraryIsbnCandidate, LibraryIsbnCandidateSource
 
 
@@ -10,10 +11,10 @@ def get_wishlist_isbn_candidates(
     reado_isbn: str,
 ) -> list[LibraryIsbnCandidate]:
     active = connection.execute(
-        """
+        f"""
         SELECT 1
         FROM reado_list_memberships
-        WHERE isbn13 = ? AND list_type = 'wishlist' AND is_active = 1
+        WHERE isbn13 = ? AND list_type IN {WISHLIST_TYPES_SQL} AND is_active = 1
         """,
         (reado_isbn,),
     ).fetchone()
@@ -83,8 +84,8 @@ def get_wishlist_metadata_states(
 ) -> list[dict[str, str | None]]:
     """One row per active READO wishlist book with its metadata resolution state."""
     cursor = connection.execute(
-        """
-        SELECT
+        f"""
+        SELECT DISTINCT
             rb.isbn13,
             rb.reado_url,
             br.status AS ol_status,
@@ -105,7 +106,7 @@ def get_wishlist_metadata_states(
         LEFT JOIN google_books_volumes AS gbv ON gbv.volume_id = gbr.volume_id
         LEFT JOIN openlibrary_title_links AS otl ON otl.isbn13 = rb.isbn13
         LEFT JOIN dnb_lookups AS dl ON dl.isbn13 = rb.isbn13
-        WHERE rlm.list_type = 'wishlist' AND rlm.is_active = 1
+        WHERE rlm.list_type IN {WISHLIST_TYPES_SQL} AND rlm.is_active = 1
         ORDER BY rb.isbn13
         """
     )
