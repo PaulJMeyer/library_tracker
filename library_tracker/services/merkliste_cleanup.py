@@ -13,6 +13,7 @@ from library_tracker.parsers.library import parse_single_hit
 from library_tracker.repositories.merkliste_removals import (
     forget_removals_of_wishlist_books,
     get_finished_books_to_check,
+    get_wishlist_merkliste_keys,
     save_removal_result,
 )
 
@@ -59,6 +60,10 @@ def remove_finished_from_merkliste(
     try:
         initialize_database(connection)
         forget_removals_of_wishlist_books(connection)
+        # Entries that belong to a wishlist book are never removed.
+        wishlist_titles, wishlist_media = get_wishlist_merkliste_keys(connection)
+        wishlist_wanted = {normalize_title(title) for title in wishlist_titles}
+        remaining = [e for e in remaining if not _matches(e, wishlist_wanted, wishlist_media)]
         for isbn13, titles, media_numbers in get_finished_books_to_check(connection):
             status: str
             matching: list[MerklisteEntry] = []

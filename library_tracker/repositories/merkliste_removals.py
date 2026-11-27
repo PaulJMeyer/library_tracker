@@ -6,17 +6,56 @@ from library_tracker.config import FINISHED_LIST_TYPES, WISHLIST_TYPES_SQL
 
 
 def forget_removals_of_wishlist_books(connection: sqlite3.Connection) -> None:
-    """A book that is back on the wishlist may be removed again once it is finished."""
-    with connection:
-        connection.execute(
-            f"""
-            DELETE FROM merkliste_removals
-            WHERE isbn13 IN (
-                SELECT isbn13 FROM reado_list_memberships
-                WHERE list_type IN {WISHLIST_TYPES_SQL} AND is_active = 1
-            )
-            """
+    """A book that is back on a wishlist is put on the Merkliste again and may be
+    removed again once it is finished.
+
+    Its editions lose their 'added'/'already_listed' status, otherwise the Merkliste
+    step would skip them although the cleanup took them off the Merkliste."""
+    back_on_wishlist = f"""
+        SELECT mr.isbn13 FROM merkliste_removals AS mr
+        WHERE mr.isbn13 IN (
+            SELECT isbn13 FROM reado_list_memberships
+            WHERE list_type IN {WISHLIST_TYPES_SQL} AND is_active = 1
         )
+    """
+    with connection:
+        for table in ("catalog_editions", "library_matches"):
+            connection.execute(
+                f"""
+                UPDATE {table} SET memorize_status = NULL, memorize_checked_at = NULL
+                WHERE memorize_status IN ('added', 'already_listed')
+                  AND reado_isbn IN ({back_on_wishlist})
+                """
+            )
+        connection.execute(f"DELETE FROM merkliste_removals WHERE isbn13 IN ({back_on_wishlist})")
+
+
+def get_wishlist_merkliste_keys(connection: sqlite3.Connection) -> tuple[set[str], set[str]]:
+    """(catalog titles, copy numbers) of every found edition of the books on a wishlist.
+
+    Merkliste entries with one of them are kept by the cleanup, even when a finished
+    book (for example another edition of the same work) has the same title or record."""
+    titles: set[str] = set()
+    media_numbers: set[str] = set()
+    for title, numbers in connection.execute(
+        f"""
+        SELECT ce.catalog_title, ce.media_numbers FROM catalog_editions AS ce
+        WHERE ce.reado_isbn IN (
+            SELECT isbn13 FROM reado_list_memberships
+            WHERE list_type IN {WISHLIST_TYPES_SQL} AND is_active = 1
+        )
+        UNION ALL
+        SELECT lm.catalog_title, NULL FROM library_matches AS lm
+        WHERE lm.reado_isbn IN (
+            SELECT isbn13 FROM reado_list_memberships
+            WHERE list_type IN {WISHLIST_TYPES_SQL} AND is_active = 1
+        )
+        """
+    ):
+        if title is not None:
+            titles.add(str(title))
+        media_numbers.update(str(numbers or "").split())
+    return titles, media_numbers
 
 
 def get_finished_books_to_check(
