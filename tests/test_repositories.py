@@ -333,3 +333,48 @@ def test_dnb_editions_become_candidates_after_confirmed_openlibrary(
         {"isbn": "9783000000009", "source": "dnb"},
         {"isbn": "9783000000002", "source": "openlibrary_unknown"},
     ]
+
+
+def test_second_wishlist_counts_as_wishlist(connection: sqlite3.Connection) -> None:
+    from library_tracker.repositories.library_matches import (
+        get_editions_to_memorize,
+        get_wishlist_catalog_titles,
+        get_wishlist_isbns_for_search,
+        save_catalog_edition,
+        save_edition_memorize_result,
+    )
+    from library_tracker.repositories.merkliste_removals import get_finished_books_to_check
+
+    def entry(isbn: str) -> ReadoListEntry:
+        return {"isbn13": isbn, "reado_url": f"https://reado.app/de/book/x/{isbn}"}
+
+    own, both, second, finished = "9780000000001", "9780000000002", "9780000000003", "9780000000004"
+    sync_reado_list(connection, [entry(own), entry(both)], "wishlist", "t")
+    sync_reado_list(connection, [entry(both), entry(second), entry(finished)], "second_wishlist", "t")
+    sync_reado_list(connection, [entry(finished)], "completed", "t")
+
+    # Books on both wishlists are listed once.
+    assert [isbn for isbn, _ in get_wishlist_isbns_for_search(connection)] == [
+        own,
+        both,
+        second,
+        finished,
+    ]
+    assert get_wishlist_isbn_candidates(connection, second)[0]["isbn"] == second
+    # A finished book stays on the Merkliste while the second wishlist wants it.
+    assert get_finished_books_to_check(connection) == []
+
+    titles = {own: "Eigen", both: "Beide", second: "Zweit", finished: "Fertig"}
+    for isbn in titles:
+        save_catalog_edition(connection, isbn, isbn, "reado", "t")
+    assert len(get_editions_to_memorize(connection)) == 4
+    for isbn, title in titles.items():
+        save_edition_memorize_result(connection, isbn, isbn, "added", title, [], "t")
+
+    assert get_wishlist_catalog_titles(connection, "wishlist") == ["Beide", "Eigen"]
+    assert get_wishlist_catalog_titles(connection, "second_wishlist") == ["Beide", "Fertig", "Zweit"]
+
+    # Leaving the second wishlist makes a book a removal candidate, unless the
+    # own wishlist still has it.
+    sync_reado_list(connection, [entry(finished)], "second_wishlist", "t2")
+    assert get_finished_books_to_check(connection) == [(second, ["Zweit"], set())]

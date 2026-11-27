@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import sqlite3
 
+from library_tracker.config import WISHLIST_TYPES_SQL
 from library_tracker.models import LibraryIsbnCandidateSource
+
 
 
 def get_recent_misses(connection: sqlite3.Connection, since: str) -> set[str]:
@@ -90,16 +92,40 @@ def get_match_states(connection: sqlite3.Connection) -> dict[str, tuple[str, str
     }
 
 
+def get_wishlist_catalog_titles(connection: sqlite3.Connection, list_type: str) -> list[str]:
+    """Catalog titles of all found editions of the books active on the given wishlist."""
+    return [
+        str(row[0])
+        for row in connection.execute(
+            """
+            SELECT lm.catalog_title
+            FROM library_matches AS lm
+            JOIN reado_list_memberships AS rlm
+              ON rlm.isbn13 = lm.reado_isbn AND rlm.list_type = ? AND rlm.is_active = 1
+            WHERE lm.catalog_title IS NOT NULL
+            UNION
+            SELECT ce.catalog_title
+            FROM catalog_editions AS ce
+            JOIN reado_list_memberships AS rlm
+              ON rlm.isbn13 = ce.reado_isbn AND rlm.list_type = ? AND rlm.is_active = 1
+            WHERE ce.catalog_title IS NOT NULL
+            ORDER BY 1
+            """,
+            (list_type, list_type),
+        )
+    ]
+
+
 def get_wishlist_isbns_for_search(connection: sqlite3.Connection) -> list[tuple[str, bool]]:
     """(isbn13, already matched) of active wishlist books, books without a match first."""
     return [
         (str(isbn13), bool(matched))
         for isbn13, matched in connection.execute(
-            """
-            SELECT rlm.isbn13, lm.reado_isbn IS NOT NULL AS matched
+            f"""
+            SELECT DISTINCT rlm.isbn13, lm.reado_isbn IS NOT NULL AS matched
             FROM reado_list_memberships AS rlm
             LEFT JOIN library_matches AS lm ON lm.reado_isbn = rlm.isbn13
-            WHERE rlm.list_type = 'wishlist' AND rlm.is_active = 1
+            WHERE rlm.list_type IN {WISHLIST_TYPES_SQL} AND rlm.is_active = 1
             ORDER BY matched, rlm.isbn13
             """
         )
@@ -148,12 +174,15 @@ def get_editions_to_memorize(connection: sqlite3.Connection) -> list[tuple[str, 
     return [
         (str(reado_isbn), str(isbn))
         for reado_isbn, isbn in connection.execute(
-            """
+            f"""
             SELECT ce.reado_isbn, ce.isbn
             FROM catalog_editions AS ce
-            JOIN reado_list_memberships AS rlm
-              ON rlm.isbn13 = ce.reado_isbn AND rlm.list_type = 'wishlist' AND rlm.is_active = 1
-            WHERE (ce.memorize_status IS NULL OR ce.memorize_status = 'failed')
+            WHERE EXISTS (
+                  SELECT 1 FROM reado_list_memberships AS rlm
+                  WHERE rlm.isbn13 = ce.reado_isbn
+                    AND rlm.list_type IN {WISHLIST_TYPES_SQL} AND rlm.is_active = 1
+              )
+              AND (ce.memorize_status IS NULL OR ce.memorize_status = 'failed')
               AND NOT (
                   ce.source = 'openlibrary_english'
                   AND EXISTS (

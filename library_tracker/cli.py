@@ -14,6 +14,7 @@ from library_tracker.config import (
     ConfigurationError,
     configured_reado_list_types,
     get_telegram_settings,
+    second_wishlist_heading,
 )
 from library_tracker.database import get_connection, initialize_database
 from library_tracker.models import ReadoListType
@@ -308,6 +309,9 @@ def _run_sync(*, telegram: bool, always: bool = False) -> int:
                 warnings=report.warnings,
                 review_titles=report.review_titles,
                 removed_titles=report.removed_titles,
+                second_wishlist_titles=report.second_wishlist_titles,
+                own_wishlist_titles=report.own_wishlist_titles,
+                second_wishlist_heading=second_wishlist_heading(),
             )
             if _send_overview_if_changed(client, message, always=always or bool(report.warnings)):
                 print("Telegram overview sent.")
