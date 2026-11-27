@@ -121,11 +121,11 @@ def get_wishlist_isbns_for_search(connection: sqlite3.Connection) -> list[tuple[
     return [
         (str(isbn13), bool(matched))
         for isbn13, matched in connection.execute(
-            """
-            SELECT rlm.isbn13, lm.reado_isbn IS NOT NULL AS matched
+            f"""
+            SELECT DISTINCT rlm.isbn13, lm.reado_isbn IS NOT NULL AS matched
             FROM reado_list_memberships AS rlm
             LEFT JOIN library_matches AS lm ON lm.reado_isbn = rlm.isbn13
-            WHERE rlm.list_type = 'wishlist' AND rlm.is_active = 1
+            WHERE rlm.list_type IN {WISHLIST_TYPES_SQL} AND rlm.is_active = 1
             ORDER BY matched, rlm.isbn13
             """
         )
@@ -174,12 +174,15 @@ def get_editions_to_memorize(connection: sqlite3.Connection) -> list[tuple[str, 
     return [
         (str(reado_isbn), str(isbn))
         for reado_isbn, isbn in connection.execute(
-            """
+            f"""
             SELECT ce.reado_isbn, ce.isbn
             FROM catalog_editions AS ce
-            JOIN reado_list_memberships AS rlm
-              ON rlm.isbn13 = ce.reado_isbn AND rlm.list_type = 'wishlist' AND rlm.is_active = 1
-            WHERE (ce.memorize_status IS NULL OR ce.memorize_status = 'failed')
+            WHERE EXISTS (
+                  SELECT 1 FROM reado_list_memberships AS rlm
+                  WHERE rlm.isbn13 = ce.reado_isbn
+                    AND rlm.list_type IN {WISHLIST_TYPES_SQL} AND rlm.is_active = 1
+              )
+              AND (ce.memorize_status IS NULL OR ce.memorize_status = 'failed')
               AND NOT (
                   ce.source = 'openlibrary_english'
                   AND EXISTS (
