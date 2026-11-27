@@ -39,7 +39,7 @@ The workflow installs `library-tracker` from the public repository's
 4. read the library Merkliste
 5. remove books that are on a finished READO list (Stapel ungelesener Bücher, Am Lesen/Hören, Abgeschlossen, Abgebrochen) and not on either wishlist, and books that left the second wishlist (unless the own wishlist has them). Each book is checked once; books without a stored catalog title need one catalog search, at most 30 per run.
 6. add wishlist books found in the catalog to the Merkliste (only via the catalog's free "in die Merkliste" link, never a reservation)
-7. send the Telegram overview, including added and removed titles. Titles on the second wishlist are listed in their own section at the end (books on both wishlists appear in both sections).
+7. send the Telegram overview, including added and removed titles. Titles on the second wishlist are listed in their own section at the end (books on both wishlists appear in both sections). The overview is only sent if it changed since the last message (the date does not count); a hash of the last message is kept in the database artifact. Runs with warnings always send. Use `sync --telegram --always` to force a message.
 
 Removing runs before adding so the Merkliste page data from step 4 stays valid; the result is the same.
 

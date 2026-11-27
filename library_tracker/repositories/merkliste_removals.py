@@ -19,18 +19,20 @@ def forget_removals_of_wishlist_books(connection: sqlite3.Connection) -> None:
         )
 
 
-def get_finished_books_to_check(connection: sqlite3.Connection) -> list[tuple[str, str | None]]:
-    """(isbn13, stored catalog title or None) of books on a finished READO list or
-    no longer on the second wishlist (and not on any wishlist) that were not
-    checked against the Merkliste yet."""
+def get_finished_books_to_check(
+    connection: sqlite3.Connection,
+) -> list[tuple[str, list[str], set[str]]]:
+    """(isbn13, stored catalog titles, stored copy numbers) of books on a finished READO
+    list or no longer on the second wishlist (and not on any wishlist) that were not
+    checked against the Merkliste yet.
+    Titles and copy numbers cover every edition that was found in the catalog."""
     placeholders = ", ".join("?" for _ in FINISHED_LIST_TYPES)
-    return [
-        (str(isbn13), str(title) if title is not None else None)
-        for isbn13, title in connection.execute(
+    isbns = [
+        str(row[0])
+        for row in connection.execute(
             f"""
-            SELECT DISTINCT rlm.isbn13, lm.catalog_title
+            SELECT DISTINCT rlm.isbn13
             FROM reado_list_memberships AS rlm
-            LEFT JOIN library_matches AS lm ON lm.reado_isbn = rlm.isbn13
             LEFT JOIN merkliste_removals AS mr ON mr.isbn13 = rlm.isbn13
             WHERE (
                 (rlm.list_type IN ({placeholders}) AND rlm.is_active = 1)
@@ -48,6 +50,23 @@ def get_finished_books_to_check(connection: sqlite3.Connection) -> list[tuple[st
             FINISHED_LIST_TYPES,
         )
     ]
+    books: list[tuple[str, list[str], set[str]]] = []
+    for isbn13 in isbns:
+        titles: list[str] = []
+        media_numbers: set[str] = set()
+        for title, numbers in connection.execute(
+            """
+            SELECT catalog_title, media_numbers FROM catalog_editions WHERE reado_isbn = ?
+            UNION ALL
+            SELECT catalog_title, NULL FROM library_matches WHERE reado_isbn = ?
+            """,
+            (isbn13, isbn13),
+        ):
+            if title is not None and str(title) not in titles:
+                titles.append(str(title))
+            media_numbers.update(str(numbers or "").split())
+        books.append((isbn13, titles, media_numbers))
+    return books
 
 
 def save_removal_result(

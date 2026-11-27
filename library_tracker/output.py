@@ -25,6 +25,43 @@ STATUS_LABELS = {
 }
 RESULTS_PATH = Path("results.md")
 SUMMARY_STATUSES = ("ausleihbar", "bestellbar")
+STATUS_RANK = {status: rank for rank, status in enumerate(STATUS_LABELS)}
+NUMBER_PATTERN = re.compile(r"\d+")
+
+
+def _book_key(title: str) -> tuple[str, tuple[str, ...]]:
+    """Same main title and same numbers (e.g. 'Band 2') means the same book."""
+    stripped = strip_sort_markers(title)
+    return normalize_title(stripped) or stripped.casefold(), tuple(NUMBER_PATTERN.findall(stripped))
+
+
+def merge_duplicate_items(items: list[Item]) -> list[Item]:
+    """Show a book once when several editions or copies of it are on the Merkliste.
+
+    The merged entry takes the best status of its editions (Ausleihbar before
+    Bestellbar), the title and page count of that edition, and the copies of all
+    editions, so the overview lists every shelf or branch it can be fetched from.
+    """
+    groups: dict[tuple[str, tuple[str, ...]], list[Item]] = {}
+    for item in items:
+        groups.setdefault(_book_key(item["title"]), []).append(item)
+
+    merged: list[Item] = []
+    for group in groups.values():
+        if len(group) == 1:
+            merged.append(group[0])
+            continue
+        best = min(group, key=lambda item: STATUS_RANK.get(item["overall_status"], 99))
+        copies = best["copies"] + [c for item in group if item is not best for c in item["copies"]]
+        merged_item: Item = {
+            "title": best["title"],
+            "overall_status": best["overall_status"],
+            "copies": copies,
+        }
+        if "pages" in best:
+            merged_item["pages"] = best["pages"]
+        merged.append(merged_item)
+    return merged
 
 
 def format_copy_line(copy: Copy) -> str:
@@ -35,6 +72,7 @@ def format_copy_line(copy: Copy) -> str:
 
 
 def format_status_summary(items: list[Item]) -> list[str]:
+    items = merge_duplicate_items(items)
     lines: list[str] = []
     for status in SUMMARY_STATUSES:
         titles = [item["title"] for item in items if item["overall_status"] == status]
@@ -57,7 +95,9 @@ def format_results_markdown(items: list[Item]) -> str:
     ]
 
     for status in SUMMARY_STATUSES:
-        titles = [item["title"] for item in items if item["overall_status"] == status]
+        titles = [
+            item["title"] for item in merge_duplicate_items(items) if item["overall_status"] == status
+        ]
         lines.append(f"**{STATUS_LABELS[status]} ({len(titles)}):**")
         lines.extend(f"- {title}" for title in titles)
         if not titles:
@@ -179,6 +219,7 @@ def format_telegram_message(
     They stay in the main section too when they are in `own_wishlist_titles`."""
     today = today or datetime.date.today()
     lines = [f"<b>📚 Merkliste – {today.strftime('%d.%m.%Y')}</b>"]
+    items = merge_duplicate_items(items)
     own_items = items
     second_items: list[Item] = []
     if second_wishlist_titles is not None:

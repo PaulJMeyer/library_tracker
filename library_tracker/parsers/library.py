@@ -296,3 +296,20 @@ def parse_single_hit(html: str, page_url: str) -> tuple[str, str | None]:
     )
     memorize_url = urljoin(page_url, _tag_value(link, "href")) if isinstance(link, Tag) else None
     return title, memorize_url
+
+
+def parse_exemplar_tab_url(html: str, page_url: str) -> str | None:
+    """Absolute URL of the copies tab linked on a catalog single-hit page, if any."""
+    soup = BeautifulSoup(html, "html.parser")
+    link = soup.find(
+        "a",
+        href=lambda href: isinstance(href, str)
+        and "methodToCall=activateTab" in href
+        and "tab=showExemplar" in href,
+    )
+    return urljoin(page_url, _tag_value(link, "href")) if isinstance(link, Tag) else None
+
+
+def parse_media_numbers(html: str) -> list[str]:
+    """Copy numbers on a catalog page; they identify the catalog record."""
+    return [copy["media_number"] for copy in parse_copies(BeautifulSoup(html, "html.parser"))]

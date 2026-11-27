@@ -400,3 +400,67 @@ def test_format_telegram_item_shows_page_count() -> None:
     }
     line = format_telegram_item(item)  # type: ignore[arg-type]
     assert line.startswith("• Nexus, 640 S. <i>(")
+
+
+def test_merge_duplicate_items_shows_each_book_once() -> None:
+    from library_tracker.output import merge_duplicate_items
+
+    central = make_copy(
+        "ausleihbar", None, status="ausleihbar", branch="10-Zentralbibliothek / 1.OG Romane"
+    )
+    vahr = make_copy("ausleihbar", None, status="ausleihbar", branch="21-Vahr / Romane")
+    paperback = make_item("¬Der Beispielroman : Roman", "bestellbar", [vahr])
+    hardcover = make_item("Der Beispielroman", "ausleihbar", [central])
+    hardcover["pages"] = 320
+    other = make_item("Ein anderes Buch", "bestellbar", [vahr])
+
+    merged = merge_duplicate_items([paperback, other, hardcover])
+
+    assert [item["title"] for item in merged] == ["Der Beispielroman", "Ein anderes Buch"]
+    assert merged[0]["overall_status"] == "ausleihbar"
+    assert merged[0]["copies"] == [central, vahr]
+    assert merged[0].get("pages") == 320
+
+
+def test_merge_duplicate_items_keeps_different_volumes_apart() -> None:
+    from library_tracker.output import merge_duplicate_items
+
+    items = [
+        make_item("Die Saga : Band 1", "ausleihbar"),
+        make_item("Die Saga : Band 2", "ausleihbar"),
+    ]
+
+    assert len(merge_duplicate_items(items)) == 2
+
+
+def test_format_telegram_message_lists_duplicate_editions_once() -> None:
+    import datetime
+
+    from library_tracker.output import format_telegram_message
+
+    items = [
+        make_item(
+            "Der Beispielroman",
+            "ausleihbar",
+            [make_copy("ausleihbar", None, status="ausleihbar", branch="10-Zentralbibliothek / 1.OG")],
+        ),
+        make_item(
+            "¬Der Beispielroman",
+            "ausleihbar",
+            [make_copy("ausleihbar", None, status="ausleihbar", branch="10-Zentralbibliothek / 2.OG")],
+        ),
+    ]
+
+    message = format_telegram_message(items, today=datetime.date(2026, 11, 24))
+
+    assert "<b>Ausleihbar in der Zentralbibliothek (1)</b>" in message
+    assert "• Der Beispielroman <i>(1.OG, 2.OG)</i>" in message
+
+
+def test_format_status_summary_lists_duplicate_editions_once() -> None:
+    items = [make_item("Buch A", "ausleihbar"), make_item("Buch A : Roman", "bestellbar")]
+
+    lines = format_status_summary(items)
+
+    assert "Ausleihbar (1):" in lines
+    assert "Bestellbar (0):" in lines

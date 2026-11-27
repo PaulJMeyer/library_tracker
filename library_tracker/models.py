@@ -148,6 +148,8 @@ class MerklisteEntry(TypedDict):
     title: str
     uuid: str
     page: MemorizePage
+    # Copy numbers of the catalog record (same record = same edition).
+    media_numbers: NotRequired[list[str]]
 
 
 class ScrapeResult(TypedDict):

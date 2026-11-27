@@ -193,7 +193,10 @@ def test_run_sync_continues_after_failed_steps() -> None:
         "items": [],
         "loans": [],
         "all_titles": ["Old", "Finished"],
-        "entries": [],
+        "entries": [
+            {"title": "Old", "uuid": "u1", "page": {}, "media_numbers": ["M1"]},
+            {"title": "Finished", "uuid": "u2", "page": {}, "media_numbers": ["M2"]},
+        ],
     }
     client = Mock(spec=LibraryClient)
     with (
@@ -227,8 +230,9 @@ def test_run_sync_continues_after_failed_steps() -> None:
     assert report.warnings == ["READO-Liste Abgebrochen fehlgeschlagen", "DNB fehlgeschlagen"]
     assert report.added_titles == ["New"]
     assert report.removed_titles == ["Finished"]
-    remove.assert_called_once_with([], client)
-    add.assert_called_once_with(["Old"], client)
+    remove.assert_called_once_with(scrape_result["entries"], client)
+    # Copy numbers of removed entries do not count as "already on the Merkliste".
+    add.assert_called_once_with(["Old"], client, existing_media_numbers=["M1"])
     assert scrape.call_count == 2  # one re-read after removing and adding
 
 

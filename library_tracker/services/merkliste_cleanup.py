@@ -34,6 +34,12 @@ def _catalog_title(client: LibraryClient, isbn13: str) -> str | None:
     return strip_sort_markers(title)
 
 
+def _matches(entry: MerklisteEntry, titles: set[str], media_numbers: set[str]) -> bool:
+    return normalize_title(entry["title"]) in titles or not media_numbers.isdisjoint(
+        entry.get("media_numbers", [])
+    )
+
+
 def remove_finished_from_merkliste(
     entries: list[MerklisteEntry],
     client: LibraryClient,
@@ -41,30 +47,34 @@ def remove_finished_from_merkliste(
     lookup_limit: int = CATALOG_LOOKUPS_PER_RUN,
     progress: Callable[[str], None] = _print_progress,
 ) -> list[tuple[str, str, str]]:
-    """Returns [(isbn13, title, status)] with status removed/not_on_merkliste/
-    not_in_catalog/failed. Each book is checked once; failures are retried."""
-    by_title: dict[str, list[MerklisteEntry]] = {}
-    for entry in entries:
-        by_title.setdefault(normalize_title(entry["title"]), []).append(entry)
+    """Removes every edition of a finished book (matched by title or copy number).
 
+    Returns [(isbn13, title, status)] with status removed/not_on_merkliste/
+    not_in_catalog/failed, one row per removed Merkliste entry and one per book
+    otherwise. Each book is checked once; failures are retried."""
+    remaining = list(entries)
     results: list[tuple[str, str, str]] = []
     lookups = 0
     connection = get_connection()
     try:
         initialize_database(connection)
         forget_removals_of_wishlist_books(connection)
-        for isbn13, title in get_finished_books_to_check(connection):
+        for isbn13, titles, media_numbers in get_finished_books_to_check(connection):
             status: str
+            matching: list[MerklisteEntry] = []
             try:
-                if title is None:
+                if not titles and not media_numbers:
                     if lookups >= lookup_limit:
                         continue
                     lookups += 1
-                    title = _catalog_title(client, isbn13)
-                if title is None:
+                    looked_up = _catalog_title(client, isbn13)
+                    titles = [looked_up] if looked_up is not None else []
+                if not titles and not media_numbers:
                     status = "not_in_catalog"
                 else:
-                    matching = by_title.pop(normalize_title(title), [])
+                    wanted = {normalize_title(title) for title in titles}
+                    matching = [e for e in remaining if _matches(e, wanted, media_numbers)]
+                    remaining = [e for e in remaining if not _matches(e, wanted, media_numbers)]
                     if not matching:
                         status = "not_on_merkliste"
                     elif all(
@@ -76,10 +86,14 @@ def remove_finished_from_merkliste(
             except LibraryClientError as exc:
                 progress(f"  Entfernen-Fehler bei {isbn13}: {exc}")
                 status = "failed"
+            title = titles[0] if titles else None
             save_removal_result(
                 connection, isbn13, status, title, datetime.now(UTC).isoformat(timespec="seconds")
             )
-            results.append((isbn13, title or isbn13, status))
+            if status == "removed":
+                results.extend((isbn13, entry["title"], status) for entry in matching)
+            else:
+                results.append((isbn13, title or isbn13, status))
         return results
     finally:
         connection.close()
