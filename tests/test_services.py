@@ -37,8 +37,8 @@ def test_library_scrape_orchestrates_client_and_persistence() -> None:
             side_effect=[loaned, available],
         ),
         patch("library_tracker.services.library_scrape.parse_loans", return_value=[]),
-        patch("library_tracker.services.library_scrape.get_connection", return_value=connection),
-        patch("library_tracker.services.library_scrape.initialize_database"),
+        patch("library_tracker.database.get_connection", return_value=connection),
+        patch("library_tracker.database.initialize_database"),
         patch("library_tracker.services.library_scrape.persist_items") as persist,
     ):
         result = scrape_library(client)
@@ -64,8 +64,8 @@ def test_library_matching_stops_at_first_hit() -> None:
         {"isbn": "3", "source": "openlibrary_unknown"},
     ]
     with (
-        patch("library_tracker.services.library_matching.get_connection", return_value=connection),
-        patch("library_tracker.services.library_matching.initialize_database"),
+        patch("library_tracker.database.get_connection", return_value=connection),
+        patch("library_tracker.database.initialize_database"),
         patch(
             "library_tracker.services.library_matching.get_wishlist_isbn_candidates",
             return_value=candidates,
@@ -169,7 +169,7 @@ def test_lookup_dnb_editions_combines_isbn_and_title_search(tmp_path) -> None:  
     ]
 
     with patch(
-        "library_tracker.services.metadata.get_connection",
+        "library_tracker.database.get_connection",
         side_effect=lambda: get_connection(db_path),
     ):
         results, failed = lookup_dnb_editions(client)

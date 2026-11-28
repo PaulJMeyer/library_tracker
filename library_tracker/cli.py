@@ -16,7 +16,7 @@ from library_tracker.config import (
     get_telegram_settings,
     second_wishlist_heading,
 )
-from library_tracker.database import get_connection, initialize_database
+from library_tracker.database import open_database
 from library_tracker.models import ReadoListType
 from library_tracker.output import (
     format_history_line,
@@ -139,12 +139,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _run_history(media_number: str) -> int:
-    connection = get_connection()
-    try:
-        initialize_database(connection)
+    with open_database() as connection:
         history = get_copy_history(connection, media_number)
-    finally:
-        connection.close()
 
     if not history:
         print(f"No history found for copy {media_number}.")
@@ -275,15 +271,11 @@ def _send_overview_if_changed(client: TelegramClient, message: str, *, always: b
 
     Messages with warnings are always sent. Returns whether a message was sent."""
     fingerprint = overview_fingerprint(message)
-    connection = get_connection()
-    try:
-        initialize_database(connection)
+    with open_database() as connection:
         if not always and get_last_fingerprint(connection, client.chat_id) == fingerprint:
             return False
         client.send_message(message)
         save_fingerprint(connection, client.chat_id, fingerprint)
-    finally:
-        connection.close()
     return True
 
 

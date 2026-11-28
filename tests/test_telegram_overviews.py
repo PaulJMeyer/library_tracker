@@ -52,7 +52,7 @@ def _run(tmp_path: Path, report: SyncReport, *args: str) -> Mock:
         patch("library_tracker.cli._telegram_client", return_value=client),
         patch("library_tracker.cli.run_sync", return_value=report),
         patch("library_tracker.cli.print_scrape_result"),
-        patch("library_tracker.cli.get_connection", side_effect=lambda: get_connection(db_path)),
+        patch("library_tracker.database.get_connection", side_effect=lambda: get_connection(db_path)),
     ):
         main(["sync", "--telegram", *args])
     return client
@@ -82,7 +82,7 @@ def test_failed_send_is_retried_next_run(tmp_path: Path) -> None:
         patch("library_tracker.cli._telegram_client", return_value=client),
         patch("library_tracker.cli.run_sync", return_value=_report()),
         patch("library_tracker.cli.print_scrape_result"),
-        patch("library_tracker.cli.get_connection", side_effect=lambda: get_connection(db_path)),
+        patch("library_tracker.database.get_connection", side_effect=lambda: get_connection(db_path)),
     ):
         try:
             main(["sync", "--telegram"])

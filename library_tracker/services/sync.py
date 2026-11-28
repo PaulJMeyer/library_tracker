@@ -16,7 +16,7 @@ from library_tracker.config import (
     ConfigurationError,
     configured_reado_list_types,
 )
-from library_tracker.database import get_connection, initialize_database
+from library_tracker.database import open_database
 from library_tracker.titles import merkliste_title_key
 from library_tracker.models import ReadoListType, ScrapeResult
 from library_tracker.repositories.library_matches import get_wishlist_catalog_titles
@@ -80,15 +80,11 @@ def _sync_list(list_type: ReadoListType) -> None:
 
 def _wishlist_titles() -> tuple[list[str], list[str]]:
     """Catalog titles on the own and on the second wishlist."""
-    connection = get_connection()
-    try:
-        initialize_database(connection)
+    with open_database() as connection:
         return (
             get_wishlist_catalog_titles(connection, "wishlist"),
             get_wishlist_catalog_titles(connection, "second_wishlist"),
         )
-    finally:
-        connection.close()
 
 
 def _clean_up_merkliste(scrape: ScrapeResult, library: LibraryClient) -> list[tuple[str, str, str]]:

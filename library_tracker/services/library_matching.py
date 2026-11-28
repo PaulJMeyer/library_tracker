@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 from typing import cast
 
 from library_tracker.clients.library import LibraryClient, LibraryClientError
-from library_tracker.database import get_connection, initialize_database
+from library_tracker.database import open_database
 from library_tracker.models import (
     Copy,
     LibraryIsbnCandidate,
@@ -84,12 +84,8 @@ def match_wishlist_book(
     reado_isbn: str,
     client: LibraryClient | None = None,
 ) -> LibraryMatchResult:
-    connection = get_connection()
-    try:
-        initialize_database(connection)
+    with open_database() as connection:
         candidates = limit_candidates(get_wishlist_isbn_candidates(connection, reado_isbn))
-    finally:
-        connection.close()
 
     if not candidates:
         return {"reado_isbn": reado_isbn, "attempts": [], "match": None}
@@ -163,9 +159,7 @@ def match_wishlist_books(
     are never searched again, so each run continues with the next candidates.
     """
     summary = {"books": 0, "searched": 0, "new_matches": 0, "new_editions": 0, "errors": 0}
-    connection = get_connection()
-    try:
-        initialize_database(connection)
+    with open_database() as connection:
         since = (_now() - timedelta(days=recheck_days)).isoformat(timespec="seconds")
         books = get_wishlist_isbns_for_search(connection)
         summary["books"] = len(books)
@@ -213,8 +207,6 @@ def match_wishlist_books(
                 if hits:
                     record_hit(candidate)
         return summary
-    finally:
-        connection.close()
 
 
 def _hit_copies(
@@ -256,9 +248,7 @@ def add_matches_to_merkliste(
     known_titles = {merkliste_title_key(title) for title in existing_titles}
     known_media = set(existing_media_numbers)
     results: list[tuple[str, str, str]] = []
-    connection = get_connection()
-    try:
-        initialize_database(connection)
+    with open_database() as connection:
         for reado_isbn, edition_isbn in get_editions_to_memorize(connection):
             client = client or LibraryClient.login()
             title: str | None = None
@@ -306,15 +296,11 @@ def add_matches_to_merkliste(
             )
             results.append((reado_isbn, title or edition_isbn, status))
         return results
-    finally:
-        connection.close()
 
 
 def build_match_report() -> list[MatchReportRow]:
     """Per active wishlist book: metadata state, candidates, stored catalog result."""
-    connection = get_connection()
-    try:
-        initialize_database(connection)
+    with open_database() as connection:
         states = get_wishlist_metadata_states(connection)
         matches = get_match_states(connection)
         searched = get_searched_isbns(connection)
@@ -322,8 +308,6 @@ def build_match_report() -> list[MatchReportRow]:
             str(state["isbn13"]): get_wishlist_isbn_candidates(connection, str(state["isbn13"]))
             for state in states
         }
-    finally:
-        connection.close()
 
     rows: list[MatchReportRow] = []
     for state in states:

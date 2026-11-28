@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from library_tracker.clients.library import LibraryClient, LibraryClientError
 from library_tracker.clients.openlibrary import strip_sort_markers
 from library_tracker.titles import merkliste_title_key
-from library_tracker.database import get_connection, initialize_database
+from library_tracker.database import open_database
 from library_tracker.models import MerklisteEntry
 from library_tracker.parsers.library import parse_single_hit
 from library_tracker.repositories.merkliste_removals import (
@@ -80,9 +80,7 @@ def remove_finished_from_merkliste(
     remaining = list(entries)
     results: list[tuple[str, str, str]] = []
     lookups = 0
-    connection = get_connection()
-    try:
-        initialize_database(connection)
+    with open_database() as connection:
         forget_removals_of_wishlist_books(connection)
         # Entries that belong to a wishlist book are never removed.
         wishlist_titles, wishlist_media = get_wishlist_merkliste_keys(connection)
@@ -124,5 +122,3 @@ def remove_finished_from_merkliste(
             else:
                 results.append((isbn13, title or isbn13, status))
         return results
-    finally:
-        connection.close()

@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 
 from library_tracker.clients.reado import read_list
 from library_tracker.config import READO_LIST_TYPES, get_reado_list_url
-from library_tracker.database import get_connection, initialize_database
+from library_tracker.database import open_database
 from library_tracker.models import ReadoListEntry, ReadoListSyncResult, ReadoListType
 from library_tracker.repositories.reado import sync_reado_list
 
@@ -23,9 +23,7 @@ def sync_lists(
     }
     checked_at = datetime.now(UTC).isoformat(timespec="seconds")
 
-    connection = get_connection()
-    try:
-        initialize_database(connection)
+    with open_database() as connection:
         results = {
             list_type: sync_reado_list(
                 connection,
@@ -35,7 +33,5 @@ def sync_lists(
             )
             for list_type in list_types
         }
-    finally:
-        connection.close()
 
     return entries_by_list, results
