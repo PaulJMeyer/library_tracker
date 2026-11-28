@@ -6,7 +6,8 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 
 from library_tracker.clients.library import LibraryClient, LibraryClientError
-from library_tracker.clients.openlibrary import normalize_title, strip_sort_markers
+from library_tracker.clients.openlibrary import strip_sort_markers
+from library_tracker.titles import merkliste_title_key
 from library_tracker.database import get_connection, initialize_database
 from library_tracker.models import MerklisteEntry
 from library_tracker.parsers.library import parse_single_hit
@@ -36,7 +37,7 @@ def _catalog_title(client: LibraryClient, isbn13: str) -> str | None:
 
 
 def _matches(entry: MerklisteEntry, titles: set[str], media_numbers: set[str]) -> bool:
-    return normalize_title(entry["title"]) in titles or not media_numbers.isdisjoint(
+    return merkliste_title_key(entry["title"]) in titles or not media_numbers.isdisjoint(
         entry.get("media_numbers", [])
     )
 
@@ -62,7 +63,7 @@ def remove_finished_from_merkliste(
         forget_removals_of_wishlist_books(connection)
         # Entries that belong to a wishlist book are never removed.
         wishlist_titles, wishlist_media = get_wishlist_merkliste_keys(connection)
-        wishlist_wanted = {normalize_title(title) for title in wishlist_titles}
+        wishlist_wanted = {merkliste_title_key(title) for title in wishlist_titles}
         remaining = [e for e in remaining if not _matches(e, wishlist_wanted, wishlist_media)]
         for isbn13, titles, media_numbers in get_finished_books_to_check(connection):
             status: str
@@ -77,7 +78,7 @@ def remove_finished_from_merkliste(
                 if not titles and not media_numbers:
                     status = "not_in_catalog"
                 else:
-                    wanted = {normalize_title(title) for title in titles}
+                    wanted = {merkliste_title_key(title) for title in titles}
                     matching = [e for e in remaining if _matches(e, wanted, media_numbers)]
                     remaining = [e for e in remaining if not _matches(e, wanted, media_numbers)]
                     if not matching:

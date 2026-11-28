@@ -15,6 +15,7 @@ library_tracker/
 │   ├── isbn.py
 │   ├── models.py
 │   ├── output.py
+│   ├── titles.py
 │   ├── clients/
 │   │   ├── __init__.py
 │   │   ├── dnb.py
@@ -93,7 +94,7 @@ clients/     repositories/
   ↓              ↓
 parsers/        SQLite
 
-shared: config.py, isbn.py, models.py, database.py, output.py
+shared: config.py, isbn.py, models.py, database.py, output.py, titles.py
 ```
 
 The important rule is that the CLI routes commands but does not contain the business workflows. External HTTP details live in clients; SQL lives in repositories; multi-step operations live in services.
@@ -116,6 +117,10 @@ Central configuration boundary:
 ### `isbn.py`
 
 One shared `normalize_isbn()` implementation used by the library catalog, Open Library and Google Books clients.
+
+### `titles.py`
+
+`merkliste_title_key()`: when two catalog titles count as the same book (overview merging, second-wishlist section, Merkliste add and cleanup). Keeps series titles like "Reihe - Teil 1" apart, drops subtitles after ':' and a leading article. Copy numbers are compared first wherever they are known.
 
 ### `models.py`
 

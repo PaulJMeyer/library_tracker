@@ -17,6 +17,8 @@ from library_tracker.parsers.library import (
 
 def test_text_and_status_helpers() -> None:
     assert clean_text("  hallo\n welt ") == "hallo welt"
+    # Twice-escaped OPAC text keeps no entity.
+    assert clean_text("Romane &amp; Werke A-Z") == "Romane & Werke A-Z"
     assert extract_due_date("entliehen bis 15.08.2026") == "15.08.2026"
     assert extract_due_date("kein Datum") is None
     assert normalize_copy_status("bereits bestellt") == "bestellt"

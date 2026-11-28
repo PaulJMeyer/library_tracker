@@ -9,7 +9,7 @@ from typing import TypeVar
 from library_tracker.clients.dnb import DnbError
 from library_tracker.clients.googlebooks import GoogleBooksError
 from library_tracker.clients.library import LibraryClient, LibraryClientError
-from library_tracker.clients.openlibrary import OpenLibraryError, normalize_title
+from library_tracker.clients.openlibrary import OpenLibraryError
 from library_tracker.clients.reado import ReadoError
 from library_tracker.config import (
     READO_LIST_LABELS,
@@ -17,6 +17,7 @@ from library_tracker.config import (
     configured_reado_list_types,
 )
 from library_tracker.database import get_connection, initialize_database
+from library_tracker.titles import merkliste_title_key
 from library_tracker.models import ReadoListType, ScrapeResult
 from library_tracker.repositories.library_matches import get_wishlist_catalog_titles
 from library_tracker.services.library_matching import (
@@ -134,12 +135,12 @@ def run_sync(
         if failed_removals:
             report.warnings.append(f"{failed_removals} Titel nicht von der Merkliste entfernt")
 
-    removed = {normalize_title(title) for title in report.removed_titles}
-    existing = [title for title in scrape["all_titles"] if normalize_title(title) not in removed]
+    removed = {merkliste_title_key(title) for title in report.removed_titles}
+    existing = [title for title in scrape["all_titles"] if merkliste_title_key(title) not in removed]
     existing_media = [
         number
         for entry in scrape["entries"]
-        if normalize_title(entry["title"]) not in removed
+        if merkliste_title_key(entry["title"]) not in removed
         for number in entry.get("media_numbers", [])
     ]
     results = report.step(

@@ -5,7 +5,8 @@ import html
 import re
 from pathlib import Path
 
-from library_tracker.clients.openlibrary import normalize_title, strip_sort_markers
+from library_tracker.clients.openlibrary import strip_sort_markers
+from library_tracker.titles import merkliste_title_key
 from library_tracker.parsers.library import is_lendable_location, is_orderable
 from library_tracker.models import (
     AvailabilitySnapshot,
@@ -30,9 +31,9 @@ NUMBER_PATTERN = re.compile(r"\d+")
 
 
 def _book_key(title: str) -> tuple[str, tuple[str, ...]]:
-    """Same main title and same numbers (e.g. 'Band 2') means the same book."""
-    stripped = strip_sort_markers(title)
-    return normalize_title(stripped) or stripped.casefold(), tuple(NUMBER_PATTERN.findall(stripped))
+    """Same title (without subtitle and leading article) and same numbers (e.g.
+    'Band 2') means the same book."""
+    return merkliste_title_key(title), tuple(NUMBER_PATTERN.findall(strip_sort_markers(title)))
 
 
 def merge_duplicate_items(items: list[Item]) -> list[Item]:
@@ -223,28 +224,29 @@ def format_telegram_message(
     own_items = items
     second_items: list[Item] = []
     if second_wishlist_titles is not None:
-        second = {normalize_title(title) for title in second_wishlist_titles}
-        own = {normalize_title(title) for title in own_wishlist_titles or []}
+        second = {merkliste_title_key(title) for title in second_wishlist_titles}
+        own = {merkliste_title_key(title) for title in own_wishlist_titles or []}
         # Books on both wishlists are listed in both sections.
         own_items = [
             item
             for item in items
-            if normalize_title(item["title"]) in own or normalize_title(item["title"]) not in second
+            if merkliste_title_key(item["title"]) in own or merkliste_title_key(item["title"]) not in second
         ]
-        second_items = [item for item in items if normalize_title(item["title"]) in second]
+        second_items = [item for item in items if merkliste_title_key(item["title"]) in second]
     lines.extend(_format_status_sections(own_items))
     if second_wishlist_titles is not None:
         lines.extend(["", f"<b>{html.escape(second_wishlist_heading)}</b>"])
         lines.extend(_format_status_sections(second_items))
-    if added_titles:
-        lines.extend(["", f"<b>Neu auf der Merkliste ({len(added_titles)})</b>"])
-        lines.extend(f"• {html.escape(strip_sort_markers(title))}" for title in added_titles)
-    if removed_titles:
-        lines.extend(["", f"<b>Von der Merkliste entfernt ({len(removed_titles)})</b>"])
-        lines.extend(f"• {html.escape(strip_sort_markers(title))}" for title in removed_titles)
-    if review_titles:
-        lines.extend(["", f"<b>Bitte prüfen, nicht hinzugefügt ({len(review_titles)})</b>"])
-        lines.extend(f"• {html.escape(strip_sort_markers(title))}" for title in review_titles)
+    for heading, titles in (
+        ("Neu auf der Merkliste", added_titles),
+        ("Von der Merkliste entfernt", removed_titles),
+        ("Bitte prüfen, nicht hinzugefügt", review_titles),
+    ):
+        # Several editions of one book: listed once.
+        unique = _unique([strip_sort_markers(title) for title in titles or []])
+        if unique:
+            lines.extend(["", f"<b>{heading} ({len(unique)})</b>"])
+            lines.extend(f"• {html.escape(title)}" for title in unique)
     if warnings:
         lines.extend(["", "⚠️ <i>" + html.escape("; ".join(warnings)) + "</i>"])
     return "\n".join(lines)

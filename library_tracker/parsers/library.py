@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import re
 from urllib.parse import parse_qs, urljoin, urlparse
 
@@ -31,7 +32,9 @@ PAGES_PATTERN = re.compile(
 
 
 def clean_text(text: str) -> str:
-    return " ".join(text.split())
+    # The OPAC escapes some texts twice ("Romane &amp;amp; Werke"), so entities
+    # can survive the HTML parser; they are decoded here once more.
+    return " ".join(html.unescape(text).split())
 
 
 def extract_due_date(status_text: str) -> str | None:

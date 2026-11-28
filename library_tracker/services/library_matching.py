@@ -15,7 +15,8 @@ from library_tracker.models import (
     LibraryMatchResult,
     MatchReportRow,
 )
-from library_tracker.clients.openlibrary import normalize_title, strip_sort_markers
+from library_tracker.clients.openlibrary import strip_sort_markers
+from library_tracker.titles import merkliste_title_key
 from library_tracker.parsers.library import (
     parse_exemplar_tab_url,
     parse_media_numbers,
@@ -250,7 +251,7 @@ def add_matches_to_merkliste(
     needs_review (an alternative edition that is a single volume of a multi-volume
     edition, not added).
     """
-    known_titles = {normalize_title(title) for title in existing_titles}
+    known_titles = {merkliste_title_key(title) for title in existing_titles}
     known_media = set(existing_media_numbers)
     results: list[tuple[str, str, str]] = []
     connection = get_connection()
@@ -272,7 +273,7 @@ def add_matches_to_merkliste(
                     if media_numbers:
                         listed = not known_media.isdisjoint(media_numbers)
                     else:
-                        listed = normalize_title(title) in known_titles
+                        listed = merkliste_title_key(title) in known_titles
                     if listed:
                         status = "already_listed"
                     elif memorize_url is None:
@@ -283,7 +284,7 @@ def add_matches_to_merkliste(
                         status = "needs_review"
                     else:
                         client.add_to_memorize_list(memorize_url)
-                        known_titles.add(normalize_title(title))
+                        known_titles.add(merkliste_title_key(title))
                         known_media.update(media_numbers)
                         status = "added"
             except LibraryClientError as exc:
