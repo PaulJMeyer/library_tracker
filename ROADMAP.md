@@ -10,7 +10,7 @@ The daily run in the private runner reads READO, matches wishlist books against 
 - [x] authenticated Stadtbibliothek Bremen session + CSId
 - [x] multi-page Merkliste scraping (robust against the OPAC repeating the last page)
 - [x] copy-level availability, due dates, central library vs. branches
-- [x] "bestellbar" excludes the prison library and reference-only copies
+- [x] "bestellbar" excludes the prison library, reference-only copies and e-books (Online-Zweigstelle)
 - [x] SQLite copy and availability history
 - [x] catalog search by ISBN with retries and re-login
 
@@ -29,7 +29,8 @@ The daily run in the private runner reads READO, matches wishlist books against 
 - [x] add found wishlist books to the Merkliste (only the free "in die Merkliste" link)
 - [x] all editions of a wishlist book that the catalog has go on the Merkliste (duplicates detected by copy number, all editions removed once the book is finished)
 - [x] single volumes of multi-volume alternative editions go to "Bitte prüfen" instead
-- [x] remove books from the Merkliste once they are on a finished READO list
+- [x] remove books from the Merkliste once they are on a finished READO list (books still on a wishlist are kept, books back on a wishlist are added again)
+- [x] e-books are neither shown nor put on the Merkliste; e-book entries already there are removed
 - [x] Telegram overview with available, orderable (with page counts), added and removed titles plus warnings
 - [x] failing steps become warnings, the rest of the run continues
 - [x] private runner repository; the public repository holds no personal data
@@ -48,11 +49,12 @@ can only send messages so far. Planned approach: a small serverless function
 
 ### P1 — More useful Telegram messages
 
-- [ ] send only when something changed, plus a short weekly summary
+- [x] send only when something changed (`--always` to force)
+- [ ] short weekly summary
 - [ ] mark titles that became available since the previous run ("neu")
 - [ ] "seltene Chance" ⭐: mark titles that are usually loaned but available today
   (loan quota per title from the daily availability snapshots)
-- [ ] show the same work only once in the Telegram message when several editions are on the Merkliste
+- [x] show the same work only once in the Telegram message when several editions are on the Merkliste (also in "Neu auf der Merkliste")
 - [ ] loan reminders: titles due in the next 3 days (loans are already read from the account page)
 
 ### P1 — Availability statistics
@@ -87,6 +89,7 @@ automatically (e.g. a careful title/author search with "Bitte prüfen").
 
 - [ ] treat a READO list that is really empty differently from a list that failed to load
 - [ ] `status` command with database statistics (books, matches, open ISBNs, last run)
+- [x] code cleanup after the November merges: `open_database()`, one progress logger, title helpers in `titles.py`, shared wishlist SQL
 - [ ] structured logging for the scheduled run
 - [ ] `ruff` for formatting and linting in CI
 
