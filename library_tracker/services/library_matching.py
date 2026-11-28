@@ -7,7 +7,6 @@ from typing import cast
 
 from library_tracker.clients.library import LibraryClient, LibraryClientError
 from library_tracker.database import open_database
-from library_tracker.progress import log
 from library_tracker.models import (
     Copy,
     LibraryIsbnCandidate,
@@ -16,13 +15,13 @@ from library_tracker.models import (
     LibraryMatchResult,
     MatchReportRow,
 )
-from library_tracker.titles import merkliste_title_key, strip_sort_markers
 from library_tracker.parsers.library import (
-    parse_exemplar_tab_url,
     is_ebook_only,
     parse_copies_html,
+    parse_exemplar_tab_url,
     parse_single_hit,
 )
+from library_tracker.progress import log
 from library_tracker.repositories.library_matches import (
     get_catalog_hits,
     get_edition_isbns,
@@ -40,8 +39,18 @@ from library_tracker.repositories.matching import (
     get_wishlist_isbn_candidates,
     get_wishlist_metadata_states,
 )
+from library_tracker.titles import merkliste_title_key, strip_sort_markers
 
+# Catalog searches per book and run.
 PER_BOOK_SEARCH_LIMIT = 15
+# ISBNs without a hit are searched again after this many days.
+RECHECK_MISSES_AFTER_DAYS = 30
+# Books that already have a catalog hit keep looking for further editions, but
+# books without any hit get the catalog searches first.
+EXTRA_EDITION_SEARCHES_PER_RUN = 150
+# ISBN candidates per book for the single-book search (`library-match`).
+MAX_GERMAN_CANDIDATES = 12
+MAX_ENGLISH_CANDIDATES = 3
 # A single volume of a multi-volume edition ("Faust ..., Band 3") is usually not the
 # wanted book, so such hits are reported for manual review instead of being added.
 VOLUME_PATTERN = re.compile(r"\b(?:band|bd|vol|volume|teilband)\.?\s*\d+\b", re.IGNORECASE)
@@ -50,22 +59,17 @@ VOLUME_PATTERN = re.compile(r"\b(?:band|bd|vol|volume|teilband)\.?\s*\d+\b", re.
 def is_single_volume(title: str) -> bool:
     return VOLUME_PATTERN.search(title) is not None
 
-RECHECK_MISSES_AFTER_DAYS = 30
-# Books that already have a catalog hit keep looking for further editions, but
-# books without any hit get the catalog searches first.
-EXTRA_EDITION_SEARCHES_PER_RUN = 150
-
 
 def _now() -> datetime:
     return datetime.now(UTC)
 
 
+def _timestamp() -> str:
+    return _now().isoformat(timespec="seconds")
+
+
 def search_catalog(isbn: str, client: LibraryClient | None = None) -> list[str]:
     return (client or LibraryClient.login()).search_catalog_by_isbn(isbn)
-
-
-MAX_GERMAN_CANDIDATES = 12
-MAX_ENGLISH_CANDIDATES = 3
 
 
 def limit_candidates(candidates: list[LibraryIsbnCandidate]) -> list[LibraryIsbnCandidate]:
@@ -159,14 +163,15 @@ def match_wishlist_books(
         books = get_wishlist_isbns_for_search(connection)
         summary["books"] = len(books)
         extra_budget = extra_edition_searches
+        # Loaded once and kept up to date below: several books can share an ISBN.
+        misses = get_recent_misses(connection, since)
+        known_hits = get_catalog_hits(connection)
         for index, (reado_isbn, matched) in enumerate(books, start=1):
-            misses = get_recent_misses(connection, since)
-            known_hits = get_catalog_hits(connection)
             editions = get_edition_isbns(connection, reado_isbn)
 
             def record_hit(candidate: LibraryIsbnCandidate) -> None:
                 nonlocal matched
-                now = _now().isoformat(timespec="seconds")
+                now = _timestamp()
                 save_catalog_edition(connection, reado_isbn, candidate["isbn"], candidate["source"], now)
                 summary["new_editions"] += 1
                 if not matched:
@@ -197,10 +202,13 @@ def match_wishlist_books(
                     progress(f"  Fehler: {exc}")
                     break
                 summary["searched"] += 1
-                now = _now().isoformat(timespec="seconds")
+                now = _timestamp()
                 save_catalog_search(connection, candidate["isbn"], hits[0] if hits else None, now)
                 if hits:
+                    known_hits.add(candidate["isbn"])
                     record_hit(candidate)
+                else:
+                    misses.add(candidate["isbn"])
         return summary
 
 
@@ -287,7 +295,7 @@ def add_matches_to_merkliste(
                 status,
                 title,
                 media_numbers,
-                _now().isoformat(timespec="seconds"),
+                _timestamp(),
             )
             results.append((reado_isbn, title or edition_isbn, status))
         return results
