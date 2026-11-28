@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from library_tracker.parsers.library import (
     classify_item,
     clean_text,
+    is_orderable,
     extract_csid,
     extract_due_date,
     normalize_copy_status,
@@ -17,6 +18,8 @@ from library_tracker.parsers.library import (
 
 def test_text_and_status_helpers() -> None:
     assert clean_text("  hallo\n welt ") == "hallo welt"
+    # Twice-escaped OPAC text keeps no entity.
+    assert clean_text("Romane &amp; Werke A-Z") == "Romane & Werke A-Z"
     assert extract_due_date("entliehen bis 15.08.2026") == "15.08.2026"
     assert extract_due_date("kein Datum") is None
     assert normalize_copy_status("bereits bestellt") == "bestellt"
@@ -134,6 +137,10 @@ def test_prison_library_copies_are_not_orderable() -> None:
     reference = copy("Krimibibliothek Präsenzbestand")
     assert classify_item([reference]) == "entliehen"  # type: ignore[list-item]
     assert classify_item([copy("10-Zentralbibliothek Präsenzbestand")]) == "entliehen"  # type: ignore[list-item]
+    # E-books are not shown, neither as Bestellbar nor as a branch.
+    ebook = copy("Online-Zweigstelle")
+    assert classify_item([ebook]) == "entliehen"  # type: ignore[list-item]
+    assert not is_orderable(ebook)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(

@@ -150,6 +150,8 @@ class MerklisteEntry(TypedDict):
     page: MemorizePage
     # Copy numbers of the catalog record (same record = same edition).
     media_numbers: NotRequired[list[str]]
+    # Every copy is an e-book of the online branch: such entries are removed.
+    ebook: NotRequired[bool]
 
 
 class ScrapeResult(TypedDict):

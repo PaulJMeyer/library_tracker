@@ -1,4 +1,5 @@
-"""Remove books from the library Merkliste once they are on a finished READO list."""
+"""Remove books from the library Merkliste once they are on a finished READO list,
+and e-books, which the overview does not show."""
 from __future__ import annotations
 
 import sys
@@ -6,13 +7,15 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 
 from library_tracker.clients.library import LibraryClient, LibraryClientError
-from library_tracker.clients.openlibrary import normalize_title, strip_sort_markers
+from library_tracker.clients.openlibrary import strip_sort_markers
+from library_tracker.titles import merkliste_title_key
 from library_tracker.database import get_connection, initialize_database
 from library_tracker.models import MerklisteEntry
 from library_tracker.parsers.library import parse_single_hit
 from library_tracker.repositories.merkliste_removals import (
     forget_removals_of_wishlist_books,
     get_finished_books_to_check,
+    get_wishlist_merkliste_keys,
     save_removal_result,
 )
 
@@ -35,9 +38,31 @@ def _catalog_title(client: LibraryClient, isbn13: str) -> str | None:
 
 
 def _matches(entry: MerklisteEntry, titles: set[str], media_numbers: set[str]) -> bool:
-    return normalize_title(entry["title"]) in titles or not media_numbers.isdisjoint(
+    return merkliste_title_key(entry["title"]) in titles or not media_numbers.isdisjoint(
         entry.get("media_numbers", [])
     )
+
+
+def remove_ebooks_from_merkliste(
+    entries: list[MerklisteEntry],
+    client: LibraryClient,
+    *,
+    progress: Callable[[str], None] = _print_progress,
+) -> list[tuple[str, str, str]]:
+    """Removes Merkliste entries whose copies are all e-books of the online branch.
+
+    Returns [("", title, status)] with status removed/failed, one row per entry."""
+    results: list[tuple[str, str, str]] = []
+    for entry in entries:
+        if not entry.get("ebook"):
+            continue
+        try:
+            removed = client.remove_entries(entry["page"], [entry["uuid"]])
+        except LibraryClientError as exc:
+            progress(f"  Entfernen-Fehler bei {entry['title']}: {exc}")
+            removed = False
+        results.append(("", entry["title"], "removed" if removed else "failed"))
+    return results
 
 
 def remove_finished_from_merkliste(
@@ -59,6 +84,10 @@ def remove_finished_from_merkliste(
     try:
         initialize_database(connection)
         forget_removals_of_wishlist_books(connection)
+        # Entries that belong to a wishlist book are never removed.
+        wishlist_titles, wishlist_media = get_wishlist_merkliste_keys(connection)
+        wishlist_wanted = {merkliste_title_key(title) for title in wishlist_titles}
+        remaining = [e for e in remaining if not _matches(e, wishlist_wanted, wishlist_media)]
         for isbn13, titles, media_numbers in get_finished_books_to_check(connection):
             status: str
             matching: list[MerklisteEntry] = []
@@ -72,7 +101,7 @@ def remove_finished_from_merkliste(
                 if not titles and not media_numbers:
                     status = "not_in_catalog"
                 else:
-                    wanted = {normalize_title(title) for title in titles}
+                    wanted = {merkliste_title_key(title) for title in titles}
                     matching = [e for e in remaining if _matches(e, wanted, media_numbers)]
                     remaining = [e for e in remaining if not _matches(e, wanted, media_numbers)]
                     if not matching:

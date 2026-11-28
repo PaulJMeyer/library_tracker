@@ -464,3 +464,39 @@ def test_format_status_summary_lists_duplicate_editions_once() -> None:
 
     assert "Ausleihbar (1):" in lines
     assert "Bestellbar (0):" in lines
+
+
+def test_merge_duplicate_items_keeps_books_of_a_series_apart() -> None:
+    from library_tracker.output import merge_duplicate_items
+
+    items = [
+        make_item("Die Reihe - Das dunkle Zeitalter, Teil 1", "ausleihbar"),
+        make_item("Die Reihe - Zeitalter des Lichts, 1", "bestellbar"),
+    ]
+
+    assert len(merge_duplicate_items(items)) == 2
+
+
+def test_merge_duplicate_items_ignores_leading_article() -> None:
+    from library_tracker.output import merge_duplicate_items
+
+    items = [
+        make_item("Krieg der Welten", "ausleihbar"),
+        make_item("Der Krieg der Welten", "bestellbar"),
+    ]
+
+    assert [item["title"] for item in merge_duplicate_items(items)] == ["Krieg der Welten"]
+
+
+def test_format_telegram_message_lists_added_editions_once() -> None:
+    import datetime
+
+    from library_tracker.output import format_telegram_message
+
+    message = format_telegram_message(
+        [],
+        today=datetime.date(2026, 11, 28),
+        added_titles=["Ein Roman", "Ein Roman", "¬Der Adept"],
+    )
+
+    assert "<b>Neu auf der Merkliste (2)</b>\n• Ein Roman\n• Der Adept" in message

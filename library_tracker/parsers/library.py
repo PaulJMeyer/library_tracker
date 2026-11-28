@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import re
 from urllib.parse import parse_qs, urljoin, urlparse
 
@@ -16,13 +17,20 @@ from library_tracker.models import (
 )
 
 CENTRAL_BRANCH_KEYWORD = "10-Zentralbibliothek"
-# Locations whose copies cannot be borrowed or ordered: the prison library and
-# reference-only collections ("Präsenzbestand").
-NOT_LENDABLE_BRANCH_KEYWORDS = ("JVA", "nicht online", "Präsenzbestand")
+# Locations whose copies cannot be borrowed or ordered: the prison library,
+# reference-only collections ("Präsenzbestand") and e-books of the online branch,
+# which the overview does not show.
+ONLINE_BRANCH_KEYWORD = "Online-Zweigstelle"
+NOT_LENDABLE_BRANCH_KEYWORDS = ("JVA", "nicht online", "Präsenzbestand", ONLINE_BRANCH_KEYWORD)
 
 
 def is_lendable_location(copy: Copy) -> bool:
     return not any(keyword in copy["branch"] for keyword in NOT_LENDABLE_BRANCH_KEYWORDS)
+
+
+def is_ebook_only(copies: list[Copy]) -> bool:
+    """A catalog record whose copies are all e-books of the online branch."""
+    return bool(copies) and all(ONLINE_BRANCH_KEYWORD in copy["branch"] for copy in copies)
 DATE_PATTERN = re.compile(r"\b\d{2}\.\d{2}\.\d{4}\b")
 # Extent as printed in catalog records: "347 S.", "XII, 347 Seiten", "347 pages".
 PAGES_PATTERN = re.compile(
@@ -31,7 +39,9 @@ PAGES_PATTERN = re.compile(
 
 
 def clean_text(text: str) -> str:
-    return " ".join(text.split())
+    # The OPAC escapes some texts twice ("Romane &amp;amp; Werke"), so entities
+    # can survive the HTML parser; they are decoded here once more.
+    return " ".join(html.unescape(text).split())
 
 
 def extract_due_date(status_text: str) -> str | None:
@@ -310,6 +320,6 @@ def parse_exemplar_tab_url(html: str, page_url: str) -> str | None:
     return urljoin(page_url, _tag_value(link, "href")) if isinstance(link, Tag) else None
 
 
-def parse_media_numbers(html: str) -> list[str]:
-    """Copy numbers on a catalog page; they identify the catalog record."""
-    return [copy["media_number"] for copy in parse_copies(BeautifulSoup(html, "html.parser"))]
+def parse_copies_html(html: str) -> list[Copy]:
+    """Copies on a catalog page; their numbers identify the catalog record."""
+    return parse_copies(BeautifulSoup(html, "html.parser"))

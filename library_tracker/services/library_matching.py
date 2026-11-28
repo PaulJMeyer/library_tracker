@@ -9,16 +9,19 @@ from typing import cast
 from library_tracker.clients.library import LibraryClient, LibraryClientError
 from library_tracker.database import get_connection, initialize_database
 from library_tracker.models import (
+    Copy,
     LibraryIsbnCandidate,
     LibraryIsbnCandidateSource,
     LibraryMatchAttempt,
     LibraryMatchResult,
     MatchReportRow,
 )
-from library_tracker.clients.openlibrary import normalize_title, strip_sort_markers
+from library_tracker.clients.openlibrary import strip_sort_markers
+from library_tracker.titles import merkliste_title_key
 from library_tracker.parsers.library import (
     parse_exemplar_tab_url,
-    parse_media_numbers,
+    is_ebook_only,
+    parse_copies_html,
     parse_single_hit,
 )
 from library_tracker.repositories.library_matches import (
@@ -214,24 +217,24 @@ def match_wishlist_books(
         connection.close()
 
 
-def _hit_media_numbers(
+def _hit_copies(
     client: LibraryClient, hit_url: str, html: str, page_url: str
-) -> tuple[list[str], str]:
-    """Copy numbers of a catalog hit and the (possibly re-read) hit page.
+) -> tuple[list[Copy], str]:
+    """Copies of a catalog hit and the (possibly re-read) hit page.
 
     If the hit page itself lists no copies, its copies tab is opened; the hit page
     is then read again so that its 'in die Merkliste' link belongs to the hit.
     """
-    media_numbers = parse_media_numbers(html)
-    if media_numbers:
-        return media_numbers, html
+    copies = parse_copies_html(html)
+    if copies:
+        return copies, html
     tab_url = parse_exemplar_tab_url(html, page_url)
     if tab_url is None:
         return [], html
     tab_html, _ = client.get_page(tab_url)
-    media_numbers = parse_media_numbers(tab_html)
+    copies = parse_copies_html(tab_html)
     html, _ = client.get_page(hit_url)
-    return media_numbers, html
+    return copies, html
 
 
 def add_matches_to_merkliste(
@@ -248,9 +251,9 @@ def add_matches_to_merkliste(
     (same catalog record); without copy numbers the title is compared instead.
     Returns [(reado_isbn, catalog_title, status)] with status added/already_listed/failed/
     needs_review (an alternative edition that is a single volume of a multi-volume
-    edition, not added).
+    edition, not added)/ebook (only e-books of the online branch, not added).
     """
-    known_titles = {normalize_title(title) for title in existing_titles}
+    known_titles = {merkliste_title_key(title) for title in existing_titles}
     known_media = set(existing_media_numbers)
     results: list[tuple[str, str, str]] = []
     connection = get_connection()
@@ -266,14 +269,17 @@ def add_matches_to_merkliste(
                     status = "failed"
                 else:
                     html, page_url = client.get_page(hits[0])
-                    media_numbers, html = _hit_media_numbers(client, hits[0], html, page_url)
+                    copies, html = _hit_copies(client, hits[0], html, page_url)
+                    media_numbers = [copy["media_number"] for copy in copies]
                     raw_title, memorize_url = parse_single_hit(html, page_url)
                     title = strip_sort_markers(raw_title)
                     if media_numbers:
                         listed = not known_media.isdisjoint(media_numbers)
                     else:
-                        listed = normalize_title(title) in known_titles
-                    if listed:
+                        listed = merkliste_title_key(title) in known_titles
+                    if is_ebook_only(copies):
+                        status = "ebook"  # e-books are never put on the Merkliste
+                    elif listed:
                         status = "already_listed"
                     elif memorize_url is None:
                         status = "failed"
@@ -283,7 +289,7 @@ def add_matches_to_merkliste(
                         status = "needs_review"
                     else:
                         client.add_to_memorize_list(memorize_url)
-                        known_titles.add(normalize_title(title))
+                        known_titles.add(merkliste_title_key(title))
                         known_media.update(media_numbers)
                         status = "added"
             except LibraryClientError as exc:

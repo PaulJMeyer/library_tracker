@@ -382,3 +382,54 @@ def test_exact_reado_isbn_is_added_even_if_it_is_a_volume(db: Path) -> None:
 
     assert results == [("9782222222222", "Die Weitseher, Band 1", "added")]
     client.add_to_memorize_list.assert_called_once()
+
+
+def test_ebook_only_hits_are_not_added(db: Path) -> None:
+    from library_tracker.repositories.library_matches import save_library_match
+    from library_tracker.services.library_matching import add_matches_to_merkliste
+
+    connection = get_connection(db)
+    save_library_match(connection, "9781111111111", "9783000000001", "dnb", "now")
+    connection.close()
+    ebook_hit = SINGLE_HIT + _copies_html("E1").replace("10-Zentralbibliothek", "80-Online-Zweigstelle")
+    client = Mock(spec=LibraryClient)
+    client.search_catalog_by_isbn.return_value = ["https://opac/hit"]
+    client.get_page.return_value = (ebook_hit, BASE)
+
+    results = add_matches_to_merkliste([], client, progress=lambda _: None)
+
+    assert results == [("9781111111111", "Der Adept des Assassinen", "ebook")]
+    client.add_to_memorize_list.assert_not_called()
+    # Not tried again on the next run.
+    assert add_matches_to_merkliste([], client, progress=lambda _: None) == []
+
+
+def test_old_catalog_editions_table_gets_the_ebook_status(tmp_path: Path) -> None:
+    connection = get_connection(tmp_path / "old.sqlite")
+    initialize_database(connection)
+    connection.executescript(
+        """
+        INSERT INTO reado_books VALUES ('978', 'url', 'f', 'l');
+        DROP TABLE catalog_editions;
+        CREATE TABLE catalog_editions (
+            reado_isbn TEXT NOT NULL,
+            isbn TEXT NOT NULL,
+            source TEXT NOT NULL,
+            found_at TEXT NOT NULL,
+            catalog_title TEXT,
+            media_numbers TEXT,
+            memorize_status TEXT CHECK (
+                memorize_status IN ('added', 'already_listed', 'failed', 'needs_review')
+            ),
+            memorize_checked_at TEXT,
+            PRIMARY KEY (reado_isbn, isbn)
+        );
+        INSERT INTO catalog_editions VALUES ('978', '979', 'dnb', 'now', 'T', 'M1', 'added', 'now');
+        """
+    )
+    initialize_database(connection)
+    connection.execute("UPDATE catalog_editions SET memorize_status = 'ebook'")
+    assert connection.execute(
+        "SELECT isbn, catalog_title, media_numbers, memorize_status FROM catalog_editions"
+    ).fetchall() == [("979", "T", "M1", "ebook")]
+    connection.close()
