@@ -196,3 +196,16 @@ def test_removes_every_edition_of_a_finished_book(db: Path) -> None:
         ("9781111111111", "Babel - Roman", "removed"),
     ]
     assert [call.args[1] for call in client.remove_entries.call_args_list] == [["u1"], ["u2"]]
+
+
+def test_removes_ebook_entries() -> None:
+    from library_tracker.services.merkliste_cleanup import remove_ebooks_from_merkliste
+
+    client = Mock(spec=LibraryClient)
+    client.remove_entries.return_value = True
+    ebook: MerklisteEntry = {"title": "Ein E-Book", "uuid": "u1", "page": PAGE, "ebook": True}
+
+    results = remove_ebooks_from_merkliste([ebook, _entry("Buch", "u2")], client, progress=lambda _: None)
+
+    assert results == [("", "Ein E-Book", "removed")]
+    client.remove_entries.assert_called_once_with(PAGE, ["u1"])

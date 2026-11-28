@@ -260,7 +260,7 @@ Duplicates are removed and English editions remain cached but are not used for B
 Stores the incremental catalog state:
 
 - `catalog_searches`: every ISBN searched in the Bremen catalog, with hit URL and time
-- `library_matches`: the first catalog hit per READO wishlist book and its Merkliste status (`added`, `already_listed`, `failed`, `needs_review`)
+- `library_matches`: the first catalog hit per READO wishlist book and its Merkliste status (`added`, `already_listed`, `failed`, `needs_review`, `ebook`: only e-books of the online branch, never added; such Merkliste entries are removed)
 - `catalog_editions`: every catalog edition found per wishlist book, with catalog title, copy numbers (identify the catalog record on the Merkliste) and Merkliste status
 
 ## Services

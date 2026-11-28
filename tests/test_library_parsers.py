@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from library_tracker.parsers.library import (
     classify_item,
     clean_text,
+    is_orderable,
     extract_csid,
     extract_due_date,
     normalize_copy_status,
@@ -136,6 +137,10 @@ def test_prison_library_copies_are_not_orderable() -> None:
     reference = copy("Krimibibliothek Präsenzbestand")
     assert classify_item([reference]) == "entliehen"  # type: ignore[list-item]
     assert classify_item([copy("10-Zentralbibliothek Präsenzbestand")]) == "entliehen"  # type: ignore[list-item]
+    # E-books are not shown, neither as Bestellbar nor as a branch.
+    ebook = copy("Online-Zweigstelle")
+    assert classify_item([ebook]) == "entliehen"  # type: ignore[list-item]
+    assert not is_orderable(ebook)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(

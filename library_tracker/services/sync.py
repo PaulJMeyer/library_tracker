@@ -25,7 +25,10 @@ from library_tracker.services.library_matching import (
     match_wishlist_books,
 )
 from library_tracker.services.library_scrape import scrape_library
-from library_tracker.services.merkliste_cleanup import remove_finished_from_merkliste
+from library_tracker.services.merkliste_cleanup import (
+    remove_ebooks_from_merkliste,
+    remove_finished_from_merkliste,
+)
 from library_tracker.services.metadata import (
     link_googlebooks_titles,
     lookup_dnb_editions,
@@ -88,6 +91,13 @@ def _wishlist_titles() -> tuple[list[str], list[str]]:
         connection.close()
 
 
+def _clean_up_merkliste(scrape: ScrapeResult, library: LibraryClient) -> list[tuple[str, str, str]]:
+    """E-books first, then books on a finished READO list."""
+    ebooks = remove_ebooks_from_merkliste(scrape["entries"], library)
+    others = [entry for entry in scrape["entries"] if not entry.get("ebook")]
+    return ebooks + remove_finished_from_merkliste(others, library)
+
+
 def run_sync(
     *,
     client: LibraryClient | None = None,
@@ -125,10 +135,7 @@ def run_sync(
 
     # Removing first keeps the Merkliste page data from the scrape valid.
     scrape = report.scrape
-    removals = report.step(
-        "Merkliste aufräumen",
-        lambda: remove_finished_from_merkliste(scrape["entries"], library),
-    )
+    removals = report.step("Merkliste aufräumen", lambda: _clean_up_merkliste(scrape, library))
     if removals:
         report.removed_titles = [title for _, title, status in removals if status == "removed"]
         failed_removals = sum(status == "failed" for _, _, status in removals)

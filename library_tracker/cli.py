@@ -39,7 +39,10 @@ from library_tracker.services.library_matching import (
 )
 from library_tracker.services.sync import run_sync
 from library_tracker.services.library_scrape import scrape_library
-from library_tracker.services.merkliste_cleanup import remove_finished_from_merkliste
+from library_tracker.services.merkliste_cleanup import (
+    remove_ebooks_from_merkliste,
+    remove_finished_from_merkliste,
+)
 from library_tracker.services.metadata import (
     link_googlebooks_titles,
     lookup_dnb_editions,
@@ -257,7 +260,10 @@ def _run_merkliste_add() -> int:
 
 def _run_merkliste_cleanup() -> int:
     client = LibraryClient.login()
-    results = remove_finished_from_merkliste(scrape_library(client)["entries"], client)
+    entries = scrape_library(client)["entries"]
+    results = remove_ebooks_from_merkliste(entries, client) + remove_finished_from_merkliste(
+        [entry for entry in entries if not entry.get("ebook")], client
+    )
     for isbn13, title, status in results:
         print(f"{isbn13} | {title} | {status}")
     print(f"Removed from Merkliste: {sum(status == 'removed' for _, _, status in results)}")

@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS library_matches (
     matched_at TEXT NOT NULL,
     catalog_title TEXT,
     memorize_status TEXT CHECK (
-        memorize_status IN ('added', 'already_listed', 'failed', 'needs_review')
+        memorize_status IN ('added', 'already_listed', 'failed', 'needs_review', 'ebook')
     ),
     memorize_checked_at TEXT,
     FOREIGN KEY (reado_isbn) REFERENCES reado_books(isbn13) ON DELETE CASCADE
@@ -167,7 +167,7 @@ CREATE TABLE IF NOT EXISTS catalog_editions (
     -- Space-separated copy numbers of the catalog record: identify the record on the Merkliste.
     media_numbers TEXT,
     memorize_status TEXT CHECK (
-        memorize_status IN ('added', 'already_listed', 'failed', 'needs_review')
+        memorize_status IN ('added', 'already_listed', 'failed', 'needs_review', 'ebook')
     ),
     memorize_checked_at TEXT,
     PRIMARY KEY (reado_isbn, isbn),
@@ -221,23 +221,23 @@ def _get_table_columns(connection: sqlite3.Connection, table_name: str) -> set[s
 
 
 def _migrate_library_matches_statuses(connection: sqlite3.Connection) -> None:
-    """Recreate library_matches if its CHECK constraint predates 'needs_review'."""
-    row = connection.execute(
-        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'library_matches'"
-    ).fetchone()
-    if row is None or "needs_review" in str(row[0]):
-        return
-    connection.execute("ALTER TABLE library_matches RENAME TO library_matches_old")
-    connection.executescript(SCHEMA_SQL)
-    connection.execute(
-        """
-        INSERT INTO library_matches
-        SELECT reado_isbn, matched_isbn, source, matched_at, catalog_title,
-               memorize_status, memorize_checked_at
-        FROM library_matches_old
-        """
-    )
-    connection.execute("DROP TABLE library_matches_old")
+    """Recreate the tables with a memorize_status CHECK constraint that predates
+    the newest status ('ebook')."""
+    for table in ("library_matches", "catalog_editions"):
+        row = connection.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?", (table,)
+        ).fetchone()
+        if row is None or "'ebook'" in str(row[0]):
+            continue
+        connection.execute(f"ALTER TABLE {table} RENAME TO {table}_old")
+        connection.executescript(SCHEMA_SQL)
+        columns = ", ".join(
+            column
+            for column in _get_table_columns(connection, table)
+            if column in _get_table_columns(connection, f"{table}_old")
+        )
+        connection.execute(f"INSERT INTO {table} ({columns}) SELECT {columns} FROM {table}_old")
+        connection.execute(f"DROP TABLE {table}_old")
 
 
 def _seed_catalog_editions(connection: sqlite3.Connection) -> None:

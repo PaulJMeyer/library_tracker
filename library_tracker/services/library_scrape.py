@@ -6,6 +6,7 @@ from library_tracker.clients.library import LibraryClient
 from library_tracker.database import get_connection, initialize_database
 from library_tracker.models import Item, MerklisteEntry, ScrapeResult
 from library_tracker.parsers.library import (
+    is_ebook_only,
     parse_availability_page,
     parse_loans,
     parse_page_count,
@@ -51,6 +52,7 @@ def scrape_library(client: LibraryClient | None = None) -> ScrapeResult:
                     "uuid": entry["uuid"],
                     "page": page,
                     "media_numbers": [copy["media_number"] for copy in item["copies"]],
+                    "ebook": is_ebook_only(item["copies"]),
                 }
             )
             if item["overall_status"] != "entliehen":

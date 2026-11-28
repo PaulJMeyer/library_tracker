@@ -266,6 +266,7 @@ MEMORIZE_STATUS_LABELS = {
     "already_listed": "stand schon drauf",
     "failed": "Hinzufügen fehlgeschlagen, wird erneut versucht",
     "needs_review": "nicht hinzugefügt: Einzelband einer mehrbändigen Ausgabe, bitte prüfen",
+    "ebook": "nicht hinzugefügt: nur als E-Book (Online-Zweigstelle)",
 }
 
 

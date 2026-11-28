@@ -1,4 +1,5 @@
-"""Remove books from the library Merkliste once they are on a finished READO list."""
+"""Remove books from the library Merkliste once they are on a finished READO list,
+and e-books, which the overview does not show."""
 from __future__ import annotations
 
 import sys
@@ -40,6 +41,28 @@ def _matches(entry: MerklisteEntry, titles: set[str], media_numbers: set[str]) -
     return merkliste_title_key(entry["title"]) in titles or not media_numbers.isdisjoint(
         entry.get("media_numbers", [])
     )
+
+
+def remove_ebooks_from_merkliste(
+    entries: list[MerklisteEntry],
+    client: LibraryClient,
+    *,
+    progress: Callable[[str], None] = _print_progress,
+) -> list[tuple[str, str, str]]:
+    """Removes Merkliste entries whose copies are all e-books of the online branch.
+
+    Returns [("", title, status)] with status removed/failed, one row per entry."""
+    results: list[tuple[str, str, str]] = []
+    for entry in entries:
+        if not entry.get("ebook"):
+            continue
+        try:
+            removed = client.remove_entries(entry["page"], [entry["uuid"]])
+        except LibraryClientError as exc:
+            progress(f"  Entfernen-Fehler bei {entry['title']}: {exc}")
+            removed = False
+        results.append(("", entry["title"], "removed" if removed else "failed"))
+    return results
 
 
 def remove_finished_from_merkliste(
