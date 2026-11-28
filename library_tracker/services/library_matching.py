@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import re
-import sys
 from collections.abc import Callable, Iterable
 from datetime import UTC, datetime, timedelta
 from typing import cast
 
 from library_tracker.clients.library import LibraryClient, LibraryClientError
 from library_tracker.database import open_database
+from library_tracker.progress import log
 from library_tracker.models import (
     Copy,
     LibraryIsbnCandidate,
@@ -59,10 +59,6 @@ EXTRA_EDITION_SEARCHES_PER_RUN = 150
 
 def _now() -> datetime:
     return datetime.now(UTC)
-
-
-def _print_progress(message: str) -> None:
-    print(message, file=sys.stderr, flush=True)
 
 
 def search_catalog(isbn: str, client: LibraryClient | None = None) -> list[str]:
@@ -148,7 +144,7 @@ def match_wishlist_books(
     per_book_limit: int = PER_BOOK_SEARCH_LIMIT,
     recheck_days: int = RECHECK_MISSES_AFTER_DAYS,
     extra_edition_searches: int = EXTRA_EDITION_SEARCHES_PER_RUN,
-    progress: Callable[[str], None] = _print_progress,
+    progress: Callable[[str], None] = log,
 ) -> dict[str, int]:
     """Search the catalog for every known edition of the wishlist books, a bounded batch
     of ISBNs per book and run.
@@ -234,7 +230,7 @@ def add_matches_to_merkliste(
     client: LibraryClient | None = None,
     *,
     existing_media_numbers: Iterable[str] = (),
-    progress: Callable[[str], None] = _print_progress,
+    progress: Callable[[str], None] = log,
 ) -> list[tuple[str, str, str]]:
     """Put every catalog edition of the wishlist books on the library Merkliste.
 

@@ -1,7 +1,6 @@
 """Daily pipeline: READO lists -> metadata -> catalog matches -> Merkliste -> overview."""
 from __future__ import annotations
 
-import sys
 from collections.abc import Callable
 from functools import partial
 from typing import TypeVar
@@ -17,6 +16,7 @@ from library_tracker.config import (
     configured_reado_list_types,
 )
 from library_tracker.database import open_database
+from library_tracker.progress import log
 from library_tracker.titles import merkliste_title_key
 from library_tracker.models import ReadoListType, ScrapeResult
 from library_tracker.repositories.library_matches import get_wishlist_catalog_titles
@@ -49,10 +49,6 @@ EXPECTED_ERRORS = (
 T = TypeVar("T")
 
 
-def _log(message: str) -> None:
-    print(message, file=sys.stderr, flush=True)
-
-
 class SyncReport:
     def __init__(self) -> None:
         self.warnings: list[str] = []
@@ -65,11 +61,11 @@ class SyncReport:
         self.own_wishlist_titles: list[str] = []
 
     def step(self, name: str, action: Callable[[], T]) -> T | None:
-        _log(f"== {name}")
+        log(f"== {name}")
         try:
             return action()
         except EXPECTED_ERRORS as exc:
-            _log(f"   Fehler: {exc}")
+            log(f"   Fehler: {exc}")
             self.warnings.append(f"{name} fehlgeschlagen")
             return None
 
@@ -98,7 +94,7 @@ def run_sync(
     *,
     client: LibraryClient | None = None,
     fresh_login: Callable[[], LibraryClient] = LibraryClient.login,
-    log: Callable[[str], None] = _log,
+    log: Callable[[str], None] = log,
 ) -> SyncReport:
     report = SyncReport()
 
@@ -165,7 +161,7 @@ def run_sync(
         if rescrape is not None and rescrape["total_entries"] >= expected:
             report.scrape = rescrape
         elif rescrape is not None:
-            _log(
+            log(
                 f"   Nur {rescrape['total_entries']} von mindestens {expected} Einträgen gelesen, "
                 "verwende die erste Lesung."
             )

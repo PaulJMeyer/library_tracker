@@ -221,7 +221,7 @@ def test_run_sync_continues_after_failed_steps() -> None:
         patch.object(
             sync, "add_matches_to_merkliste", return_value=[("1", "New", "added")]
         ) as add,
-        patch.object(sync, "_log"),
+        patch.object(sync, "log"),
     ):
         report = sync.run_sync(client=client, fresh_login=lambda: client, log=lambda _: None)
 
@@ -286,7 +286,7 @@ def test_run_sync_assigns_second_wishlist_titles() -> None:
         patch.object(sync, "remove_finished_from_merkliste", return_value=[]),
         patch.object(sync, "add_matches_to_merkliste", return_value=[]),
         patch.object(sync, "_wishlist_titles", return_value=(["B"], ["A"])),
-        patch.object(sync, "_log"),
+        patch.object(sync, "log"),
     ):
         report = sync.run_sync(client=client, log=lambda _: None)
 
@@ -322,7 +322,7 @@ def test_run_sync_keeps_first_read_when_reread_is_incomplete() -> None:
         patch.object(sync, "scrape_library", side_effect=[full, partial]) as scrape,
         patch.object(sync, "remove_finished_from_merkliste", return_value=[]),
         patch.object(sync, "add_matches_to_merkliste", return_value=[("1", "New", "added")]),
-        patch.object(sync, "_log"),
+        patch.object(sync, "log"),
     ):
         report = sync.run_sync(client=client, fresh_login=lambda: fresh, log=lambda _: None)
 

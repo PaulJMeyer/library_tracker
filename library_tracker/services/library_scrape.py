@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import sys
 
 from library_tracker.clients.library import LibraryClient
 from library_tracker.database import open_database
+from library_tracker.progress import log
 from library_tracker.models import Item, MerklisteEntry, ScrapeResult
 from library_tracker.parsers.library import (
     is_ebook_only,
@@ -26,7 +26,7 @@ def scrape_library(client: LibraryClient | None = None) -> ScrapeResult:
     client = client or LibraryClient.login()
     pages = client.get_all_memorize_pages()
     total_entries = sum(len(page["entries"]) for page in pages)
-    print(f"   Merkliste: {total_entries} Einträge", file=sys.stderr, flush=True)
+    log(f"   Merkliste: {total_entries} Einträge")
 
     visible_items: list[Item] = []
     scraped_items: list[Item] = []
@@ -41,11 +41,7 @@ def scrape_library(client: LibraryClient | None = None) -> ScrapeResult:
             item["pages"] = parse_page_count(details_html) or parse_page_count(copies_html)
             scraped_items.append(item)
             if len(scraped_items) % 10 == 0:
-                print(
-                    f"   {len(scraped_items)}/{total_entries} Verfügbarkeiten gelesen",
-                    file=sys.stderr,
-                    flush=True,
-                )
+                log(f"   {len(scraped_items)}/{total_entries} Verfügbarkeiten gelesen")
             entries.append(
                 {
                     "title": item["title"],
