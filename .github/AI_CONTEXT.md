@@ -16,18 +16,22 @@ READO is the source of truth for reading state. The daily `sync` command caches 
 - `database.py` — schema and migrations
 - `models.py` — typed contracts
 - `isbn.py` — shared ISBN normalization
+- `titles.py` — title helpers (`strip_sort_markers`, `normalize_title`, strict `merkliste_title_key`)
+- `progress.py` — progress output to stderr
+- database access in services: `with open_database() as connection:`
 
 ## Current READO workflow
 
 Configured list types:
 
 - wishlist
+- second_wishlist (optional, another READO account)
 - tbr
 - reading
 - completed
 - abandoned
 
-Books on tbr/reading/completed/abandoned (and not on the wishlist) are removed from the library Merkliste with all their editions. List membership is stored separately from bibliographic cache data. Moving a book between lists must not delete resolved work/edition metadata.
+Books on tbr/reading/completed/abandoned (and not on a wishlist) are removed from the library Merkliste with all their editions; entries of books still on a wishlist are kept. E-books (Online-Zweigstelle) are never shown or added. List membership is stored separately from bibliographic cache data. Moving a book between lists must not delete resolved work/edition metadata.
 
 ## Current metadata workflow
 
@@ -54,7 +58,7 @@ READO lists (one step per list)
 → metadata for new wishlist books
 → incremental catalog search
 → read Merkliste
-→ remove finished books
+→ remove e-book entries and finished books
 → add every found edition of a wishlist book (only "in die Merkliste"; same catalog record by copy number only once)
 → fresh-session re-read
 → Telegram overview
@@ -82,3 +86,4 @@ Free branch orders may be implemented only in a later phase and only behind expl
 - behavioral `pytest` tests with mocked external requests
 - temporary SQLite databases in tests
 - never commit credentials, API keys or the local database
+- every change updates README.md and ROADMAP.md (and PROJECT_STRUCTURE.md / this file when the structure changes)

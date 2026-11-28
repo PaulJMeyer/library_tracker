@@ -2,14 +2,13 @@
 and e-books, which the overview does not show."""
 from __future__ import annotations
 
-import sys
 from collections.abc import Callable
 from datetime import UTC, datetime
 
 from library_tracker.clients.library import LibraryClient, LibraryClientError
-from library_tracker.clients.openlibrary import strip_sort_markers
-from library_tracker.titles import merkliste_title_key
-from library_tracker.database import get_connection, initialize_database
+from library_tracker.titles import merkliste_title_key, strip_sort_markers
+from library_tracker.database import open_database
+from library_tracker.progress import log
 from library_tracker.models import MerklisteEntry
 from library_tracker.parsers.library import parse_single_hit
 from library_tracker.repositories.merkliste_removals import (
@@ -22,10 +21,6 @@ from library_tracker.repositories.merkliste_removals import (
 # Books without a stored catalog title need one catalog search each, so the first
 # run with a long "completed" list is spread over several days.
 CATALOG_LOOKUPS_PER_RUN = 30
-
-
-def _print_progress(message: str) -> None:
-    print(message, file=sys.stderr, flush=True)
 
 
 def _catalog_title(client: LibraryClient, isbn13: str) -> str | None:
@@ -47,7 +42,7 @@ def remove_ebooks_from_merkliste(
     entries: list[MerklisteEntry],
     client: LibraryClient,
     *,
-    progress: Callable[[str], None] = _print_progress,
+    progress: Callable[[str], None] = log,
 ) -> list[tuple[str, str, str]]:
     """Removes Merkliste entries whose copies are all e-books of the online branch.
 
@@ -70,7 +65,7 @@ def remove_finished_from_merkliste(
     client: LibraryClient,
     *,
     lookup_limit: int = CATALOG_LOOKUPS_PER_RUN,
-    progress: Callable[[str], None] = _print_progress,
+    progress: Callable[[str], None] = log,
 ) -> list[tuple[str, str, str]]:
     """Removes every edition of a finished book (matched by title or copy number).
 
@@ -80,9 +75,7 @@ def remove_finished_from_merkliste(
     remaining = list(entries)
     results: list[tuple[str, str, str]] = []
     lookups = 0
-    connection = get_connection()
-    try:
-        initialize_database(connection)
+    with open_database() as connection:
         forget_removals_of_wishlist_books(connection)
         # Entries that belong to a wishlist book are never removed.
         wishlist_titles, wishlist_media = get_wishlist_merkliste_keys(connection)
@@ -124,5 +117,3 @@ def remove_finished_from_merkliste(
             else:
                 results.append((isbn13, title or isbn13, status))
         return results
-    finally:
-        connection.close()

@@ -20,11 +20,11 @@ The project started as an authenticated scraper for the library's personal wish 
 - read the personal library wish list across multiple pages
 - parse titles, page counts (from the catalog's extent field), physical copies, branches, status and due dates
 - distinguish Zentralbibliothek from branch libraries
-- classify titles as `ausleihbar` (free copy in the Zentralbibliothek), `bestellbar` (free copy in another branch that can be ordered; prison library and reference-only copies excluded), `entliehen`, `bestellt` or `unbekannt`
+- classify titles as `ausleihbar` (free copy in the Zentralbibliothek), `bestellbar` (free copy in another branch that can be ordered; prison library, reference-only copies and e-books of the Online-Zweigstelle excluded), `entliehen`, `bestellt` or `unbekannt`
 - read current loans from the account page
 - store copy metadata and availability snapshots in SQLite
 - search the catalog by ISBN, incrementally across runs (every searched ISBN is stored)
-- add every catalog edition of a wishlist book to the library Merkliste (free "in die Merkliste" link only; the same catalog record is recognized by its copy numbers and added only once)
+- add every catalog edition of a wishlist book to the library Merkliste (free "in die Merkliste" link only; the same catalog record is recognized by its copy numbers and added only once; e-book-only records are never added)
 
 ### READO
 
@@ -102,7 +102,7 @@ python -m library_tracker match-report
 ```
 
 
-`library-match` checks one active READO wishlist entry and stops at the first catalog hit among its prioritized ISBN candidates. `match-books` works through all active wishlist books, stores every searched ISBN in `catalog_searches` and continues with the next ISBNs on the following run, so books with many editions are covered over several runs. It does not stop at the first hit: every edition found in the catalog is stored in `catalog_editions`. ISBNs without a hit are searched again after 30 days, found ISBNs never. `merkliste-add` puts every found edition on the Merkliste (English editions only if the catalog has no other edition of the book), skips catalog records that are already on the Merkliste (same copy number; title comparison if the catalog shows no copies) and retries failed additions on the next run. If the hit is an alternative edition (not the exact READO ISBN) and a single volume of a multi-volume edition ("Band 3", "Bd. 2", "Vol. 1"), it is not added but reported for manual review. Fully loaned Merkliste entries are no longer removed automatically. `merkliste-cleanup` removes books, with all their editions, that are on a finished READO list (TBR, reading, completed, abandoned) and not on the wishlist; each book is checked once (state in `merkliste_removals`).
+`library-match` checks one active READO wishlist entry and stops at the first catalog hit among its prioritized ISBN candidates. `match-books` works through all active wishlist books, stores every searched ISBN in `catalog_searches` and continues with the next ISBNs on the following run, so books with many editions are covered over several runs. It does not stop at the first hit: every edition found in the catalog is stored in `catalog_editions`. ISBNs without a hit are searched again after 30 days, found ISBNs never. `merkliste-add` puts every found edition on the Merkliste (English editions only if the catalog has no other edition of the book), skips catalog records that are already on the Merkliste (same copy number; title comparison if the catalog shows no copies) and retries failed additions on the next run. If the hit is an alternative edition (not the exact READO ISBN) and a single volume of a multi-volume edition ("Band 3", "Bd. 2", "Vol. 1"), it is not added but reported for manual review. Fully loaned Merkliste entries are no longer removed automatically. Records whose copies are all e-books of the Online-Zweigstelle are not added either (status `ebook`). `merkliste-cleanup` removes e-book-only entries and books, with all their editions, that are on a finished READO list (TBR, reading, completed, abandoned) and not on a wishlist; each book is checked once (state in `merkliste_removals`). Entries that belong to a book still on a wishlist are kept, and a book that comes back to a wishlist is added again. Titles are compared with a strict key (series part kept, subtitle after ':' and leading article dropped), copy numbers first wherever known.
 
 
 ## Architecture
@@ -117,6 +117,7 @@ services/
  ├── reado_sync
  ├── metadata
  ├── library_matching
+ ├── merkliste_cleanup
  └── sync (full pipeline)
  ↓
 clients/                    repositories/
@@ -124,7 +125,9 @@ clients/                    repositories/
  ├── reado                 ├── reado
  ├── openlibrary           ├── metadata
  ├── googlebooks           ├── matching
- ├── dnb                   └── library_matches
+ ├── dnb                   ├── library_matches
+ │                         ├── merkliste_removals
+ │                         └── telegram_overviews
  └── telegram
         ↓                         ↓
 external services               SQLite
@@ -132,7 +135,7 @@ external services               SQLite
 parsers/library.py handles Bremen-specific HTML parsing.
 ```
 
-Shared ISBN normalization lives in `isbn.py`; SQLite schema/migrations remain in `database.py`; `models.py` contains the typed structures passed between layers.
+Shared ISBN normalization lives in `isbn.py`, title comparison in `titles.py` and progress output in `progress.py`; SQLite schema/migrations and the `open_database()` context manager remain in `database.py`; `models.py` contains the typed structures passed between layers.
 
 See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for the detailed module map.
 
@@ -191,9 +194,9 @@ The scheduled pipeline (`sync --telegram`) runs these steps once a day; every st
 2. resolve metadata and editions for new wishlist books only
 3. search the catalog for up to 15 not yet searched ISBNs per wishlist book (books without a hit first, then up to 150 ISBNs per run for further editions of books that already have one)
 4. read the library Merkliste
-5. remove books that moved to a finished READO list or left the second wishlist
-6. add newly found wishlist books and newly found editions of wishlist books
-7. send the Telegram overview (available, orderable, added, removed, warnings), but only if it differs from the last message; runs with warnings always send; books on the optional second wishlist get their own section)
+5. remove e-book-only entries and books that moved to a finished READO list or left the second wishlist (books still on a wishlist are kept)
+6. add newly found wishlist books and newly found editions of wishlist books (no e-books)
+7. send the Telegram overview (available, orderable, added, removed, warnings; each book listed once even with several editions), but only if it differs from the last message; runs with warnings always send; books on the optional second wishlist get their own section)
 
 
 Planned features are listed in the [roadmap](ROADMAP.md).

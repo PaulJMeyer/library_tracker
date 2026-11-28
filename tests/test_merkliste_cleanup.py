@@ -49,7 +49,7 @@ def db(tmp_path: Path):  # type: ignore[no-untyped-def]
     save_memorize_result(connection, "9784444444444", "added", "Anderes Buch", "now")
     connection.close()
     with patch(
-        "library_tracker.services.merkliste_cleanup.get_connection",
+        "library_tracker.database.get_connection",
         side_effect=lambda: get_connection(path),
     ):
         yield path

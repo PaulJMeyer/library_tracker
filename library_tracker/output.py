@@ -5,8 +5,7 @@ import html
 import re
 from pathlib import Path
 
-from library_tracker.clients.openlibrary import strip_sort_markers
-from library_tracker.titles import merkliste_title_key
+from library_tracker.titles import merkliste_title_key, strip_sort_markers
 from library_tracker.parsers.library import is_lendable_location, is_orderable
 from library_tracker.models import (
     AvailabilitySnapshot,

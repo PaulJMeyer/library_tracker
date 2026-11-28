@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -198,11 +200,23 @@ CREATE TABLE IF NOT EXISTS telegram_overviews (
 """
 
 
-def get_connection(path: Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
+def get_connection(path: Path | None = None) -> sqlite3.Connection:
+    path = path or DEFAULT_DB_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path)
     connection.execute("PRAGMA foreign_keys = ON")
     return connection
+
+
+@contextmanager
+def open_database() -> Iterator[sqlite3.Connection]:
+    """Connection to the up-to-date database, closed afterwards."""
+    connection = get_connection()
+    try:
+        initialize_database(connection)
+        yield connection
+    finally:
+        connection.close()
 
 
 def initialize_database(connection: sqlite3.Connection) -> None:

@@ -28,6 +28,11 @@ FINISHED_LIST_TYPES: tuple[ReadoListType, ...] = ("tbr", "reading", "completed",
 WISHLIST_TYPES: tuple[ReadoListType, ...] = ("wishlist", "second_wishlist")
 # SQL fragment for `list_type IN ...`; built from constants only.
 WISHLIST_TYPES_SQL = "(" + ", ".join(f"'{list_type}'" for list_type in WISHLIST_TYPES) + ")"
+# Subquery: ISBNs of the books currently on one of the wishlists.
+ACTIVE_WISHLIST_ISBNS_SQL = (
+    f"SELECT isbn13 FROM reado_list_memberships "
+    f"WHERE list_type IN {WISHLIST_TYPES_SQL} AND is_active = 1"
+)
 
 READO_LIST_LABELS: dict[ReadoListType, str] = {
     "wishlist": "Wunschliste",

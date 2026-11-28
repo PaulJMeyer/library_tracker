@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from library_tracker.config import FINISHED_LIST_TYPES, WISHLIST_TYPES_SQL
+from library_tracker.config import ACTIVE_WISHLIST_ISBNS_SQL, FINISHED_LIST_TYPES
 
 
 def forget_removals_of_wishlist_books(connection: sqlite3.Connection) -> None:
@@ -13,10 +13,7 @@ def forget_removals_of_wishlist_books(connection: sqlite3.Connection) -> None:
     step would skip them although the cleanup took them off the Merkliste."""
     back_on_wishlist = f"""
         SELECT mr.isbn13 FROM merkliste_removals AS mr
-        WHERE mr.isbn13 IN (
-            SELECT isbn13 FROM reado_list_memberships
-            WHERE list_type IN {WISHLIST_TYPES_SQL} AND is_active = 1
-        )
+        WHERE mr.isbn13 IN ({ACTIVE_WISHLIST_ISBNS_SQL})
     """
     with connection:
         for table in ("catalog_editions", "library_matches"):
@@ -40,16 +37,10 @@ def get_wishlist_merkliste_keys(connection: sqlite3.Connection) -> tuple[set[str
     for title, numbers in connection.execute(
         f"""
         SELECT ce.catalog_title, ce.media_numbers FROM catalog_editions AS ce
-        WHERE ce.reado_isbn IN (
-            SELECT isbn13 FROM reado_list_memberships
-            WHERE list_type IN {WISHLIST_TYPES_SQL} AND is_active = 1
-        )
+        WHERE ce.reado_isbn IN ({ACTIVE_WISHLIST_ISBNS_SQL})
         UNION ALL
         SELECT lm.catalog_title, NULL FROM library_matches AS lm
-        WHERE lm.reado_isbn IN (
-            SELECT isbn13 FROM reado_list_memberships
-            WHERE list_type IN {WISHLIST_TYPES_SQL} AND is_active = 1
-        )
+        WHERE lm.reado_isbn IN ({ACTIVE_WISHLIST_ISBNS_SQL})
         """
     ):
         if title is not None:
@@ -80,10 +71,7 @@ def get_finished_books_to_check(
                 OR (rlm.list_type = 'second_wishlist' AND rlm.is_active = 0)
               )
               AND (mr.isbn13 IS NULL OR mr.status = 'failed')
-              AND rlm.isbn13 NOT IN (
-                  SELECT isbn13 FROM reado_list_memberships
-                  WHERE list_type IN {WISHLIST_TYPES_SQL} AND is_active = 1
-              )
+              AND rlm.isbn13 NOT IN ({ACTIVE_WISHLIST_ISBNS_SQL})
             ORDER BY rlm.isbn13
             """,
             FINISHED_LIST_TYPES,

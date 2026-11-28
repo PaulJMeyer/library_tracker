@@ -15,6 +15,7 @@ library_tracker/
 │   ├── isbn.py
 │   ├── models.py
 │   ├── output.py
+│   ├── progress.py
 │   ├── titles.py
 │   ├── clients/
 │   │   ├── __init__.py
@@ -94,7 +95,7 @@ clients/     repositories/
   ↓              ↓
 parsers/        SQLite
 
-shared: config.py, isbn.py, models.py, database.py, output.py, titles.py
+shared: config.py, isbn.py, models.py, database.py, output.py, progress.py, titles.py
 ```
 
 The important rule is that the CLI routes commands but does not contain the business workflows. External HTTP details live in clients; SQL lives in repositories; multi-step operations live in services.
@@ -118,9 +119,17 @@ Central configuration boundary:
 
 One shared `normalize_isbn()` implementation used by the library catalog, Open Library and Google Books clients.
 
+### `progress.py`
+
+`log()`: progress messages of long-running steps go to stderr, so stdout stays for results. Services take it as the default `progress`/`log` callback; tests pass their own.
+
 ### `titles.py`
 
-`merkliste_title_key()`: when two catalog titles count as the same book (overview merging, second-wishlist section, Merkliste add and cleanup). Keeps series titles like "Reihe - Teil 1" apart, drops subtitles after ':' and a leading article. Copy numbers are compared first wherever they are known.
+Title helpers shared by the catalog, Open Library and DNB code:
+
+- `strip_sort_markers()`: removes the catalog's non-sorting markers ("¬Der¬ Fremde")
+- `normalize_title()`: loose comparison for metadata matching (drops subtitles after ':' or ' - ')
+- `merkliste_title_key()`: when two catalog titles count as the same book (overview merging, second-wishlist section, Merkliste add and cleanup). Keeps series titles like "Reihe - Teil 1" apart, drops subtitles after ':' and a leading article. Copy numbers are compared first wherever they are known.
 
 ### `models.py`
 
@@ -136,10 +145,12 @@ Typed contracts shared between layers. Important groups:
 
 Owns SQLite infrastructure only:
 
-- connection creation
+- connection creation (`get_connection()`, path `data/library_tracker.db` unless given)
+- `open_database()`: context manager used by services and the CLI; opens, initializes and closes the database
 - foreign-key activation
 - complete schema initialization
 - migration from the legacy `reado_books.on_wishlist` column to list memberships
+- rebuild of `library_matches`/`catalog_editions` when their status CHECK constraint is older than the newest status
 
 The schema is created with one `executescript()` block rather than many repeated setup calls.
 
@@ -293,12 +304,12 @@ Orchestrates cached external metadata work:
 - direct catalog search for one ISBN
 - prioritized matching for one active READO wishlist book
 - `match_wishlist_books`: incremental search for all editions of all wishlist books (15 new ISBNs per book and run, books without a hit first, at most 150 ISBNs per run for further editions, recheck misses after 30 days)
-- `add_matches_to_merkliste`: open each found edition's catalog hit and follow only its "in die Merkliste" link; skips catalog records already on the Merkliste (copy numbers, title as fallback)
+- `add_matches_to_merkliste`: open each found edition's catalog hit and follow only its "in die Merkliste" link; skips catalog records already on the Merkliste (copy numbers, title as fallback) and e-book-only records (status `ebook`)
 - `build_match_report`: diagnostic report from stored state
 
 ### `services/merkliste_cleanup.py`
 
-Removes books that are on a finished READO list (TBR, reading, completed, abandoned) and not on the wishlist from the Merkliste. It removes every edition: Merkliste entries matching a stored catalog title or copy number of any found edition, otherwise it uses one catalog search per book (30 per run). Each book is checked once (`merkliste_removals`); failed removals are retried, and a book that returns to the wishlist can be removed again later.
+Removes e-book-only entries (online branch) from the Merkliste, and books that are on a finished READO list (TBR, reading, completed, abandoned) and not on the wishlist from the Merkliste. It removes every edition: Merkliste entries matching a stored catalog title or copy number of any found edition, otherwise it uses one catalog search per book (30 per run). Each book is checked once (`merkliste_removals`); failed removals are retried, and a book that returns to a wishlist is put on the Merkliste again and can be removed again later. Entries that belong to a book still on a wishlist are never removed.
 
 ### `services/sync.py`
 

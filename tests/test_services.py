@@ -37,8 +37,8 @@ def test_library_scrape_orchestrates_client_and_persistence() -> None:
             side_effect=[loaned, available],
         ),
         patch("library_tracker.services.library_scrape.parse_loans", return_value=[]),
-        patch("library_tracker.services.library_scrape.get_connection", return_value=connection),
-        patch("library_tracker.services.library_scrape.initialize_database"),
+        patch("library_tracker.database.get_connection", return_value=connection),
+        patch("library_tracker.database.initialize_database"),
         patch("library_tracker.services.library_scrape.persist_items") as persist,
     ):
         result = scrape_library(client)
@@ -64,8 +64,8 @@ def test_library_matching_stops_at_first_hit() -> None:
         {"isbn": "3", "source": "openlibrary_unknown"},
     ]
     with (
-        patch("library_tracker.services.library_matching.get_connection", return_value=connection),
-        patch("library_tracker.services.library_matching.initialize_database"),
+        patch("library_tracker.database.get_connection", return_value=connection),
+        patch("library_tracker.database.initialize_database"),
         patch(
             "library_tracker.services.library_matching.get_wishlist_isbn_candidates",
             return_value=candidates,
@@ -169,7 +169,7 @@ def test_lookup_dnb_editions_combines_isbn_and_title_search(tmp_path) -> None:  
     ]
 
     with patch(
-        "library_tracker.services.metadata.get_connection",
+        "library_tracker.database.get_connection",
         side_effect=lambda: get_connection(db_path),
     ):
         results, failed = lookup_dnb_editions(client)
@@ -221,7 +221,7 @@ def test_run_sync_continues_after_failed_steps() -> None:
         patch.object(
             sync, "add_matches_to_merkliste", return_value=[("1", "New", "added")]
         ) as add,
-        patch.object(sync, "_log"),
+        patch.object(sync, "log"),
     ):
         report = sync.run_sync(client=client, fresh_login=lambda: client, log=lambda _: None)
 
@@ -286,7 +286,7 @@ def test_run_sync_assigns_second_wishlist_titles() -> None:
         patch.object(sync, "remove_finished_from_merkliste", return_value=[]),
         patch.object(sync, "add_matches_to_merkliste", return_value=[]),
         patch.object(sync, "_wishlist_titles", return_value=(["B"], ["A"])),
-        patch.object(sync, "_log"),
+        patch.object(sync, "log"),
     ):
         report = sync.run_sync(client=client, log=lambda _: None)
 
@@ -322,7 +322,7 @@ def test_run_sync_keeps_first_read_when_reread_is_incomplete() -> None:
         patch.object(sync, "scrape_library", side_effect=[full, partial]) as scrape,
         patch.object(sync, "remove_finished_from_merkliste", return_value=[]),
         patch.object(sync, "add_matches_to_merkliste", return_value=[("1", "New", "added")]),
-        patch.object(sync, "_log"),
+        patch.object(sync, "log"),
     ):
         report = sync.run_sync(client=client, fresh_login=lambda: fresh, log=lambda _: None)
 

@@ -8,13 +8,8 @@ from dataclasses import dataclass, field
 
 import requests
 
-from library_tracker.clients.openlibrary import (
-    authors_match,
-    normalize_title,
-    strip_sort_markers,
-    surname,
-    titles_match,
-)
+from library_tracker.clients.openlibrary import authors_match, surname, titles_match
+from library_tracker.titles import normalize_title, strip_sort_markers
 from library_tracker.isbn import isbn10_to_isbn13, normalize_isbn
 
 DNB_SRU_URL = "https://services.dnb.de/sru/dnb"

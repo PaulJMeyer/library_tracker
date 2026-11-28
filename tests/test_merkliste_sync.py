@@ -70,7 +70,7 @@ def db(tmp_path: Path):  # type: ignore[no-untyped-def]
     )
     connection.close()
     with (
-        patch("library_tracker.services.library_matching.get_connection", side_effect=lambda: get_connection(path)),
+        patch("library_tracker.database.get_connection", side_effect=lambda: get_connection(path)),
     ):
         yield path
 

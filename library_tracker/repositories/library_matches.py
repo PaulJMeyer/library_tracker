@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from library_tracker.config import WISHLIST_TYPES_SQL
+from library_tracker.config import ACTIVE_WISHLIST_ISBNS_SQL, WISHLIST_TYPES_SQL
 from library_tracker.models import LibraryIsbnCandidateSource
 
 
@@ -177,11 +177,7 @@ def get_editions_to_memorize(connection: sqlite3.Connection) -> list[tuple[str, 
             f"""
             SELECT ce.reado_isbn, ce.isbn
             FROM catalog_editions AS ce
-            WHERE EXISTS (
-                  SELECT 1 FROM reado_list_memberships AS rlm
-                  WHERE rlm.isbn13 = ce.reado_isbn
-                    AND rlm.list_type IN {WISHLIST_TYPES_SQL} AND rlm.is_active = 1
-              )
+            WHERE ce.reado_isbn IN ({ACTIVE_WISHLIST_ISBNS_SQL})
               AND (ce.memorize_status IS NULL OR ce.memorize_status = 'failed')
               AND NOT (
                   ce.source = 'openlibrary_english'
