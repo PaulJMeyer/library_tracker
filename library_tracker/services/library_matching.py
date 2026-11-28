@@ -16,8 +16,7 @@ from library_tracker.models import (
     LibraryMatchResult,
     MatchReportRow,
 )
-from library_tracker.clients.openlibrary import strip_sort_markers
-from library_tracker.titles import merkliste_title_key
+from library_tracker.titles import merkliste_title_key, strip_sort_markers
 from library_tracker.parsers.library import (
     parse_exemplar_tab_url,
     is_ebook_only,

@@ -6,8 +6,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 
 from library_tracker.clients.library import LibraryClient, LibraryClientError
-from library_tracker.clients.openlibrary import strip_sort_markers
-from library_tracker.titles import merkliste_title_key
+from library_tracker.titles import merkliste_title_key, strip_sort_markers
 from library_tracker.database import open_database
 from library_tracker.progress import log
 from library_tracker.models import MerklisteEntry

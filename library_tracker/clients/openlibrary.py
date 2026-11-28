@@ -8,6 +8,7 @@ from collections.abc import Iterable
 import requests
 
 from library_tracker.isbn import is_german_language_isbn, isbn10_to_isbn13, normalize_isbn
+from library_tracker.titles import normalize_title, strip_sort_markers
 from library_tracker.models import (
     EditionLanguage,
     OpenLibraryEdition,
@@ -48,24 +49,6 @@ PRINT_FORMAT_MARKERS = (
     "library binding",
     "board book",
 )
-
-
-SORT_MARKERS = ("¬", "\u0098", "\u009c")
-
-
-def strip_sort_markers(title: str) -> str:
-    """Remove the non-sorting markers catalogs put around leading articles."""
-    for marker in SORT_MARKERS:
-        title = title.replace(marker, "")
-    return " ".join(title.split())
-
-
-def normalize_title(title: str) -> str:
-    """Casefold, drop subtitles and punctuation for loose title comparison."""
-    title = strip_sort_markers(title)
-    main = re.split(r"\s[:\-–]\s|:", title, maxsplit=1)[0]
-    words = re.findall(r"\w+", main.casefold())
-    return " ".join(words)
 
 
 def titles_match(left: str, right: str) -> bool:
